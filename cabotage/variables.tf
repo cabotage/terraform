@@ -113,6 +113,20 @@ variable "vault_replicas" {
   default     = 3
 }
 
+# --- RustFS ---
+
+variable "rustfs_image" {
+  description = "Container image for RustFS"
+  type        = string
+  default     = "rustfs/rustfs:1.0.0-alpha.82"
+}
+
+variable "rustfs_replicas" {
+  description = "Number of RustFS replicas"
+  type        = number
+  default     = 4
+}
+
 # --- CNPG ---
 
 variable "cnpg_chart_version" {

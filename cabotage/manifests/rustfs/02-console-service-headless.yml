@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: cabotage
+  name: rustfs-console
+  labels:
+    app: rustfs
+spec:
+  clusterIP: None
+  ports:
+    - port: 9001
+      name: rustfs-console
+  selector:
+    app: rustfs
+  publishNotReadyAddresses: true
