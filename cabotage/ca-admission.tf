@@ -193,12 +193,16 @@ resource "kubectl_manifest" "ca_admission_webhook" {
     }]
   })
 
-  depends_on = [kubernetes_deployment_v1.ca_admission]
+  depends_on = [
+    kubernetes_deployment_v1.ca_admission,
+    null_resource.sign_intermediate_cas,
+  ]
 }
 
 resource "null_resource" "ca_admission_webhook_ready" {
   triggers = {
     webhook_id = kubectl_manifest.ca_admission_webhook.id
+    signing_id = null_resource.sign_intermediate_cas.id
   }
 
   provisioner "local-exec" {
