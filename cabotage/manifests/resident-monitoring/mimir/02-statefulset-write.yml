@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: resident-mimir-write
+  namespace: cabotage
+  labels:
+    app: resident-mimir
+    component: write
+spec:
+  serviceName: resident-mimir-write
+  replicas: 1
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: resident-mimir
+      component: write
+  template:
+    metadata:
+      labels:
+        app: resident-mimir
+        component: write
+        ca-admission.cabotage.io: "true"
+    spec:
+      serviceAccountName: resident-mimir
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: resident-mimir
+                  component: write
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+      containers:
+      - name: mimir
+        image: grafana/mimir:2.14.0
+        args:
+        - -config.file=/etc/mimir/mimir.yml
+        - -config.expand-env=true
+        - -target=write
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+        env:
+        - name: S3_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: resident-monitoring-s3
+              key: access-key-id
+        - name: S3_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: resident-monitoring-s3
+              key: secret-key
+        ports:
+        - containerPort: 8080
+          name: https
+        - containerPort: 9095
+          name: grpc
+        - containerPort: 7946
+          name: memberlist
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: https
+            scheme: HTTPS
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: https
+            scheme: HTTPS
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: "1"
+            memory: 2Gi
+        volumeMounts:
+        - name: config
+          mountPath: /etc/mimir
+        - name: tls
+          mountPath: /etc/tls
+          readOnly: true
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: config
+        configMap:
+          name: resident-mimir-config
+      - name: tls
+        secret:
+          secretName: resident-mimir-tls
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi

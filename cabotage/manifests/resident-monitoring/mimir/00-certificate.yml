@@ -1,0 +1,37 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: resident-mimir-tls
+  namespace: cabotage
+spec:
+  secretName: resident-mimir-tls
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  subject:
+    organizations:
+    - cabotage
+  commonName: resident-mimir
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  usages:
+    - digital signature
+    - key encipherment
+  dnsNames:
+  - resident-mimir-write
+  - resident-mimir-write.cabotage
+  - resident-mimir-write.cabotage.svc
+  - resident-mimir-write.cabotage.svc.cluster.local
+  - resident-mimir-read
+  - resident-mimir-read.cabotage
+  - resident-mimir-read.cabotage.svc
+  - resident-mimir-read.cabotage.svc.cluster.local
+  - resident-mimir-backend
+  - resident-mimir-backend.cabotage
+  - resident-mimir-backend.cabotage.svc
+  - resident-mimir-backend.cabotage.svc.cluster.local
+  issuerRef:
+    name: certificate-approver-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io

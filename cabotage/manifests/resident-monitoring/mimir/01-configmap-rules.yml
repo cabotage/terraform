@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: resident-mimir-rules
+  namespace: cabotage
+data:
+  rules.yml: |
+    groups:
+      - name: traefik_latency
+        interval: 15s
+        rules:
+          - record: traefik:router_request_duration_seconds_bucket:rate30s
+            expr: sum by (le, service) (rate(traefik_router_request_duration_seconds_bucket[30s]))
+          - record: traefik:router_request_duration_seconds_bucket:rate1m
+            expr: sum by (le, service) (rate(traefik_router_request_duration_seconds_bucket[1m]))
+          - record: traefik:router_request_duration_seconds_bucket:rate5m
+            expr: sum by (le, service) (rate(traefik_router_request_duration_seconds_bucket[5m]))

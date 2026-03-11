@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: resident-mimir-memberlist
+  namespace: cabotage
+  labels:
+    app: resident-mimir
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: resident-mimir
+  ports:
+  - port: 7946
+    targetPort: memberlist
+    name: memberlist
+    protocol: TCP

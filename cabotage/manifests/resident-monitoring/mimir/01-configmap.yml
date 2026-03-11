@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: resident-mimir-config
+  namespace: cabotage
+data:
+  mimir.yml: |
+    multitenancy_enabled: false
+    server:
+      http_listen_port: 8080
+      grpc_listen_port: 9095
+      http_tls_config:
+        cert_file: /etc/tls/tls.crt
+        key_file: /etc/tls/tls.key
+    common:
+      storage:
+        backend: s3
+        s3:
+          endpoint: rustfs.cabotage.svc.cluster.local:9000
+          bucket_name: resident-mimir
+          access_key_id: ${S3_ACCESS_KEY_ID}
+          secret_access_key: ${S3_SECRET_KEY}
+          insecure: false
+          bucket_lookup_type: path
+          http:
+            tls_ca_path: /var/run/secrets/cabotage.io/ca.crt
+    memberlist:
+      join_members:
+        - resident-mimir-memberlist.cabotage.svc.cluster.local:7946
+    ingester:
+      ring:
+        replication_factor: 1
+    store_gateway:
+      sharding_ring:
+        replication_factor: 1
+    compactor:
+      data_dir: /data/compactor
+    blocks_storage:
+      storage_prefix: blocks
+      tsdb:
+        dir: /data/tsdb
+      bucket_store:
+        sync_dir: /data/tsdb-sync
+    activity_tracker:
+      filepath: /data/metrics-activity.log
+    alertmanager:
+      data_dir: /data/alertmanager
+    ruler:
+      rule_path: /data/ruler
+    ruler_storage:
+      backend: local
+      local:
+        directory: /etc/mimir/rules
+    limits:
+      max_global_series_per_user: 0
+      compactor_block_upload_enabled: true

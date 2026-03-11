@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: resident-alloy
+  namespace: cabotage
+  labels:
+    app: resident-alloy
+spec:
+  selector:
+    matchLabels:
+      app: resident-alloy
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: resident-alloy
+        ca-admission.cabotage.io: "true"
+    spec:
+      serviceAccountName: resident-alloy
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Exists
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+      containers:
+      - name: alloy
+        image: grafana/alloy:v1.6.1
+        args:
+        - run
+        - /etc/alloy/config.alloy
+        - --storage.path=/tmp/alloy
+        - --server.http.listen-addr=0.0.0.0:12345
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+            add: ["DAC_READ_SEARCH"]
+        env:
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        ports:
+        - containerPort: 12345
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        volumeMounts:
+        - name: config
+          mountPath: /etc/alloy
+        - name: tmp
+          mountPath: /tmp
+        - name: pods-log
+          mountPath: /var/log/pods
+          readOnly: true
+        - name: docker-log
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        - name: positions
+          mountPath: /var/alloy
+      volumes:
+      - name: config
+        configMap:
+          name: resident-alloy-config
+      - name: tmp
+        emptyDir:
+          medium: "Memory"
+          sizeLimit: "256Mi"
+      - name: pods-log
+        hostPath:
+          path: /var/log/pods
+      - name: docker-log
+        hostPath:
+          path: /var/lib/docker/containers
+      - name: positions
+        hostPath:
+          path: /var/alloy/resident
+          type: DirectoryOrCreate
