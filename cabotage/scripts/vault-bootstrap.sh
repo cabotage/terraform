@@ -166,30 +166,30 @@ if printf '%s' "$mounts" | grep -q '"cabotage-consul/"'; then
 else
   vault_api POST sys/mounts/cabotage-consul '{"type":"consul","description":"automate consul tokens for kubernetes pods via ServiceAccount JWT"}' > /dev/null
   echo "  Mounted."
-
-  # Get consul management token
-  consul_mgmt=$(kube_get_secret consul-management-token | \
-    sed -n 's/.*"token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
-  consul_mgmt_decoded=$(printf '%s' "$consul_mgmt" | base64 -d 2>/dev/null || echo "")
-
-  # Create a consul management token for vault
-  echo "  Creating Consul management token for Vault..."
-  token_response=$(curl -sf \
-    -H "X-Consul-Token: $consul_mgmt_decoded" \
-    -X PUT -d '{"Description":"Vault Consul Backend Management Token","Policies":[{"Name":"global-management"}],"Local":true}' \
-    "http://consul-0.consul.cabotage.svc.cluster.local:8500/v1/acl/token")
-  vault_consul_mgmt=$(printf '%s' "$token_response" | sed -n 's/.*"SecretID"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
-
-  echo "  Configuring Consul secrets backend..."
-  vault_api POST cabotage-consul/config/access "{\"address\":\"127.0.0.1:8500\",\"scheme\":\"http\",\"token\":\"$vault_consul_mgmt\"}" > /dev/null
 fi
+
+# Ensure consul backend is configured
+echo "Configuring Consul secrets backend..."
+consul_mgmt=$(kube_get_secret consul-management-token | \
+  sed -n 's/.*"token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+consul_mgmt_decoded=$(printf '%s' "$consul_mgmt" | base64 -d 2>/dev/null || echo "")
+
+# Create a consul management token for vault (idempotent — creates a new one each time, but that's OK)
+echo "  Creating Consul management token for Vault..."
+token_response=$(curl -sf \
+  -H "X-Consul-Token: $consul_mgmt_decoded" \
+  -X PUT -d '{"Description":"Vault Consul Backend Management Token","Policies":[{"Name":"global-management"}],"Local":true}' \
+  "http://consul-0.consul.cabotage.svc.cluster.local:8500/v1/acl/token")
+vault_consul_mgmt=$(printf '%s' "$token_response" | sed -n 's/.*"SecretID"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+
+vault_api POST cabotage-consul/config/access "{\"address\":\"127.0.0.1:8500\",\"scheme\":\"http\",\"token\":\"$vault_consul_mgmt\"}" > /dev/null
 
 # Configure readonly role
 echo "Configuring readonly role for Consul secrets backend..."
 READONLY_POLICY=$(printf '%s' 'key "cabotage/global" { policy = "read" }
 key "vault/" { policy = "deny" }
 node "" { policy = "read" }
-service "" { policy = "read" }' | base64)
+service "" { policy = "read" }' | base64 | tr -d '\n')
 vault_api POST cabotage-consul/roles/readonly "{\"token_type\":\"client\",\"lease\":\"1h\",\"policy\":\"$READONLY_POLICY\"}" > /dev/null
 
 # ============================
@@ -226,43 +226,65 @@ else
   }')
   CSR=$(printf '%s' "$csr_response" | sed -n 's/.*"csr"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
 
-  # Get root CA key+cert from cert-manager secret
-  echo "  Retrieving root CA for signing..."
-  root_ca_secret=$(curl -s --cacert "$KUBE_CA" \
+  # Sign via cert-manager CertificateRequest (root CA private key never leaves cert-manager)
+  CSR_B64=$(printf '%b' "$CSR" | base64 | tr -d '\n')
+
+  echo "  Creating CertificateRequest for signing..."
+  CR_BODY="{
+    \"apiVersion\": \"cert-manager.io/v1\",
+    \"kind\": \"CertificateRequest\",
+    \"metadata\": {
+      \"name\": \"vault-intermediate-ca\",
+      \"namespace\": \"cert-manager\"
+    },
+    \"spec\": {
+      \"request\": \"$CSR_B64\",
+      \"isCA\": true,
+      \"duration\": \"43800h\",
+      \"usages\": [\"cert sign\", \"crl sign\", \"digital signature\"],
+      \"issuerRef\": {
+        \"name\": \"cabotage-root-ca\",
+        \"kind\": \"ClusterIssuer\",
+        \"group\": \"cert-manager.io\"
+      }
+    }
+  }"
+
+  # Delete any previous CertificateRequest
+  curl -s --cacert "$KUBE_CA" \
     -H "Authorization: Bearer $KUBE_TOKEN" \
-    "$KUBE_API/api/v1/namespaces/cert-manager/secrets/cabotage-root-ca-key-pair")
+    -X DELETE \
+    "$KUBE_API/apis/cert-manager.io/v1/namespaces/cert-manager/certificaterequests/vault-intermediate-ca" > /dev/null 2>&1 || true
 
-  CA_CRT_B64=$(printf '%s' "$root_ca_secret" | sed -n 's/.*"tls.crt"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
-  CA_KEY_B64=$(printf '%s' "$root_ca_secret" | sed -n 's/.*"tls.key"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+  # Create the CertificateRequest
+  curl -sf --cacert "$KUBE_CA" \
+    -H "Authorization: Bearer $KUBE_TOKEN" \
+    -H "Content-Type: application/json" \
+    -X POST -d "$CR_BODY" \
+    "$KUBE_API/apis/cert-manager.io/v1/namespaces/cert-manager/certificaterequests" > /dev/null
 
-  CA_CRT=$(printf '%s' "$CA_CRT_B64" | base64 -d)
-  CA_KEY=$(printf '%s' "$CA_KEY_B64" | base64 -d)
+  # Wait for cert-manager to sign it
+  echo "  Waiting for cert-manager to sign the CSR..."
+  SIGNED_CERT=""
+  for i in $(seq 1 60); do
+    cr_response=$(curl -s --cacert "$KUBE_CA" \
+      -H "Authorization: Bearer $KUBE_TOKEN" \
+      "$KUBE_API/apis/cert-manager.io/v1/namespaces/cert-manager/certificaterequests/vault-intermediate-ca")
 
-  # Write CSR, CA cert, CA key to temp files and sign with openssl
-  echo "  Signing intermediate CA with root CA..."
-  printf '%b' "$CSR" > /tmp/intermediate.csr
-  printf '%s' "$CA_CRT" > /tmp/ca.crt
-  printf '%s' "$CA_KEY" > /tmp/ca.key
+    # Check for Ready condition
+    ready=$(printf '%s' "$cr_response" | grep -o '"reason"[[:space:]]*:[[:space:]]*"Issued"' || true)
+    if [ -n "$ready" ]; then
+      CERT_B64=$(printf '%s' "$cr_response" | sed -n 's/.*"certificate"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+      SIGNED_CERT=$(printf '%s' "$CERT_B64" | base64 -d)
+      break
+    fi
+    sleep 2
+  done
 
-  # Create openssl config for intermediate CA
-  cat > /tmp/intermediate.cnf <<SSLEOF
-[v3_intermediate_ca]
-subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid:always,issuer
-basicConstraints = critical, CA:true, pathlen:0
-keyUsage = critical, digitalSignature, cRLSign, keyCertSign
-SSLEOF
-
-  openssl x509 -req -in /tmp/intermediate.csr \
-    -CA /tmp/ca.crt -CAkey /tmp/ca.key -CAcreateserial \
-    -days 1825 -sha256 \
-    -extfile /tmp/intermediate.cnf -extensions v3_intermediate_ca \
-    -out /tmp/intermediate.crt 2>/dev/null
-
-  SIGNED_CERT=$(cat /tmp/intermediate.crt)
-
-  # Clean up sensitive files
-  rm -f /tmp/ca.key /tmp/intermediate.csr /tmp/ca.crt /tmp/ca.srl /tmp/intermediate.cnf
+  if [ -z "$SIGNED_CERT" ]; then
+    echo "  Timed out waiting for CertificateRequest to be signed."
+    exit 1
+  fi
 
   # Escape cert for JSON
   SIGNED_CERT_JSON=$(printf '%s' "$SIGNED_CERT" | sed ':a;N;$!ba;s/\n/\\n/g')
@@ -270,7 +292,6 @@ SSLEOF
   echo "  Providing signed certificate back to Vault..."
   vault_api POST cabotage-ca/intermediate/set-signed "{\"certificate\":\"$SIGNED_CERT_JSON\"}" > /dev/null
 
-  rm -f /tmp/intermediate.crt
   echo "  Internal CA configured."
 fi
 
