@@ -12,3 +12,11 @@ override.tf.json
 .terraformrc
 terraform.rc
 .terraform.lock.hcl
+
+# Bootstrap secrets (never commit)
+ca.crt
+ca.key
+ca.srl
+consul-bootstrap-token
+vault-bootstrap-token
+vault-unseal-key

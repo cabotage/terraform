@@ -385,7 +385,7 @@ resource "kubernetes_stateful_set_v1" "consul" {
     helm_release.cert_manager_csi_driver,
     kubectl_manifest.certificate_approver_ca_issuer,
     null_resource.ca_admission_webhook_ready,
-    null_resource.cabotage_ca_configmaps,
+    null_resource.sign_intermediate_cas,
   ]
 }
 

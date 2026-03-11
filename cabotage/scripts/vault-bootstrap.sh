@@ -1,120 +1,102 @@
 #!/bin/sh
 set -e
 
-CONSUL_HTTP="http://localhost:8500"
-VAULT_ADDR="https://vault-0.vault.cabotage.svc.cluster.local:8200"
-VAULT_CACERT="/var/run/secrets/cabotage.io/ca.crt"
-KUBE_API="https://kubernetes.default.svc"
-KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-KUBE_CA=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-NAMESPACE="cabotage"
+NAMESPACE="${NAMESPACE:-cabotage}"
+VAULT_REPLICAS="${VAULT_REPLICAS:-3}"
 
-vault_api() {
-  local method=$1 path=$2 data=$3
-  if [ -n "$data" ]; then
-    curl -sf --cacert "$VAULT_CACERT" \
-      -H "X-Vault-Token: $VAULT_ROOT_TOKEN" \
-      -X "$method" -d "$data" \
-      "$VAULT_ADDR/v1/$path"
-  else
-    curl -sf --cacert "$VAULT_CACERT" \
-      -H "X-Vault-Token: $VAULT_ROOT_TOKEN" \
-      -X "$method" \
-      "$VAULT_ADDR/v1/$path"
-  fi
+VAULT_FQDN="vault-0.vault.${NAMESPACE}.svc.cluster.local"
+
+vault_cmd() {
+  kubectl exec vault-0 -n "$NAMESPACE" -c vault -- sh -c "
+    VAULT_ADDR=https://${VAULT_FQDN}:8200 \
+    VAULT_CACERT=/var/run/secrets/cabotage.io/ca.crt \
+    VAULT_TOKEN='$VAULT_ROOT_TOKEN' \
+    $1 2>/dev/null
+  "
 }
 
-kube_get_secret() {
-  curl -s --cacert "$KUBE_CA" \
-    -H "Authorization: Bearer $KUBE_TOKEN" \
-    "$KUBE_API/api/v1/namespaces/$NAMESPACE/secrets/$1"
+vault_status() {
+  kubectl exec "$1" -n "$NAMESPACE" -c vault -- sh -c "
+    VAULT_ADDR=https://\$HOSTNAME.vault.$NAMESPACE.svc.cluster.local:8200 \
+    VAULT_CACERT=/var/run/secrets/cabotage.io/ca.crt \
+    vault status -format=json 2>/dev/null
+  " 2>/dev/null || true
 }
 
-kube_patch_secret() {
-  local name=$1 key=$2 value=$3
-  local b64=$(printf '%s' "$value" | base64)
-  curl -s --cacert "$KUBE_CA" \
-    -H "Authorization: Bearer $KUBE_TOKEN" \
-    -H "Content-Type: application/strategic-merge-patch+json" \
-    -X PATCH \
-    -d "{\"data\":{\"$key\":\"$b64\"}}" \
-    "$KUBE_API/api/v1/namespaces/$NAMESPACE/secrets/$name"
-}
+# --- Wait for Vault ---
+echo "Waiting for vault-0..."
+while ! kubectl get pod vault-0 -n "$NAMESPACE" -o jsonpath='{.status.phase}' 2>/dev/null | grep -q Running; do
+  sleep 5
+done
+sleep 5
 
-# ============================
-# Wait for Vault to be running
-# ============================
 echo "Waiting for Vault to be available..."
-until curl -sk "$VAULT_ADDR/v1/sys/seal-status" > /dev/null 2>&1; do
+while true; do
+  status_json=$(vault_status vault-0)
+  if printf '%s' "$status_json" | jq '.initialized' > /dev/null 2>&1; then
+    break
+  fi
   echo "  not ready, retrying in 5s..."
   sleep 5
 done
 echo "Vault is available."
 
-# ============================
-# Initialize Vault
-# ============================
-stored=$(kube_get_secret vault-root-token | \
-  sed -n 's/.*"token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
-stored_decoded=$(printf '%s' "$stored" | base64 -d 2>/dev/null || echo "null")
-
-init_status=$(curl -sf --cacert "$VAULT_CACERT" "$VAULT_ADDR/v1/sys/init")
-is_init=$(printf '%s' "$init_status" | sed -n 's/.*"initialized"[[:space:]]*:[[:space:]]*\(true\|false\).*/\1/p')
+# --- Initialize Vault ---
+is_init=$(printf '%s' "$status_json" | jq -r '.initialized')
 
 if [ "$is_init" = "false" ]; then
   echo "Initializing Vault (1 key share, 1 threshold)..."
-  init_response=$(curl -sf --cacert "$VAULT_CACERT" \
-    -X PUT -d '{"secret_shares": 1, "secret_threshold": 1}' \
-    "$VAULT_ADDR/v1/sys/init")
+  INIT_JSON=$(kubectl exec vault-0 -n "$NAMESPACE" -c vault -- sh -c "
+    VAULT_ADDR=https://\$HOSTNAME.vault.$NAMESPACE.svc.cluster.local:8200 \
+    VAULT_CACERT=/var/run/secrets/cabotage.io/ca.crt \
+    vault operator init -key-shares=1 -key-threshold=1 -format=json 2>/dev/null
+  ")
 
-  VAULT_ROOT_TOKEN=$(printf '%s' "$init_response" | sed -n 's/.*"root_token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
-  UNSEAL_KEY=$(printf '%s' "$init_response" | sed -n 's/.*"keys"[[:space:]]*:[[:space:]]*\["\([^"]*\)".*/\1/p')
+  VAULT_ROOT_TOKEN=$(printf '%s' "$INIT_JSON" | jq -r '.root_token')
+  UNSEAL_KEY=$(printf '%s' "$INIT_JSON" | jq -r '.unseal_keys_b64[0]')
 
-  echo "Vault initialized. Storing root token and unseal key..."
-  kube_patch_secret vault-root-token token "$VAULT_ROOT_TOKEN" > /dev/null
-  kube_patch_secret vault-unseal-key key "$UNSEAL_KEY" > /dev/null
-elif [ "$stored_decoded" != "null" ] && [ -n "$stored_decoded" ]; then
-  echo "Vault already initialized. Using stored root token."
-  VAULT_ROOT_TOKEN="$stored_decoded"
-
-  # Retrieve unseal key
-  stored_key=$(kube_get_secret vault-unseal-key | \
-    sed -n 's/.*"key"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
-  UNSEAL_KEY=$(printf '%s' "$stored_key" | base64 -d 2>/dev/null || echo "")
+  mkdir -p "$SECRETS_DIR"
+  printf '%s' "$VAULT_ROOT_TOKEN" > "$SECRETS_DIR/vault-bootstrap-token"
+  printf '%s' "$UNSEAL_KEY" > "$SECRETS_DIR/vault-unseal-key"
+  chmod 600 "$SECRETS_DIR/vault-bootstrap-token" "$SECRETS_DIR/vault-unseal-key"
+  echo "Vault initialized. Credentials saved to $SECRETS_DIR/"
+elif [ -f "$SECRETS_DIR/vault-bootstrap-token" ]; then
+  VAULT_ROOT_TOKEN=$(cat "$SECRETS_DIR/vault-bootstrap-token")
+  UNSEAL_KEY=$(cat "$SECRETS_DIR/vault-unseal-key" 2>/dev/null || echo "")
+  echo "Vault already initialized, using existing credentials."
 else
-  echo "Vault already initialized but no root token found in secret."
-  echo "Store the root token in vault-root-token secret and re-run."
+  echo "Vault already initialized but no local credentials found."
+  echo "Place vault-bootstrap-token and vault-unseal-key in $SECRETS_DIR/ and re-run."
   exit 1
 fi
 
-# ============================
-# Unseal all Vault pods
-# ============================
+# --- Unseal all Vault pods ---
 echo "Unsealing Vault pods..."
-for i in 0 1 2; do
-  pod_addr="https://vault-$i.vault.cabotage.svc.cluster.local:8200"
-  seal_status=$(curl -sf --cacert "$VAULT_CACERT" "$pod_addr/v1/sys/seal-status" 2>/dev/null || echo '{}')
-  is_sealed=$(printf '%s' "$seal_status" | sed -n 's/.*"sealed"[[:space:]]*:[[:space:]]*\(true\|false\).*/\1/p')
+for i in $(seq 0 $((VAULT_REPLICAS - 1))); do
+  seal_json=$(vault_status "vault-$i")
+  is_sealed=$(printf '%s' "$seal_json" | jq -r '.sealed' 2>/dev/null || echo "")
 
   if [ "$is_sealed" = "true" ]; then
     echo "  Unsealing vault-$i..."
-    curl -sf --cacert "$VAULT_CACERT" \
-      -X PUT -d "{\"key\": \"$UNSEAL_KEY\"}" \
-      "$pod_addr/v1/sys/unseal" > /dev/null
+    kubectl exec "vault-$i" -n "$NAMESPACE" -c vault -- sh -c "
+      VAULT_ADDR=https://\$HOSTNAME.vault.$NAMESPACE.svc.cluster.local:8200 \
+      VAULT_CACERT=/var/run/secrets/cabotage.io/ca.crt \
+      vault operator unseal '$UNSEAL_KEY'
+    " > /dev/null 2>&1
     echo "  vault-$i unsealed."
-  elif [ -n "$is_sealed" ]; then
+  elif [ "$is_sealed" = "false" ]; then
     echo "  vault-$i already unsealed."
   else
     echo "  vault-$i not reachable, skipping."
   fi
 done
 
-# Wait for vault to become active after unseal
+# Wait for vault to become active
 echo "Waiting for Vault to become active..."
-for i in $(seq 1 30); do
-  health=$(curl -sf --cacert "$VAULT_CACERT" "$VAULT_ADDR/v1/sys/health" 2>/dev/null || echo '{}')
-  is_init=$(printf '%s' "$health" | sed -n 's/.*"initialized"[[:space:]]*:[[:space:]]*\(true\|false\).*/\1/p')
-  is_sealed=$(printf '%s' "$health" | sed -n 's/.*"sealed"[[:space:]]*:[[:space:]]*\(true\|false\).*/\1/p')
+for attempt in $(seq 1 30); do
+  health_json=$(vault_status vault-0)
+  is_init=$(printf '%s' "$health_json" | jq -r '.initialized' 2>/dev/null || echo "")
+  is_sealed=$(printf '%s' "$health_json" | jq -r '.sealed' 2>/dev/null || echo "")
   if [ "$is_init" = "true" ] && [ "$is_sealed" = "false" ]; then
     echo "Vault is active."
     break
@@ -122,175 +104,97 @@ for i in $(seq 1 30); do
   sleep 2
 done
 
-# ============================
-# Enable Kubernetes auth
-# ============================
+# --- Enable Kubernetes auth ---
 echo "Enabling Kubernetes auth backend..."
-auth_list=$(vault_api GET sys/auth 2>/dev/null || echo '{}')
-if printf '%s' "$auth_list" | grep -q '"kubernetes/"'; then
-  echo "  Kubernetes auth already enabled."
-else
-  vault_api POST sys/auth/kubernetes '{"type":"kubernetes","description":"login for kubernetes pods via ServiceAccount JWT"}' > /dev/null
-  echo "  Enabled."
-fi
+vault_cmd "vault auth enable kubernetes" > /dev/null 2>&1 || echo "  Already enabled."
 
 echo "Configuring Kubernetes auth backend..."
-vault_api POST auth/kubernetes/config '{"kubernetes_host":"https://kubernetes.default.svc.cluster.local"}' > /dev/null
+vault_cmd "vault write auth/kubernetes/config kubernetes_host=https://kubernetes.default.svc.cluster.local" > /dev/null
 
 echo "Creating default-default role..."
-vault_api POST auth/kubernetes/role/default-default '{
-  "bound_service_account_names":["default"],
-  "bound_service_account_namespaces":["default"],
-  "policies":["default"],
-  "ttl":"21600","max_ttl":"21600","period":"21600"
-}' > /dev/null
+vault_cmd "vault write auth/kubernetes/role/default-default \
+  bound_service_account_names=default \
+  bound_service_account_namespaces=default \
+  policies=default \
+  ttl=21600 max_ttl=21600 period=21600" > /dev/null
 
-# ============================
-# Mount cabotage-secrets KV
-# ============================
+# --- Mount cabotage-secrets KV ---
 echo "Mounting cabotage-secrets KV..."
-mounts=$(vault_api GET sys/mounts 2>/dev/null || echo '{}')
-if printf '%s' "$mounts" | grep -q '"cabotage-secrets/"'; then
-  echo "  Already mounted."
-else
-  vault_api POST sys/mounts/cabotage-secrets '{"type":"kv","description":"secret storage for cabotage"}' > /dev/null
-  echo "  Mounted."
-fi
+vault_cmd "vault secrets enable -path=cabotage-secrets kv" > /dev/null 2>&1 || echo "  Already mounted."
 
-# ============================
-# Mount cabotage-consul secrets engine
-# ============================
+# --- Mount cabotage-consul secrets engine ---
 echo "Mounting cabotage-consul secrets engine..."
-if printf '%s' "$mounts" | grep -q '"cabotage-consul/"'; then
-  echo "  Already mounted."
-else
-  vault_api POST sys/mounts/cabotage-consul '{"type":"consul","description":"automate consul tokens for kubernetes pods via ServiceAccount JWT"}' > /dev/null
-  echo "  Mounted."
-fi
+vault_cmd "vault secrets enable -path=cabotage-consul consul" > /dev/null 2>&1 || echo "  Already mounted."
 
-# Ensure consul backend is configured
 echo "Configuring Consul secrets backend..."
-consul_mgmt=$(kube_get_secret consul-management-token | \
-  sed -n 's/.*"token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
-consul_mgmt_decoded=$(printf '%s' "$consul_mgmt" | base64 -d 2>/dev/null || echo "")
+CONSUL_MGMT_TOKEN=$(cat "$SECRETS_DIR/consul-bootstrap-token")
 
-# Create a consul management token for vault (idempotent — creates a new one each time, but that's OK)
 echo "  Creating Consul management token for Vault..."
-token_response=$(curl -sf \
-  -H "X-Consul-Token: $consul_mgmt_decoded" \
-  -X PUT -d '{"Description":"Vault Consul Backend Management Token","Policies":[{"Name":"global-management"}],"Local":true}' \
-  "http://consul-0.consul.cabotage.svc.cluster.local:8500/v1/acl/token")
-vault_consul_mgmt=$(printf '%s' "$token_response" | sed -n 's/.*"SecretID"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+consul_response=$(kubectl exec consul-0 -n "$NAMESPACE" -c consul -- sh -c "
+  CONSUL_HTTP_TOKEN='$CONSUL_MGMT_TOKEN' consul acl token create \
+    -description='Vault Consul Backend Management Token' \
+    -policy-name=global-management \
+    -format=json
+")
+VAULT_CONSUL_MGMT=$(printf '%s' "$consul_response" | jq -r '.SecretID')
 
-vault_api POST cabotage-consul/config/access "{\"address\":\"127.0.0.1:8500\",\"scheme\":\"http\",\"token\":\"$vault_consul_mgmt\"}" > /dev/null
+vault_cmd "vault write cabotage-consul/config/access address=127.0.0.1:8500 scheme=http token=$VAULT_CONSUL_MGMT" > /dev/null
 
-# Configure readonly role
 echo "Configuring readonly role for Consul secrets backend..."
 READONLY_POLICY=$(printf '%s' 'key "cabotage/global" { policy = "read" }
 key "vault/" { policy = "deny" }
 node "" { policy = "read" }
 service "" { policy = "read" }' | base64 | tr -d '\n')
-vault_api POST cabotage-consul/roles/readonly "{\"token_type\":\"client\",\"lease\":\"1h\",\"policy\":\"$READONLY_POLICY\"}" > /dev/null
+vault_cmd "vault write cabotage-consul/roles/readonly token_type=client lease=1h policy=$READONLY_POLICY" > /dev/null
 
-# ============================
-# Mount cabotage-ca PKI
-# ============================
+# --- Mount cabotage-ca PKI ---
 echo "Mounting cabotage-ca PKI backend..."
-if printf '%s' "$mounts" | grep -q '"cabotage-ca/"'; then
-  echo "  Already mounted."
-else
-  vault_api POST sys/mounts/cabotage-ca '{"type":"pki","description":"Kubernetes Internal Intermediate CA"}' > /dev/null
-  echo "  Mounted."
-fi
+vault_cmd "vault secrets enable -path=cabotage-ca pki" > /dev/null 2>&1 || echo "  Already mounted."
 
 # Check if CA is already signed
-ca_check=$(vault_api GET cabotage-ca/cert/ca 2>/dev/null || echo '{}')
-if printf '%s' "$ca_check" | grep -q '"certificate"'; then
+ca_check=$(vault_cmd "vault read -field=certificate cabotage-ca/cert/ca" 2>/dev/null || echo "")
+if printf '%s' "$ca_check" | grep -q "BEGIN CERTIFICATE"; then
   echo "  Internal CA already signed."
 else
   echo "  Configuring CA URLs..."
-  vault_api POST cabotage-ca/config/urls '{
-    "issuing_certificates":"https://vault.cabotage.svc.cluster.local/v1/cabotage-ca/ca",
-    "crl_distribution_points":"https://vault.cabotage.svc.cluster.local/v1/cabotage-ca/crl"
-  }' > /dev/null
+  vault_cmd "vault write cabotage-ca/config/urls \
+    issuing_certificates=https://vault.cabotage.svc.cluster.local/v1/cabotage-ca/ca \
+    crl_distribution_points=https://vault.cabotage.svc.cluster.local/v1/cabotage-ca/crl" > /dev/null
 
-  vault_api POST cabotage-ca/config/auto-tidy '{
-    "enabled":true,"tidy_cert_store":true,"tidy_revoked_certs":true,"tidy_revoked_cert_issuer_associations":true
-  }' > /dev/null
+  vault_cmd "vault write cabotage-ca/config/auto-tidy \
+    enabled=true tidy_cert_store=true tidy_revoked_certs=true \
+    tidy_revoked_cert_issuer_associations=true" > /dev/null
 
   echo "  Generating intermediate CA CSR..."
-  csr_response=$(vault_api POST cabotage-ca/intermediate/generate/internal '{
-    "common_name":"Kubernetes Internal Intermediate CA",
-    "ttl":"43800h","key_type":"rsa","key_bits":4096,
-    "exclude_cn_from_sans":true
-  }')
-  CSR=$(printf '%s' "$csr_response" | sed -n 's/.*"csr"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+  CSR=$(vault_cmd "vault write -field=csr cabotage-ca/intermediate/generate/internal \
+    common_name='Kubernetes Internal Intermediate CA' \
+    ttl=43800h key_type=rsa key_bits=4096 \
+    exclude_cn_from_sans=true")
 
-  # Sign via cert-manager CertificateRequest (root CA private key never leaves cert-manager)
-  CSR_B64=$(printf '%b' "$CSR" | base64 | tr -d '\n')
+  echo "  Signing CSR with root CA..."
+  TMPDIR=$(mktemp -d)
+  printf '%s' "$CSR" > "$TMPDIR/vault-intermediate.csr"
 
-  echo "  Creating CertificateRequest for signing..."
-  CR_BODY="{
-    \"apiVersion\": \"cert-manager.io/v1\",
-    \"kind\": \"CertificateRequest\",
-    \"metadata\": {
-      \"name\": \"vault-intermediate-ca\",
-      \"namespace\": \"cert-manager\"
-    },
-    \"spec\": {
-      \"request\": \"$CSR_B64\",
-      \"isCA\": true,
-      \"duration\": \"43800h\",
-      \"usages\": [\"cert sign\", \"crl sign\", \"digital signature\"],
-      \"issuerRef\": {
-        \"name\": \"cabotage-root-ca\",
-        \"kind\": \"ClusterIssuer\",
-        \"group\": \"cert-manager.io\"
-      }
-    }
-  }"
+  cat > "$TMPDIR/ext.cnf" <<EXTEOF
+basicConstraints = critical, CA:TRUE, pathlen:0
+keyUsage = critical, digitalSignature, keyCertSign, cRLSign
+EXTEOF
 
-  # Delete any previous CertificateRequest
-  curl -s --cacert "$KUBE_CA" \
-    -H "Authorization: Bearer $KUBE_TOKEN" \
-    -X DELETE \
-    "$KUBE_API/apis/cert-manager.io/v1/namespaces/cert-manager/certificaterequests/vault-intermediate-ca" > /dev/null 2>&1 || true
+  openssl x509 -req -in "$TMPDIR/vault-intermediate.csr" \
+    -CA "$SECRETS_DIR/ca.crt" -CAkey "$SECRETS_DIR/ca.key" -CAcreateserial \
+    -out "$TMPDIR/vault-intermediate.crt" -days 1825 \
+    -extfile "$TMPDIR/ext.cnf" 2>/dev/null
 
-  # Create the CertificateRequest
-  curl -sf --cacert "$KUBE_CA" \
-    -H "Authorization: Bearer $KUBE_TOKEN" \
-    -H "Content-Type: application/json" \
-    -X POST -d "$CR_BODY" \
-    "$KUBE_API/apis/cert-manager.io/v1/namespaces/cert-manager/certificaterequests" > /dev/null
-
-  # Wait for cert-manager to sign it
-  echo "  Waiting for cert-manager to sign the CSR..."
-  SIGNED_CERT=""
-  for i in $(seq 1 60); do
-    cr_response=$(curl -s --cacert "$KUBE_CA" \
-      -H "Authorization: Bearer $KUBE_TOKEN" \
-      "$KUBE_API/apis/cert-manager.io/v1/namespaces/cert-manager/certificaterequests/vault-intermediate-ca")
-
-    # Check for Ready condition
-    ready=$(printf '%s' "$cr_response" | grep -o '"reason"[[:space:]]*:[[:space:]]*"Issued"' || true)
-    if [ -n "$ready" ]; then
-      CERT_B64=$(printf '%s' "$cr_response" | sed -n 's/.*"certificate"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
-      SIGNED_CERT=$(printf '%s' "$CERT_B64" | base64 -d)
-      break
-    fi
-    sleep 2
-  done
-
-  if [ -z "$SIGNED_CERT" ]; then
-    echo "  Timed out waiting for CertificateRequest to be signed."
-    exit 1
-  fi
-
-  # Escape cert for JSON
-  SIGNED_CERT_JSON=$(printf '%s' "$SIGNED_CERT" | sed ':a;N;$!ba;s/\n/\\n/g')
+  SIGNED_CERT=$(cat "$TMPDIR/vault-intermediate.crt")
+  rm -rf "$TMPDIR"
 
   echo "  Providing signed certificate back to Vault..."
-  vault_api POST cabotage-ca/intermediate/set-signed "{\"certificate\":\"$SIGNED_CERT_JSON\"}" > /dev/null
+  printf '%s' "$SIGNED_CERT" | kubectl exec -i vault-0 -n "$NAMESPACE" -c vault -- sh -c "
+    VAULT_ADDR=https://\$HOSTNAME.vault.$NAMESPACE.svc.cluster.local:8200 \
+    VAULT_CACERT=/var/run/secrets/cabotage.io/ca.crt \
+    VAULT_TOKEN='$VAULT_ROOT_TOKEN' \
+    vault write cabotage-ca/intermediate/set-signed certificate=-
+  "
 
   echo "  Internal CA configured."
 fi
