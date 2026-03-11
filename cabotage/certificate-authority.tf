@@ -1,40 +1,36 @@
 # --- Certificate Authorities ---
-# Step 4 in start-cluster
 #
-# A SelfSigned ClusterIssuer bootstraps the root CA. The root CA signs two
-# intermediate CAs (certificate-approver, operators). cert-manager generates
-# and stores all key pairs as Kubernetes secrets — they never enter Terraform
-# state.
+# Root CA is generated locally (never enters K8s). Intermediate CAs are
+# created by cert-manager (key generation), then signed locally with the
+# root CA key and patched back into the K8s secrets.
 #
-# New clusters: terraform apply creates everything from scratch.
-#
-# Existing clusters (migrating from cfssl bootstrap scripts):
-#
-#   1. Create the root CA secret from your existing key material:
-#
-#        kubectl create secret tls cabotage-root-ca-key-pair \
-#          -n cert-manager --cert=ca.crt --key=ca.key
-#
-#      The intermediate secrets (certificate-approver-ca-key-pair,
-#      operators-ca-key-pair) should already exist in cert-manager namespace.
-#      cert-manager will adopt them without regenerating keys.
-#
-#   2. Import existing resources into Terraform state:
-#
-#        terraform import 'module.cabotage.kubectl_manifest.certificate_approver_ca_issuer' \
-#          'cert-manager.io/v1//ClusterIssuer//certificate-approver-ca-issuer'
-#        terraform import 'module.cabotage.kubectl_manifest.operators_ca_issuer' \
-#          'cert-manager.io/v1//ClusterIssuer//operators-ca-issuer'
-#        terraform import 'module.cabotage.kubernetes_config_map_v1.cabotage_ca' \
-#          'cabotage/cabotage-ca'
-#        terraform import 'module.cabotage.kubernetes_config_map_v1.cabotage_ca_default' \
-#          'default/cabotage-ca'
-#
-#   3. terraform apply — creates the SelfSigned issuer, root CA Certificate,
-#      root CA ClusterIssuer, and intermediate CA Certificate resources.
-#      cert-manager sees the existing secrets and does not regenerate them.
+# Local files (in secrets_dir):
+#   ca.crt  — root CA certificate
+#   ca.key  — root CA private key
 
-# Bootstrap issuer for generating the root CA
+# --- Root CA (local) ---
+
+resource "null_resource" "root_ca" {
+  triggers = {
+    cluster_id = var.cluster_identifier
+  }
+
+  provisioner "local-exec" {
+    command = "sh ${path.module}/scripts/bootstrap-root-ca.sh"
+    environment = {
+      SECRETS_DIR = var.secrets_dir
+      CLUSTER_ID  = var.cluster_identifier
+    }
+  }
+
+  depends_on = [
+    helm_release.cert_manager,
+    kubernetes_namespace_v1.cabotage,
+  ]
+}
+
+# --- SelfSigned issuer (bootstraps intermediate key generation) ---
+
 resource "kubectl_manifest" "selfsigned_issuer" {
   yaml_body = yamlencode({
     apiVersion = "cert-manager.io/v1"
@@ -50,82 +46,7 @@ resource "kubectl_manifest" "selfsigned_issuer" {
   depends_on = [helm_release.cert_manager]
 }
 
-# --- Root CA ---
-
-resource "kubectl_manifest" "root_ca_certificate" {
-  yaml_body = yamlencode({
-    apiVersion = "cert-manager.io/v1"
-    kind       = "Certificate"
-    metadata = {
-      name      = "cabotage-root-ca"
-      namespace = "cert-manager"
-    }
-    spec = {
-      isCA       = true
-      commonName = "${var.cluster_identifier} Cabotage Root CA"
-      secretName = "cabotage-root-ca-key-pair"
-      duration   = "87600h0m0s" # 10 years
-      privateKey = {
-        algorithm = "ECDSA"
-        size      = 256
-      }
-      issuerRef = {
-        name  = "selfsigned"
-        kind  = "ClusterIssuer"
-        group = "cert-manager.io"
-      }
-    }
-  })
-
-  depends_on = [kubectl_manifest.selfsigned_issuer]
-}
-
-# Root CA issuer — signs the intermediates
-resource "kubectl_manifest" "root_ca_issuer" {
-  yaml_body = yamlencode({
-    apiVersion = "cert-manager.io/v1"
-    kind       = "ClusterIssuer"
-    metadata = {
-      name = "cabotage-root-ca"
-    }
-    spec = {
-      ca = {
-        secretName = "cabotage-root-ca-key-pair"
-      }
-    }
-  })
-
-  depends_on = [kubectl_manifest.root_ca_certificate]
-}
-
-# Publish root CA cert as ConfigMaps in cabotage and default namespaces.
-# Uses a provisioner because the root CA secret is created by cert-manager
-# during apply and isn't available at plan time.
-resource "null_resource" "cabotage_ca_configmaps" {
-  triggers = {
-    root_ca_id = kubectl_manifest.root_ca_certificate.id
-  }
-
-  provisioner "local-exec" {
-    command = <<-EOT
-      echo "Waiting for root CA secret to be populated..."
-      for i in $(seq 1 60); do
-        CA_CRT=$(kubectl get secret -n cert-manager cabotage-root-ca-key-pair -o jsonpath='{.data.tls\.crt}' 2>/dev/null)
-        if [ -n "$CA_CRT" ]; then break; fi
-        sleep 2
-      done
-      if [ -z "$CA_CRT" ]; then echo "Timed out waiting for root CA secret"; exit 1; fi
-      CA_CRT=$(printf '%s' "$CA_CRT" | base64 -d)
-      for ns in cabotage default; do
-        kubectl create configmap cabotage-ca -n "$ns" --from-literal="ca.crt=$CA_CRT" --dry-run=client -o yaml | kubectl apply -f -
-      done
-    EOT
-  }
-
-  depends_on = [kubectl_manifest.root_ca_certificate]
-}
-
-# --- Certificate Approver Intermediate CA ---
+# --- Intermediate CA Certificates ---
 
 resource "kubectl_manifest" "certificate_approver_ca_certificate" {
   yaml_body = yamlencode({
@@ -145,34 +66,15 @@ resource "kubectl_manifest" "certificate_approver_ca_certificate" {
         size      = 256
       }
       issuerRef = {
-        name  = "cabotage-root-ca"
+        name  = "selfsigned"
         kind  = "ClusterIssuer"
         group = "cert-manager.io"
       }
     }
   })
 
-  depends_on = [kubectl_manifest.root_ca_issuer]
+  depends_on = [kubectl_manifest.selfsigned_issuer]
 }
-
-resource "kubectl_manifest" "certificate_approver_ca_issuer" {
-  yaml_body = yamlencode({
-    apiVersion = "cert-manager.io/v1"
-    kind       = "ClusterIssuer"
-    metadata = {
-      name = "certificate-approver-ca-issuer"
-    }
-    spec = {
-      ca = {
-        secretName = "certificate-approver-ca-key-pair"
-      }
-    }
-  })
-
-  depends_on = [kubectl_manifest.certificate_approver_ca_certificate]
-}
-
-# --- Operators Intermediate CA ---
 
 resource "kubectl_manifest" "operators_ca_certificate" {
   yaml_body = yamlencode({
@@ -192,14 +94,56 @@ resource "kubectl_manifest" "operators_ca_certificate" {
         size      = 256
       }
       issuerRef = {
-        name  = "cabotage-root-ca"
+        name  = "selfsigned"
         kind  = "ClusterIssuer"
         group = "cert-manager.io"
       }
     }
   })
 
-  depends_on = [kubectl_manifest.root_ca_issuer]
+  depends_on = [kubectl_manifest.selfsigned_issuer]
+}
+
+# --- Sign intermediates with local root CA ---
+
+resource "null_resource" "sign_intermediate_cas" {
+  triggers = {
+    cert_approver_id = kubectl_manifest.certificate_approver_ca_certificate.id
+    operators_id     = kubectl_manifest.operators_ca_certificate.id
+  }
+
+  provisioner "local-exec" {
+    command = "sh ${path.module}/scripts/sign-intermediate-cas.sh"
+    environment = {
+      SECRETS_DIR = var.secrets_dir
+      CLUSTER_ID  = var.cluster_identifier
+    }
+  }
+
+  depends_on = [
+    null_resource.root_ca,
+    kubectl_manifest.certificate_approver_ca_certificate,
+    kubectl_manifest.operators_ca_certificate,
+  ]
+}
+
+# --- ClusterIssuers ---
+
+resource "kubectl_manifest" "certificate_approver_ca_issuer" {
+  yaml_body = yamlencode({
+    apiVersion = "cert-manager.io/v1"
+    kind       = "ClusterIssuer"
+    metadata = {
+      name = "certificate-approver-ca-issuer"
+    }
+    spec = {
+      ca = {
+        secretName = "certificate-approver-ca-key-pair"
+      }
+    }
+  })
+
+  depends_on = [null_resource.sign_intermediate_cas]
 }
 
 resource "kubectl_manifest" "operators_ca_issuer" {
@@ -216,5 +160,5 @@ resource "kubectl_manifest" "operators_ca_issuer" {
     }
   })
 
-  depends_on = [kubectl_manifest.operators_ca_certificate]
+  depends_on = [null_resource.sign_intermediate_cas]
 }

@@ -129,6 +129,11 @@ variable "redis_operator_chart_version" {
   default     = "0.19.0"
 }
 
+variable "secrets_dir" {
+  description = "Local directory to store bootstrap secrets (consul mgmt token, vault root token, unseal key)"
+  type        = string
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

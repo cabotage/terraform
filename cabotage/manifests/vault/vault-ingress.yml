@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: cabotage-ingress
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/secure-backends: "true"
+    nginx.ingress.kubernetes.io/service-upstream: "true"
+  name: vault
+  namespace: cabotage
+spec:
+  rules:
+  - host: vault-cabotage.ingress.cmh1.psfhosted.org
+    http:
+      paths:
+      - pathType: Prefix
+        backend:
+          service:
+            name: vault
+            port:
+              number: 443
+        path: /
