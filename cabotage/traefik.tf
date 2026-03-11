@@ -1,0 +1,91 @@
+# --- Traefik Ingress Controller / Gateway API ---
+# Step 1 in start-cluster
+
+resource "helm_release" "traefik" {
+  name             = "traefik"
+  repository       = "https://traefik.github.io/charts"
+  chart            = "traefik"
+  namespace        = "traefik"
+  create_namespace = true
+  version          = var.traefik_chart_version
+
+  values = [yamlencode({
+    deployment = {
+      replicas = var.traefik_replicas
+    }
+
+    logs = {
+      access = {
+        enabled = true
+        format  = "json"
+      }
+    }
+
+    ports = {
+      web = {
+        forwardedHeaders = {
+          trustedIPs = var.forwarded_headers_cidrs
+        }
+        proxyProtocol = {
+          trustedIPs = var.proxy_protocol_cidrs
+        }
+      }
+      websecure = {
+        forwardedHeaders = {
+          trustedIPs = var.forwarded_headers_cidrs
+        }
+        proxyProtocol = {
+          trustedIPs = var.proxy_protocol_cidrs
+        }
+      }
+    }
+
+    providers = {
+      kubernetesIngressNginx = {
+        enabled = true
+      }
+    }
+
+    metrics = {
+      datadog = {
+        address               = "$(DD_AGENT_HOST):8125"
+        addEntryPointsLabels  = true
+        addRoutersLabels      = true
+        addServicesLabels     = true
+      }
+      prometheus = {
+        addServicesLabels    = true
+        addRoutersLabels     = true
+        addEntryPointsLabels = true
+        buckets              = "0.005,0.01,0.025,0.05,0.1,0.25,0.5,1.0,2.5,5.0,10.0,30.0,60.0,120.0"
+      }
+    }
+
+    env = [
+      {
+        name = "DD_AGENT_HOST"
+        valueFrom = {
+          fieldRef = {
+            fieldPath = "status.hostIP"
+          }
+        }
+      }
+    ]
+
+    service = var.traefik_aws_lb ? {
+      type = "LoadBalancer"
+      annotations = {
+        "service.beta.kubernetes.io/aws-load-balancer-proxy-protocol"              = "*"
+        "service.beta.kubernetes.io/aws-load-balancer-scheme"                      = "internet-facing"
+        "service.beta.kubernetes.io/aws-load-balancer-type"                        = "external"
+        "service.beta.kubernetes.io/aws-load-balancer-nlb-target-type"             = "ip"
+        "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout"     = "240"
+        "service.beta.kubernetes.io/aws-load-balancer-connection-draining-enabled" = "true"
+        "service.beta.kubernetes.io/aws-load-balancer-connection-draining-timeout" = "240"
+      }
+    } : {
+      type        = "NodePort"
+      annotations = {}
+    }
+  })]
+}
