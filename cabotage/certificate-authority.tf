@@ -108,7 +108,14 @@ resource "null_resource" "cabotage_ca_configmaps" {
 
   provisioner "local-exec" {
     command = <<-EOT
-      CA_CRT=$(kubectl get secret -n cert-manager cabotage-root-ca-key-pair -o jsonpath='{.data.tls\.crt}' | base64 -d)
+      echo "Waiting for root CA secret to be populated..."
+      for i in $(seq 1 60); do
+        CA_CRT=$(kubectl get secret -n cert-manager cabotage-root-ca-key-pair -o jsonpath='{.data.tls\.crt}' 2>/dev/null)
+        if [ -n "$CA_CRT" ]; then break; fi
+        sleep 2
+      done
+      if [ -z "$CA_CRT" ]; then echo "Timed out waiting for root CA secret"; exit 1; fi
+      CA_CRT=$(printf '%s' "$CA_CRT" | base64 -d)
       for ns in cabotage default; do
         kubectl create configmap cabotage-ca -n "$ns" --from-literal="ca.crt=$CA_CRT" --dry-run=client -o yaml | kubectl apply -f -
       done
