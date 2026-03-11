@@ -1,0 +1,192 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: cabotage
+  name: rustfs
+spec:
+  serviceName: rustfs
+  replicas: ${replicas}
+  selector:
+    matchLabels:
+      app: rustfs
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: rustfs
+        ca-admission.cabotage.io: "true"
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - rustfs
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 20003
+        runAsGroup: 20003
+        fsGroup: 20003
+        fsGroupChangePolicy: "OnRootMismatch"
+      serviceAccountName: rustfs
+      initContainers:
+      - name: init-permissions
+        image: busybox
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - >-
+              chown -R 20003:20003 /logs &&
+              chmod 0750 /logs
+        securityContext:
+          runAsNonRoot: false
+          runAsUser: 0
+        volumeMounts:
+        - name: logs
+          mountPath: /logs
+      - name: init-tls
+        image: busybox
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - >-
+              ln -s /etc/tls/rustfs-csi/rustfs_cert.pem /etc/tls/rustfs/rustfs_cert.pem &&
+              ln -s /etc/tls/rustfs-csi/rustfs_key.pem /etc/tls/rustfs/rustfs_key.pem &&
+              ln -s /etc/tls/rustfs-csi/ca.crt /etc/tls/rustfs/ca.crt
+        volumeMounts:
+        - name: tls-csi
+          mountPath: /etc/tls/rustfs-csi
+          readOnly: true
+        - name: tls
+          mountPath: /etc/tls/rustfs
+      containers:
+      - name: rustfs
+        env:
+        - name: RUSTFS_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rustfs-admin
+              key: RUSTFS_ACCESS_KEY
+        - name: RUSTFS_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rustfs-admin
+              key: RUSTFS_SECRET_KEY
+        - name: RUSTFS_TLS_PATH
+          value: /etc/tls/rustfs
+        - name: RUSTFS_ADDRESS
+          value: ":9000"
+        - name: RUSTFS_VOLUMES
+          value: "https://rustfs-{0...3}.rustfs.cabotage.svc.cluster.local:9000/mnt/rustfs{0...3}"
+        - name: RUSTFS_CONSOLE_ENABLE
+          value: "true"
+        - name: RUSTFS_CONSOLE_ADDRESS
+          value: ":9001"
+        - name: RUSTFS_OBS_LOG_DIRECTORY
+          value: /logs
+        - name: RUSTFS_OBS_LOGGER_LEVEL
+          value: debug
+        - name: RUST_LOG
+          value: debug
+        image: ${rustfs_image}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9000
+        - containerPort: 9001
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9000
+            scheme: HTTPS
+          initialDelaySeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 9000
+            scheme: HTTPS
+          initialDelaySeconds: 10
+        volumeMounts:
+        - name: tls
+          mountPath: /etc/tls/rustfs
+        - name: tls-csi
+          mountPath: /etc/tls/rustfs-csi
+          readOnly: true
+        - name: data-0
+          mountPath: /mnt/rustfs0
+        - name: data-1
+          mountPath: /mnt/rustfs1
+        - name: data-2
+          mountPath: /mnt/rustfs2
+        - name: data-3
+          mountPath: /mnt/rustfs3
+        - name: logs
+          mountPath: /logs
+      volumes:
+        - name: tls
+          emptyDir: {}
+        - name: tls-csi
+          csi:
+            driver: csi.cert-manager.io
+            readOnly: true
+            volumeAttributes:
+              csi.cert-manager.io/issuer-name: certificate-approver-ca-issuer
+              csi.cert-manager.io/issuer-kind: ClusterIssuer
+              csi.cert-manager.io/duration: 9000h  # 375 days
+              csi.cert-manager.io/dns-names: >
+                $${POD_NAME}.rustfs.$${POD_NAMESPACE}.svc.cluster.local,
+                rustfs.$${POD_NAMESPACE}.svc.cluster.local,
+                rustfs.$${POD_NAMESPACE}.svc.cluster,
+                rustfs.$${POD_NAMESPACE}.svc
+              csi.cert-manager.io/fs-group: "20003"
+              csi.cert-manager.io/certificate-file: "rustfs_cert.pem"
+              csi.cert-manager.io/privatekey-file: "rustfs_key.pem"
+              csi.cert-manager.io/ca-file: "ca.crt"
+  volumeClaimTemplates:
+  - metadata:
+      name: logs
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 256Mi
+  - metadata:
+      name: data-0
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  - metadata:
+      name: data-1
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  - metadata:
+      name: data-2
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  - metadata:
+      name: data-3
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
