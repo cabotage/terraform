@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: consul
+  namespace: cabotage
+  name: consul
+spec:
+  clusterIP: None
+  ports:
+  - name: https
+    port: 8443
+    protocol: TCP
+    targetPort: 8443
+  selector:
+    app: consul
+  sessionAffinity: None
+  type: ClusterIP
+  publishNotReadyAddresses: true
+status:
+  loadBalancer: {}
