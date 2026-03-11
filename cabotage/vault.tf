@@ -8,6 +8,8 @@
 
 resource "kubectl_manifest" "vault_serviceaccount" {
   yaml_body = file("${path.module}/manifests/vault/00-serviceaccount.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "vault_clusterrolebinding" {
@@ -16,6 +18,8 @@ resource "kubectl_manifest" "vault_clusterrolebinding" {
 
 resource "kubectl_manifest" "vault_configmap" {
   yaml_body = file("${path.module}/manifests/vault/03-configmap.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "vault_statefulset" {
@@ -41,8 +45,12 @@ resource "kubectl_manifest" "vault_statefulset" {
 
 resource "kubectl_manifest" "vault_pdb" {
   yaml_body = file("${path.module}/manifests/vault/05-poddisruptionbudget.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "vault_service" {
   yaml_body = file("${path.module}/manifests/vault/05-service.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }

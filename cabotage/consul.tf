@@ -48,10 +48,14 @@ resource "kubectl_manifest" "consul_configmap" {
   yaml_body = templatefile("${path.module}/manifests/consul/02-configmap.yml.tftpl", {
     consul_datacenter = var.consul_datacenter
   })
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "consul_scripts_configmap" {
   yaml_body = file("${path.module}/manifests/consul/03-configmap.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "consul_statefulset" {
@@ -78,16 +82,24 @@ resource "kubectl_manifest" "consul_statefulset" {
 
 resource "kubectl_manifest" "consul_pdb" {
   yaml_body = file("${path.module}/manifests/consul/05-poddisruptionbudget.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "consul_service_headless" {
   yaml_body = file("${path.module}/manifests/consul/06-service-headless.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "consul_service_ingress" {
   yaml_body = file("${path.module}/manifests/consul/06-service-ingress.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "consul_service_api" {
   yaml_body = file("${path.module}/manifests/consul/07-service-api.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }

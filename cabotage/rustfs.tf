@@ -17,10 +17,14 @@ resource "null_resource" "rustfs_admin_secret" {
 
 resource "kubectl_manifest" "rustfs_serviceaccount" {
   yaml_body = file("${path.module}/manifests/rustfs/00-serviceaccount.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "rustfs_service_headless" {
   yaml_body = file("${path.module}/manifests/rustfs/01-service-headless.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "rustfs_statefulset" {
@@ -44,6 +48,8 @@ resource "kubectl_manifest" "rustfs_statefulset" {
 
 resource "kubectl_manifest" "rustfs_console_service_headless" {
   yaml_body = file("${path.module}/manifests/rustfs/02-console-service-headless.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 # --- Bucket Creation ---

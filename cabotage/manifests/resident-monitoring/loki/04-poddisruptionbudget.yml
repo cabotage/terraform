@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  namespace: cabotage
+  name: resident-loki
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: resident-loki

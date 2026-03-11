@@ -9,6 +9,8 @@ resource "kubectl_manifest" "ca_admission_role" {
 
 resource "kubectl_manifest" "ca_admission_serviceaccount" {
   yaml_body = file("${path.module}/manifests/ca-admission/00-serviceaccount.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "ca_admission_clusterrolebinding" {
@@ -27,6 +29,7 @@ resource "kubectl_manifest" "ca_admission_deployment" {
   })
 
   depends_on = [
+    kubernetes_namespace_v1.cabotage,
     helm_release.cert_manager_csi_driver,
     kubectl_manifest.certificate_approver_ca_issuer,
     kubectl_manifest.ca_admission_serviceaccount,
@@ -35,6 +38,8 @@ resource "kubectl_manifest" "ca_admission_deployment" {
 
 resource "kubectl_manifest" "ca_admission_service" {
   yaml_body = file("${path.module}/manifests/ca-admission/03-service.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "ca_admission_webhook" {

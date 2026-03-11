@@ -24,7 +24,10 @@ resource "kubectl_manifest" "kopf_default_clusterpeering" {
 resource "kubectl_manifest" "kopf_default_peering" {
   yaml_body = file("${path.module}/manifests/kopf/01-default-peering.yml")
 
-  depends_on = [kubectl_manifest.kopf_crd_kopfpeering]
+  depends_on = [
+    kubernetes_namespace_v1.cabotage,
+    kubectl_manifest.kopf_crd_kopfpeering,
+  ]
 }
 
 # --- Enrollment Operator CRD ---
@@ -49,6 +52,8 @@ resource "kubectl_manifest" "enrollment_operator_role" {
 
 resource "kubectl_manifest" "enrollment_operator_serviceaccount" {
   yaml_body = file("${path.module}/manifests/enrollment-operator/01-serviceaccount.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "enrollment_operator_rolebinding" {
