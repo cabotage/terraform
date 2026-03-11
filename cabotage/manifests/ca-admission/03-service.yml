@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: cabotage-ca-admission
+  namespace: cabotage
+  name: cabotage-ca-admission
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 8443
+  selector:
+    app: cabotage-ca-admission
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

@@ -23,7 +23,7 @@ resource "kubernetes_secret_v1" "vault_consul_token" {
 
 resource "null_resource" "consul_bootstrap" {
   triggers = {
-    statefulset_uid = kubernetes_stateful_set_v1.consul.metadata[0].uid
+    statefulset_id = kubectl_manifest.consul_statefulset.id
   }
 
   provisioner "local-exec" {
@@ -36,7 +36,7 @@ resource "null_resource" "consul_bootstrap" {
   }
 
   depends_on = [
-    kubernetes_stateful_set_v1.consul,
+    kubectl_manifest.consul_statefulset,
     kubernetes_secret_v1.consul_agent_token,
     kubernetes_secret_v1.vault_consul_token,
   ]

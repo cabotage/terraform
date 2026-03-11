@@ -1,0 +1,26 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: "ca-admission.cabotage.io"
+  annotations:
+    cert-manager.io/inject-ca-from: "cert-manager/certificate-approver-ca"
+webhooks:
+- name: "ca-admission.cabotage.io"
+  objectSelector:
+    matchLabels:
+      ca-admission.cabotage.io: "true"
+  rules:
+  - apiGroups:   [""]
+    apiVersions: ["*"]
+    operations:  ["CREATE"]
+    resources:   ["pods"]
+  clientConfig:
+    service:
+      namespace: "cabotage"
+      name: "cabotage-ca-admission"
+      port: 443
+      path: "/mutate"
+    #caBundle: will be patched in
+  admissionReviewVersions: ["v1"]
+  sideEffects: None
+  timeoutSeconds: 5
