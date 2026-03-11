@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: resident-loki-config
+  namespace: cabotage
+data:
+  loki.yml: |
+    auth_enabled: false
+    server:
+      http_listen_port: 3100
+      grpc_listen_port: 9095
+      http_tls_config:
+        cert_file: /etc/tls/tls.crt
+        key_file: /etc/tls/tls.key
+    common:
+      path_prefix: /loki
+      replication_factor: 1
+      compactor_grpc_address: resident-loki-backend.cabotage.svc.cluster.local:9095
+      ring:
+        kvstore:
+          store: memberlist
+      storage:
+        s3:
+          endpoint: rustfs.cabotage.svc.cluster.local:9000
+          bucketnames: resident-loki
+          access_key_id: ${S3_ACCESS_KEY_ID}
+          secret_access_key: ${S3_SECRET_KEY}
+          s3forcepathstyle: true
+          region: us-east-2
+          http_config:
+            insecure_skip_verify: false
+            ca_file: /var/run/secrets/cabotage.io/ca.crt
+    memberlist:
+      join_members:
+        - resident-loki-memberlist.cabotage.svc.cluster.local:7946
+    schema_config:
+      configs:
+        - from: "2024-06-01"
+          store: tsdb
+          object_store: s3
+          schema: v13
+          index:
+            prefix: index_
+            period: 24h
+    limits_config:
+      retention_period: 168h
+      ingestion_rate_mb: 1000
+      ingestion_burst_size_mb: 10000
+      per_stream_rate_limit: 512M
+      per_stream_rate_limit_burst: 1024M
+    compactor:
+      working_directory: /loki/compactor
+      delete_request_store: s3
+      retention_enabled: true
+    query_range:
+      results_cache:
+        cache:
+          embedded_cache:
+            enabled: true
+    frontend:
+      compress_responses: true
+      tail_proxy_url: https://resident-loki-write.cabotage.svc.cluster.local:3100

@@ -1,0 +1,37 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: resident-loki-tls
+  namespace: cabotage
+spec:
+  secretName: resident-loki-tls
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  subject:
+    organizations:
+    - cabotage
+  commonName: resident-loki
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  usages:
+    - digital signature
+    - key encipherment
+  dnsNames:
+  - resident-loki-write
+  - resident-loki-write.cabotage
+  - resident-loki-write.cabotage.svc
+  - resident-loki-write.cabotage.svc.cluster.local
+  - resident-loki-read
+  - resident-loki-read.cabotage
+  - resident-loki-read.cabotage.svc
+  - resident-loki-read.cabotage.svc.cluster.local
+  - resident-loki-backend
+  - resident-loki-backend.cabotage
+  - resident-loki-backend.cabotage.svc
+  - resident-loki-backend.cabotage.svc.cluster.local
+  issuerRef:
+    name: certificate-approver-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
