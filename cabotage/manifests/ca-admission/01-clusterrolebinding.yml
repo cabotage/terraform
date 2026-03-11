@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cabotage-ca-admission-pod-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cabotage-ca-admission
+subjects:
+- kind: ServiceAccount
+  namespace: cabotage
+  name: cabotage-ca-admission

@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cabotage-ca-admission-pod-reader
+rules:
+- apiGroups: [""]
+  resources: ["nodes","nodes/status","nodes/metrics"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["cabotage-ca"]
+  verbs: ["get", "watch", "list"]
