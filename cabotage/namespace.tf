@@ -34,6 +34,8 @@ resource "null_resource" "namespace_cleanup" {
         kubectl --context "$CTX" patch "$name" -n "$NS" \
           --type merge -p '{"metadata":{"finalizers":[]}}' 2>/dev/null && echo "    $name" || true
       done
+      echo "  Deleting workload controllers..."
+      kubectl --context "$CTX" delete deployments,statefulsets,daemonsets,replicasets,jobs -n "$NS" --all --force --grace-period=0 2>/dev/null || true
       echo "  Deleting pods..."
       kubectl --context "$CTX" delete pods --all -n "$NS" --force --grace-period=0 2>/dev/null || true
       echo "  Stripping PVC finalizers..."
