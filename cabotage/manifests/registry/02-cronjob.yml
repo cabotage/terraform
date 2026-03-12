@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: registry-garbage-collection
+  namespace: cabotage
+  labels:
+    app: registry-garbage-collection
+spec:
+  schedule: "0 0 * * *"
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app: registry-garbage-collection
+            ca-admission.cabotage.io: "true"
+        spec:
+          serviceAccountName: registry
+          # Unfortunately we need root to alter ca certificates
+          #securityContext:
+          #  runAsNonRoot: true
+          #  runAsUser: 20004
+          #  runAsGroup: 20004
+          #  fsGroup: 20004
+          containers:
+            - name: registry-garbage-collection
+              image: cabotage/registry:4
+              imagePullPolicy: Always
+              args: ['garbage-collect', '/etc/docker/registry-local/config.yml', '--delete-untagged=true']
+              volumeMounts:
+                - name: registry-config
+                  mountPath: /etc/docker/registry-local
+              resources:
+                limits:
+                  memory: "512Mi"
+                  cpu: "500m"
+                requests:
+                  memory: "256Mi"
+                  cpu: "200m"
+          restartPolicy: Never
+          terminationGracePeriodSeconds: 5
+          volumes:
+            - name: registry-config
+              configMap:
+                name: registry-config

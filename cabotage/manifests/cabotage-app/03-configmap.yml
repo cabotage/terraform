@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cabotage-config
+  namespace: cabotage
+data:
+  CABOTAGE_CONSUL_HOST: consul.cabotage.svc.cluster.local
+  CABOTAGE_CONSUL_PORT: "8443"
+  CABOTAGE_CONSUL_PREFIX: cabotage
+  CABOTAGE_CONSUL_SCHEME: https
+  CABOTAGE_CONSUL_TOKEN_FILE: /var/run/secrets/vault/consul-token
+  CABOTAGE_CONSUL_VERIFY: /var/run/secrets/cabotage.io/ca.crt
+  CABOTAGE_INGRESS_DOMAIN: cabotage.app
+  CABOTAGE_SIDECAR_IMAGE: cabotage/sidecar:4
+  CABOTAGE_EXT_PREFERRED_URL_SCHEME: https
+  CABOTAGE_EXT_SERVER_NAME: astral-dev.cabotage.io
+  CABOTAGE_KUBERNETES_ENABLED: "True"
+  CABOTAGE_MINIO_BUCKET: cabotage-registry
+  CABOTAGE_MINIO_CA_CERT: /var/run/secrets/cabotage.io/ca.crt
+  CABOTAGE_MINIO_ENDPOINT: rustfs.cabotage.svc.cluster.local:9000
+  CABOTAGE_MINIO_PREFIX: cabotage-builds
+  CABOTAGE_MINIO_SECURE: "True"
+  CABOTAGE_REGISTRY: registry.cabotage.app
+  CABOTAGE_REGISTRY_BUILD: registry.cabotage.app
+  CABOTAGE_REGISTRY_PULL: registry.cabotage.app
+  CABOTAGE_REGISTRY_SECURE: "True"
+  CABOTAGE_REGISTRY_VERIFY: "True"
+  CABOTAGE_SHELLZ_ENABLED: "True"
+  CABOTAGE_VAULT_LEASE_PATH: /var/run/secrets/vault
+  CABOTAGE_VAULT_PREFIX: cabotage-secrets
+  CABOTAGE_VAULT_SIGNING_KEY: registry
+  CABOTAGE_VAULT_SIGNING_MOUNT: cabotage-app-transit
+  CABOTAGE_VAULT_TOKEN_FILE: /var/run/secrets/vault/vault-token
+  CABOTAGE_VAULT_URL: https://vault.cabotage.svc.cluster.local
+  CABOTAGE_VAULT_VERIFY: /var/run/secrets/cabotage.io/ca.crt
+  CABOTAGE_MIMIR_URL: https://resident-mimir-read.cabotage.svc.cluster.local:8080
+  CABOTAGE_MIMIR_VERIFY: /var/run/secrets/cabotage.io/ca.crt
+  CABOTAGE_LOKI_URL: https://resident-loki-read.cabotage.svc.cluster.local:3100
+  CABOTAGE_LOKI_VERIFY: /var/run/secrets/cabotage.io/ca.crt
+  FLASK_APP: cabotage.server.wsgi

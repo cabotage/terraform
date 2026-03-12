@@ -1,0 +1,37 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cabotage-certmanager
+  namespace: postgres
+spec:
+  secretName: cabotage-tls
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  subject:
+    organizations:
+    - cabotage-org
+  commonName: cabotage-primary
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  usages:
+    - digital signature
+    - key encipherment
+  dnsNames:
+  - cabotage-rw
+  - cabotage-rw.postgres
+  - cabotage-rw.postgres.svc
+  - cabotage-rw.postgres.svc.cluster.local
+  - cabotage-rw
+  - cabotage-rw.postgres
+  - cabotage-rw.postgres.svc
+  - cabotage-rw.postgres.svc.cluster.local
+  - cabotage-r
+  - cabotage-r.postgres
+  - cabotage-r.postgres.svc
+  - cabotage-r.postgres.svc.cluster.local
+  issuerRef:
+    name: operators-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io

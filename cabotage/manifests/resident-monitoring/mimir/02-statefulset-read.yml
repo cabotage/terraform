@@ -55,12 +55,12 @@ spec:
         - name: S3_ACCESS_KEY_ID
           valueFrom:
             secretKeyRef:
-              name: resident-monitoring-s3
+              name: rustfs-resident-mimir
               key: access-key-id
         - name: S3_SECRET_KEY
           valueFrom:
             secretKeyRef:
-              name: resident-monitoring-s3
+              name: rustfs-resident-mimir
               key: secret-key
         ports:
         - containerPort: 8080

@@ -195,13 +195,16 @@ resource "null_resource" "coredns_ingress_patch" {
   }
 
   provisioner "local-exec" {
+    environment = {
+      KUBE_CONTEXT = var.kube_context
+    }
     command = <<-EOT
-      INGRESS_IP=$(kubectl get svc -n traefik traefik -o jsonpath='{.spec.clusterIP}')
-      kubectl get configmap -n kube-system coredns -o json | \
+      INGRESS_IP=$(kubectl --context $KUBE_CONTEXT get svc -n traefik traefik -o jsonpath='{.spec.clusterIP}')
+      kubectl --context $KUBE_CONTEXT get configmap -n kube-system coredns -o json | \
         jq --arg ip "$INGRESS_IP" '.data.Corefile |= sub("kubernetes cluster.local";
           "template IN A ingress.cabotage.dev {\n        match .*\\.ingress\\.cabotage\\.dev\n        answer \"{{ .Name }} 60 IN A " + $ip + "\"\n        fallthrough\n    }\n    kubernetes cluster.local")' | \
-        kubectl apply -f -
-      kubectl rollout restart -n kube-system deployment/coredns
+        kubectl --context $KUBE_CONTEXT apply -f -
+      kubectl --context $KUBE_CONTEXT rollout restart -n kube-system deployment/coredns
     EOT
   }
 

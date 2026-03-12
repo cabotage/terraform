@@ -148,6 +148,17 @@ variable "secrets_dir" {
   type        = string
 }
 
+variable "kube_context" {
+  description = "Kubernetes context name for kubectl commands in local-exec provisioners"
+  type        = string
+}
+
+variable "consul_local_port" {
+  description = "Local port for consul port-forward (use different ports for concurrent applies)"
+  type        = number
+  default     = 18500
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

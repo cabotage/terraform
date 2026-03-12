@@ -1,0 +1,50 @@
+---
+apiVersion: redis.redis.opstreelabs.in/v1beta2
+kind: Redis
+metadata:
+  name: cabotage
+  namespace: redis
+spec:
+  TLS:
+    secret:
+      optional: false
+      secretName: cabotage-tls
+  kubernetesConfig:
+    image: quay.io/opstree/redis:v7.0.15
+    imagePullPolicy: IfNotPresent
+    redisSecret:
+      key: password
+      name: cabotage-password
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    updateStrategy: {}
+  podSecurityContext:
+    fsGroup: 1000
+    runAsUser: 1000
+  redisExporter:
+    image: quay.io/opstree/redis-exporter:v1.44.0
+    imagePullPolicy: Always
+    port: 9121
+    resources:
+      limits:
+        cpu: 100m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+  storage:
+    volumeClaimTemplate:
+      metadata: {}
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+      status: {}
+    volumeMount: {}

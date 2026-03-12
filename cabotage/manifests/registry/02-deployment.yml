@@ -1,0 +1,157 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry
+  namespace: cabotage
+  labels:
+    app: registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: registry
+  template:
+    metadata:
+      labels:
+        app: registry
+        ca-admission.cabotage.io: "true"
+    spec:
+      serviceAccountName: registry
+      # Unfortunately we need root to alter ca certificates
+      #securityContext:
+      #  runAsNonRoot: true
+      #  runAsUser: 20004
+      #  runAsGroup: 20004
+      #  fsGroup: 20004
+      initContainers:
+        - name: cabotage-enroller
+          image: cabotage/sidecar:4
+          imagePullPolicy: Always
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          args:
+            - "kube-login"
+            - "--namespace=$(NAMESPACE)"
+            - "--vault-auth-kubernetes-role=cabotage-registry"
+            - "--fetch-cert"
+            - "--vault-pki-role=cabotage-registry"
+            - "--pod-name=$(POD_NAME)"
+            - "--pod-ip=$(POD_IP)"
+            - "--service-names=registry"
+            - "--additional-dns-names=localhost"
+          volumeMounts:
+            - name: vault-secrets
+              mountPath: /var/run/secrets/vault
+      containers:
+        - name: cabotage-sidecar
+          image: cabotage/sidecar:4
+          imagePullPolicy: Always
+          args:
+            - "maintain"
+            - "--vault-pki-role=cabotage-registry"
+          volumeMounts:
+            - name: vault-secrets
+              mountPath: /var/run/secrets/vault
+        - name: cabotage-sidecar-tls
+          image: cabotage/sidecar:4
+          imagePullPolicy: Always
+          command: ["/usr/bin/ghostunnel"]
+          args:
+            - "server"
+            - "--keystore=/var/run/secrets/vault/combined.pem"
+            - "--cacert=/var/run/secrets/cabotage.io/ca.crt"
+            - "--timed-reload=300s"
+            - "--shutdown-timeout=10s"
+            - "--connect-timeout=10s"
+            - "--disable-authentication"
+            - "--target=127.0.0.1:4999"
+            - "--listen=0.0.0.0:5000"
+          volumeMounts:
+            - name: vault-secrets
+              mountPath: /var/run/secrets/vault
+          ports:
+            - containerPort: 5000
+              name: https
+          livenessProbe:
+            httpGet:
+              path: /
+              scheme: HTTPS
+              port: 5000
+            initialDelaySeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              scheme: HTTPS
+              port: 5000
+            initialDelaySeconds: 10
+        - name: registry
+          image: cabotage/registry:4
+          imagePullPolicy: Always
+          args: ['/etc/docker/registry-local/config.yml']
+          env:
+            - name: REGISTRY_STORAGE_S3_ACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: rustfs-cabotage-registry
+                  key: access-key-id
+            - name: REGISTRY_STORAGE_S3_SECRETKEY
+              valueFrom:
+                secretKeyRef:
+                  name: rustfs-cabotage-registry
+                  key: secret-key
+            - name: REGISTRY_HTTP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: registry-secrets
+                  key: http-secret
+          ports:
+            - containerPort: 4999
+              name: http
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 4999
+            initialDelaySeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 4999
+            initialDelaySeconds: 10
+          volumeMounts:
+            - name: registry-config
+              mountPath: /etc/docker/registry-local
+            - name: registry-signing-cert
+              mountPath: /etc/docker/registry-signing
+              readOnly: true
+            - name: vault-secrets
+              mountPath: /var/run/secrets/vault
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+      terminationGracePeriodSeconds: 5
+      volumes:
+        - name: vault-secrets
+          emptyDir:
+            medium: "Memory"
+            sizeLimit: "1M"
+        - name: registry-config
+          configMap:
+            name: registry-config
+        - name: registry-signing-cert
+          secret:
+            secretName: registry-signing-cert

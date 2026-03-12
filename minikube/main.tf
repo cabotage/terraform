@@ -37,10 +37,16 @@ provider "helm" {
   }
 }
 
+provider "kubectl" {
+  config_path    = "~/.kube/config"
+  config_context = "minikube"
+}
+
 module "cabotage" {
   source = "../cabotage"
 
   cluster_identifier        = "minikube"
+  kube_context              = "minikube"
   secrets_dir               = abspath(path.module)
   enable_pebble_letsencrypt = true
   forwarded_headers_cidrs   = ["10.96.0.0/12", "10.244.0.0/16"]

@@ -75,9 +75,10 @@ resource "null_resource" "enrollment_operator_bootstrap" {
   provisioner "local-exec" {
     command = "sh ${path.module}/scripts/enrollment-operator-bootstrap.sh"
     environment = {
-      SECRETS_DIR = var.secrets_dir
-      NAMESPACE   = kubernetes_namespace_v1.cabotage.metadata[0].name
-      POLICY_FILE = "${path.module}/scripts/enrollment-operator-policy.hcl"
+      SECRETS_DIR  = var.secrets_dir
+      NAMESPACE    = kubernetes_namespace_v1.cabotage.metadata[0].name
+      POLICY_FILE  = "${path.module}/scripts/enrollment-operator-policy.hcl"
+      KUBE_CONTEXT = var.kube_context
     }
   }
 
@@ -98,5 +99,7 @@ resource "kubectl_manifest" "enrollment_operator_deployment" {
     kubectl_manifest.enrollment_operator_clusterpeering,
     null_resource.enrollment_operator_bootstrap,
     null_resource.ca_admission_webhook_ready,
+    null_resource.namespace_cleanup,
   ]
 }
+

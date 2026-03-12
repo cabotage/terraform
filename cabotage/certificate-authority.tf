@@ -8,6 +8,11 @@
 #   ca.crt  — root CA certificate
 #   ca.key  — root CA private key
 
+locals {
+  # Extract short name from ARN or use as-is (e.g. "arn:aws:eks:...:cluster/dev-astral" -> "dev-astral")
+  cluster_short_name = element(split("/", var.cluster_identifier), length(split("/", var.cluster_identifier)) - 1)
+}
+
 # --- Root CA (local) ---
 
 resource "null_resource" "root_ca" {
@@ -18,8 +23,9 @@ resource "null_resource" "root_ca" {
   provisioner "local-exec" {
     command = "sh ${path.module}/scripts/bootstrap-root-ca.sh"
     environment = {
-      SECRETS_DIR = var.secrets_dir
-      CLUSTER_ID  = var.cluster_identifier
+      SECRETS_DIR  = var.secrets_dir
+      CLUSTER_ID   = var.cluster_identifier
+      KUBE_CONTEXT = var.kube_context
     }
   }
 
@@ -58,7 +64,7 @@ resource "kubectl_manifest" "certificate_approver_ca_certificate" {
     }
     spec = {
       isCA       = true
-      commonName = "${var.cluster_identifier} Certificate Approver Intermediate CA"
+      commonName = "${local.cluster_short_name} Certificate Approver Intermediate CA"
       secretName = "certificate-approver-ca-key-pair"
       duration   = "43800h0m0s" # 5 years
       privateKey = {
@@ -86,7 +92,7 @@ resource "kubectl_manifest" "operators_ca_certificate" {
     }
     spec = {
       isCA       = true
-      commonName = "${var.cluster_identifier} Operators Intermediate CA"
+      commonName = "${local.cluster_short_name} Operators Intermediate CA"
       secretName = "operators-ca-key-pair"
       duration   = "43800h0m0s" # 5 years
       privateKey = {
@@ -115,8 +121,9 @@ resource "null_resource" "sign_intermediate_cas" {
   provisioner "local-exec" {
     command = "sh ${path.module}/scripts/sign-intermediate-cas.sh"
     environment = {
-      SECRETS_DIR = var.secrets_dir
-      CLUSTER_ID  = var.cluster_identifier
+      SECRETS_DIR  = var.secrets_dir
+      CLUSTER_ID   = var.cluster_identifier
+      KUBE_CONTEXT = var.kube_context
     }
   }
 

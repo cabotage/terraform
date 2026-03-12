@@ -1,0 +1,12 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: cabotage
+  namespace: postgres
+spec:
+  instances: 2
+  certificates:
+    serverTLSSecret: cabotage-tls
+    serverCASecret: operators-ca-crt
+  storage:
+    size: 1Gi

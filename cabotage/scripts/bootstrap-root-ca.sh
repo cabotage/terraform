@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+. "$(dirname "$0")/_lib.sh"
+
 # Generate root CA locally if not present, distribute cert via ConfigMaps.
 # Root CA key never enters K8s.
 
@@ -8,10 +10,23 @@ if [ ! -f "$SECRETS_DIR/ca.crt" ] || [ ! -f "$SECRETS_DIR/ca.key" ]; then
   echo "Generating root CA..."
   mkdir -p "$SECRETS_DIR"
   openssl ecparam -genkey -name prime256v1 -noout -out "$SECRETS_DIR/ca.key" 2>/dev/null
+  CLUSTER_SHORT=$(printf '%s' "$CLUSTER_ID" | sed 's|.*/||')
+  OPENSSL_CNF=$(mktemp)
+  trap "rm -f '$OPENSSL_CNF'" EXIT
+  cat > "$OPENSSL_CNF" <<EOF
+[req]
+distinguished_name = dn
+prompt = no
+x509_extensions = v3_ca
+[dn]
+CN = ${CLUSTER_SHORT} Cabotage Root CA
+[v3_ca]
+basicConstraints = critical,CA:TRUE
+keyUsage = critical,keyCertSign,cRLSign
+EOF
   openssl req -new -x509 -key "$SECRETS_DIR/ca.key" -out "$SECRETS_DIR/ca.crt" \
-    -days 3650 -subj "/CN=$CLUSTER_ID Cabotage Root CA" \
-    -addext "basicConstraints=critical,CA:TRUE" \
-    -addext "keyUsage=critical,keyCertSign,cRLSign"
+    -days 3650 -config "$OPENSSL_CNF"
+  rm -f "$OPENSSL_CNF"
   chmod 600 "$SECRETS_DIR/ca.key"
   echo "Root CA saved to $SECRETS_DIR/ca.{crt,key}"
 else
@@ -20,8 +35,8 @@ fi
 
 CA_CRT=$(cat "$SECRETS_DIR/ca.crt")
 for ns in cabotage default; do
-  kubectl create configmap cabotage-ca -n "$ns" \
+  $KUBECTL create configmap cabotage-ca -n "$ns" \
     --from-literal="ca.crt=$CA_CRT" \
-    --dry-run=client -o yaml | kubectl apply -f -
+    --dry-run=client -o yaml | $KUBECTL apply -f -
 done
 echo "Root CA cert distributed to configmaps."

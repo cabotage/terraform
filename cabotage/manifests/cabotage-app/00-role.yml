@@ -1,0 +1,81 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  namespace: cabotage-app
+  name: cabotage-deployments
+rules:
+  - verbs:
+      - get
+      - list
+      - create
+      - patch
+      - delete
+    apiGroups:
+      - "cabotage.io"
+    resources:
+      - cabotageenrollments
+  - verbs:
+      - get
+      - list
+      - create
+      - patch
+      - delete
+    apiGroups:
+      - ''
+    resources:
+      - serviceaccounts
+      - namespaces
+      - secrets
+      - configmaps
+      - persistentvolumeclaims
+      - persistentvolume
+      - services
+  - verbs:
+      - get
+      - list
+      - create
+      - patch
+      - delete
+    apiGroups:
+      - apps
+    resources:
+      - deployments
+      - deployments/scale
+  - verbs:
+      - get
+      - list
+      - create
+      - patch
+      - delete
+    apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingresses
+  - verbs:
+      - get
+      - list
+      - create
+      - patch
+      - delete
+    apiGroups:
+      - batch
+    resources:
+      - jobs
+      - jobs/status
+  - verbs:
+      - get
+      - list
+      - watch
+      - delete
+    apiGroups:
+      - ''
+    resources:
+      - pods
+      - pods/log
+  - verbs:
+      - get
+      - create
+    apiGroups:
+      - ''
+    resources:
+      - pods/exec
