@@ -1,0 +1,41 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cabotage-certmanager
+  namespace: redis
+spec:
+  secretName: cabotage-tls
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  subject:
+    organizations:
+    - cabotage-org
+  commonName: cabotage
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  usages:
+    - digital signature
+    - key encipherment
+  dnsNames:
+  - cabotage
+  - cabotage.redis
+  - cabotage.redis.svc
+  - cabotage.redis.svc.cluster.local
+  - cabotage-0
+  - cabotage-0.redis
+  - cabotage-0.redis.svc
+  - cabotage-0.redis.svc.cluster.local
+  - cabotage-1
+  - cabotage-1.redis
+  - cabotage-1.redis.svc
+  - cabotage-1.redis.svc.cluster.local
+  - cabotage-2
+  - cabotage-2.redis
+  - cabotage-2.redis.svc
+  - cabotage-2.redis.svc.cluster.local
+  issuerRef:
+    name: operators-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io

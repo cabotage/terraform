@@ -16,5 +16,5 @@ rules:
     resources: [events]
     verbs: [create]
   - apiGroups: [cabotage.io]
-    resources: [cabotageenrollments]
+    resources: [cabotageenrollments, cabotageenrollments/status]
     verbs: [list, watch, patch]

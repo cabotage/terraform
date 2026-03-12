@@ -7,6 +7,9 @@
 
 resource "null_resource" "rustfs_admin_secret" {
   provisioner "local-exec" {
+    environment = {
+      KUBE_CONTEXT = var.kube_context
+    }
     command = "sh ${path.module}/scripts/rustfs-create-admin-secret.sh"
   }
 
@@ -62,7 +65,8 @@ resource "null_resource" "rustfs_create_buckets" {
   provisioner "local-exec" {
     command = "sh ${path.module}/scripts/rustfs-create-buckets.sh"
     environment = {
-      NAMESPACE = kubernetes_namespace_v1.cabotage.metadata[0].name
+      NAMESPACE    = kubernetes_namespace_v1.cabotage.metadata[0].name
+      KUBE_CONTEXT = var.kube_context
     }
   }
 

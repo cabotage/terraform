@@ -21,6 +21,7 @@ resource "null_resource" "vault_bootstrap" {
       SECRETS_DIR    = var.secrets_dir
       NAMESPACE      = kubernetes_namespace_v1.cabotage.metadata[0].name
       VAULT_REPLICAS = tostring(var.vault_replicas)
+      KUBE_CONTEXT   = var.kube_context
     }
   }
 

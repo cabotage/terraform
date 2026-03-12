@@ -2,24 +2,9 @@
 #
 # Manifests live in manifests/resident-monitoring/.
 # All manifests are static copies from kubernetes-infra with minio
-# endpoint changed to rustfs.
-
-# --- S3 Credentials ---
-
-resource "null_resource" "resident_monitoring_s3_secret" {
-  triggers = {
-    rustfs_secret_id = null_resource.rustfs_admin_secret.id
-  }
-
-  provisioner "local-exec" {
-    command = "sh ${path.module}/scripts/resident-monitoring-s3-secret.sh"
-    environment = {
-      NAMESPACE = kubernetes_namespace_v1.cabotage.metadata[0].name
-    }
-  }
-
-  depends_on = [null_resource.rustfs_admin_secret]
-}
+# endpoint changed to rustfs. Per-service S3 credentials are created
+# by the rustfs-create-buckets script (secrets: rustfs-resident-loki,
+# rustfs-resident-mimir).
 
 # --- Alloy ---
 
@@ -94,7 +79,6 @@ resource "kubectl_manifest" "loki_statefulset_backend" {
     kubectl_manifest.loki_serviceaccount,
     kubectl_manifest.loki_configmap,
     kubectl_manifest.loki_certificate,
-    null_resource.resident_monitoring_s3_secret,
     null_resource.ca_admission_webhook_ready,
     null_resource.rustfs_create_buckets,
   ]
@@ -109,7 +93,6 @@ resource "kubectl_manifest" "loki_statefulset_read" {
     kubectl_manifest.loki_serviceaccount,
     kubectl_manifest.loki_configmap,
     kubectl_manifest.loki_certificate,
-    null_resource.resident_monitoring_s3_secret,
     null_resource.ca_admission_webhook_ready,
     null_resource.rustfs_create_buckets,
   ]
@@ -124,7 +107,6 @@ resource "kubectl_manifest" "loki_statefulset_write" {
     kubectl_manifest.loki_serviceaccount,
     kubectl_manifest.loki_configmap,
     kubectl_manifest.loki_certificate,
-    null_resource.resident_monitoring_s3_secret,
     null_resource.ca_admission_webhook_ready,
     null_resource.rustfs_create_buckets,
   ]
@@ -200,7 +182,6 @@ resource "kubectl_manifest" "mimir_statefulset_backend" {
     kubectl_manifest.mimir_configmap,
     kubectl_manifest.mimir_configmap_rules,
     kubectl_manifest.mimir_certificate,
-    null_resource.resident_monitoring_s3_secret,
     null_resource.ca_admission_webhook_ready,
     null_resource.rustfs_create_buckets,
   ]
@@ -216,7 +197,6 @@ resource "kubectl_manifest" "mimir_statefulset_read" {
     kubectl_manifest.mimir_configmap,
     kubectl_manifest.mimir_configmap_rules,
     kubectl_manifest.mimir_certificate,
-    null_resource.resident_monitoring_s3_secret,
     null_resource.ca_admission_webhook_ready,
     null_resource.rustfs_create_buckets,
   ]
@@ -232,7 +212,6 @@ resource "kubectl_manifest" "mimir_statefulset_write" {
     kubectl_manifest.mimir_configmap,
     kubectl_manifest.mimir_configmap_rules,
     kubectl_manifest.mimir_certificate,
-    null_resource.resident_monitoring_s3_secret,
     null_resource.ca_admission_webhook_ready,
     null_resource.rustfs_create_buckets,
   ]
