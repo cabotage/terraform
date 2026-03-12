@@ -4,10 +4,12 @@ set -e
 NAMESPACE="${NAMESPACE:-cabotage}"
 VAULT_REPLICAS="${VAULT_REPLICAS:-3}"
 
+. "$(dirname "$0")/_lib.sh"
+
 VAULT_FQDN="vault-0.vault.${NAMESPACE}.svc.cluster.local"
 
 vault_cmd() {
-  kubectl exec vault-0 -n "$NAMESPACE" -c vault -- sh -c "
+  $KUBECTL exec vault-0 -n "$NAMESPACE" -c vault -- sh -c "
     VAULT_ADDR=https://${VAULT_FQDN}:8200 \
     VAULT_CACERT=/var/run/secrets/cabotage.io/ca.crt \
     VAULT_TOKEN='$VAULT_ROOT_TOKEN' \
@@ -16,7 +18,7 @@ vault_cmd() {
 }
 
 vault_status() {
-  kubectl exec "$1" -n "$NAMESPACE" -c vault -- sh -c "
+  $KUBECTL exec "$1" -n "$NAMESPACE" -c vault -- sh -c "
     VAULT_ADDR=https://\$HOSTNAME.vault.$NAMESPACE.svc.cluster.local:8200 \
     VAULT_CACERT=/var/run/secrets/cabotage.io/ca.crt \
     vault status -format=json 2>/dev/null
@@ -25,20 +27,28 @@ vault_status() {
 
 # --- Wait for Vault ---
 echo "Waiting for vault-0..."
-while ! kubectl get pod vault-0 -n "$NAMESPACE" -o jsonpath='{.status.phase}' 2>/dev/null | grep -q Running; do
-  sleep 5
-done
+pod_is_running() {
+  $KUBECTL get pod vault-0 -n "$NAMESPACE" -o jsonpath='{.status.phase}' 2>/dev/null | grep -q Running
+}
+wait_for 120 5 pod_is_running || {
+  echo "ERROR: vault-0 pod never reached Running state." >&2
+  exit 1
+}
 sleep 5
 
-echo "Waiting for Vault to be available..."
-while true; do
+echo "Waiting for Vault API to be available..."
+for _attempt in $(seq 1 24); do
   status_json=$(vault_status vault-0)
-  if printf '%s' "$status_json" | jq '.initialized' > /dev/null 2>&1; then
+  if printf '%s' "$status_json" | jq -e 'has("initialized")' > /dev/null 2>&1; then
     break
   fi
   echo "  not ready, retrying in 5s..."
   sleep 5
 done
+if ! printf '%s' "$status_json" | jq -e 'has("initialized")' > /dev/null 2>&1; then
+  echo "ERROR: Vault API never became available." >&2
+  exit 1
+fi
 echo "Vault is available."
 
 # --- Initialize Vault ---
@@ -46,7 +56,7 @@ is_init=$(printf '%s' "$status_json" | jq -r '.initialized')
 
 if [ "$is_init" = "false" ]; then
   echo "Initializing Vault (1 key share, 1 threshold)..."
-  INIT_JSON=$(kubectl exec vault-0 -n "$NAMESPACE" -c vault -- sh -c "
+  INIT_JSON=$($KUBECTL exec vault-0 -n "$NAMESPACE" -c vault -- sh -c "
     VAULT_ADDR=https://\$HOSTNAME.vault.$NAMESPACE.svc.cluster.local:8200 \
     VAULT_CACERT=/var/run/secrets/cabotage.io/ca.crt \
     vault operator init -key-shares=1 -key-threshold=1 -format=json 2>/dev/null
@@ -60,30 +70,63 @@ if [ "$is_init" = "false" ]; then
   printf '%s' "$UNSEAL_KEY" > "$SECRETS_DIR/vault-unseal-key"
   chmod 600 "$SECRETS_DIR/vault-bootstrap-token" "$SECRETS_DIR/vault-unseal-key"
   echo "Vault initialized. Credentials saved to $SECRETS_DIR/"
-elif [ -f "$SECRETS_DIR/vault-bootstrap-token" ]; then
+elif [ -f "$SECRETS_DIR/vault-bootstrap-token" ] && [ -f "$SECRETS_DIR/vault-unseal-key" ]; then
   VAULT_ROOT_TOKEN=$(cat "$SECRETS_DIR/vault-bootstrap-token")
-  UNSEAL_KEY=$(cat "$SECRETS_DIR/vault-unseal-key" 2>/dev/null || echo "")
-  echo "Vault already initialized, using existing credentials."
+  UNSEAL_KEY=$(cat "$SECRETS_DIR/vault-unseal-key")
+  echo "Vault already initialized, using existing credentials. Verifying unseal key..."
+  # Try to unseal vault-0 to verify the key works (if it's already unsealed, this is a no-op check)
+  unseal_test=$($KUBECTL exec vault-0 -n "$NAMESPACE" -c vault -- sh -c "
+    VAULT_ADDR=https://\$HOSTNAME.vault.$NAMESPACE.svc.cluster.local:8200 \
+    VAULT_CACERT=/var/run/secrets/cabotage.io/ca.crt \
+    vault operator unseal -format=json '$UNSEAL_KEY' 2>&1
+  " 2>/dev/null) || true
+  if printf '%s' "$unseal_test" | grep -q "invalid unseal key\|invalid barrier\|Unseal Key is not"; then
+    echo "ERROR: Saved unseal key does NOT match this vault instance (stale from destroyed cluster?)." >&2
+    echo "This vault was initialized by another process. The saved credentials at $SECRETS_DIR/ are stale." >&2
+    echo "If this is a fresh cluster, delete $SECRETS_DIR/vault-bootstrap-token and vault-unseal-key, then re-run." >&2
+    exit 1
+  fi
+  echo "Credentials verified OK."
 else
-  echo "Vault already initialized but no local credentials found."
-  echo "Place vault-bootstrap-token and vault-unseal-key in $SECRETS_DIR/ and re-run."
+  echo "Vault already initialized but local credentials missing or incomplete." >&2
+  echo "Need both vault-bootstrap-token and vault-unseal-key in $SECRETS_DIR/" >&2
+  if [ ! -f "$SECRETS_DIR/vault-unseal-key" ]; then
+    echo "  Missing: vault-unseal-key" >&2
+  fi
+  if [ ! -f "$SECRETS_DIR/vault-bootstrap-token" ]; then
+    echo "  Missing: vault-bootstrap-token" >&2
+  fi
   exit 1
 fi
 
 # --- Unseal all Vault pods ---
 echo "Unsealing Vault pods..."
 for i in $(seq 0 $((VAULT_REPLICAS - 1))); do
-  seal_json=$(vault_status "vault-$i")
+  seal_json=""
+  for _s in $(seq 1 5); do
+    seal_json=$(vault_status "vault-$i")
+    if printf '%s' "$seal_json" | jq -e '.sealed' > /dev/null 2>&1; then
+      break
+    fi
+    sleep 3
+  done
   is_sealed=$(printf '%s' "$seal_json" | jq -r '.sealed' 2>/dev/null || echo "")
 
   if [ "$is_sealed" = "true" ]; then
     echo "  Unsealing vault-$i..."
-    kubectl exec "vault-$i" -n "$NAMESPACE" -c vault -- sh -c "
+    retry 3 5 $KUBECTL exec "vault-$i" -n "$NAMESPACE" -c vault -- sh -c "
       VAULT_ADDR=https://\$HOSTNAME.vault.$NAMESPACE.svc.cluster.local:8200 \
       VAULT_CACERT=/var/run/secrets/cabotage.io/ca.crt \
       vault operator unseal '$UNSEAL_KEY'
     " > /dev/null 2>&1
-    echo "  vault-$i unsealed."
+    # Verify unseal succeeded
+    verify_json=$(vault_status "vault-$i")
+    verify_sealed=$(printf '%s' "$verify_json" | jq -r '.sealed' 2>/dev/null || echo "unknown")
+    if [ "$verify_sealed" = "false" ]; then
+      echo "  vault-$i unsealed."
+    else
+      echo "  WARNING: vault-$i may still be sealed (sealed=$verify_sealed)." >&2
+    fi
   elif [ "$is_sealed" = "false" ]; then
     echo "  vault-$i already unsealed."
   else
@@ -93,16 +136,22 @@ done
 
 # Wait for vault to become active
 echo "Waiting for Vault to become active..."
-for attempt in $(seq 1 30); do
+_vault_active=false
+for _attempt in $(seq 1 30); do
   health_json=$(vault_status vault-0)
   is_init=$(printf '%s' "$health_json" | jq -r '.initialized' 2>/dev/null || echo "")
   is_sealed=$(printf '%s' "$health_json" | jq -r '.sealed' 2>/dev/null || echo "")
   if [ "$is_init" = "true" ] && [ "$is_sealed" = "false" ]; then
+    _vault_active=true
     echo "Vault is active."
     break
   fi
   sleep 2
 done
+if [ "$_vault_active" != "true" ]; then
+  echo "ERROR: Vault did not become active within 60 seconds." >&2
+  exit 1
+fi
 
 # --- Enable Kubernetes auth ---
 echo "Enabling Kubernetes auth backend..."
@@ -130,7 +179,7 @@ echo "Configuring Consul secrets backend..."
 CONSUL_MGMT_TOKEN=$(cat "$SECRETS_DIR/consul-bootstrap-token")
 
 echo "  Creating Consul management token for Vault..."
-consul_response=$(kubectl exec consul-0 -n "$NAMESPACE" -c consul -- sh -c "
+consul_response=$($KUBECTL exec consul-0 -n "$NAMESPACE" -c consul -- sh -c "
   CONSUL_HTTP_TOKEN='$CONSUL_MGMT_TOKEN' consul acl token create \
     -description='Vault Consul Backend Management Token' \
     -policy-name=global-management \
@@ -189,7 +238,7 @@ EXTEOF
   rm -rf "$TMPDIR"
 
   echo "  Providing signed certificate back to Vault..."
-  printf '%s' "$SIGNED_CERT" | kubectl exec -i vault-0 -n "$NAMESPACE" -c vault -- sh -c "
+  printf '%s' "$SIGNED_CERT" | $KUBECTL exec -i vault-0 -n "$NAMESPACE" -c vault -- sh -c "
     VAULT_ADDR=https://\$HOSTNAME.vault.$NAMESPACE.svc.cluster.local:8200 \
     VAULT_CACERT=/var/run/secrets/cabotage.io/ca.crt \
     VAULT_TOKEN='$VAULT_ROOT_TOKEN' \

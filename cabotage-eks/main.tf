@@ -223,28 +223,17 @@ resource "helm_release" "node_local_dns" {
   depends_on = [module.eks]
 }
 
-# --- CoreDNS PodDisruptionBudget ---
+# --- Ingress Hairpin Routing ---
 
-resource "kubernetes_pod_disruption_budget_v1" "coredns" {
+resource "kubernetes_namespace_v1" "ingress_controller" {
+  count = length(var.ingress_hairpin_domains) > 0 ? 1 : 0
+
   metadata {
-    name      = "coredns"
-    namespace = "kube-system"
-  }
-
-  spec {
-    max_unavailable = "1"
-
-    selector {
-      match_labels = {
-        "eks.amazonaws.com/component" = "coredns"
-      }
-    }
+    name = var.ingress_controller_namespace
   }
 
   depends_on = [module.eks]
 }
-
-# --- Ingress Hairpin Routing ---
 
 resource "kubernetes_service_v1" "ingress_hairpin" {
   count = length(var.ingress_hairpin_domains) > 0 ? 1 : 0
@@ -272,6 +261,6 @@ resource "kubernetes_service_v1" "ingress_hairpin" {
     }
   }
 
-  depends_on = [module.eks]
+  depends_on = [kubernetes_namespace_v1.ingress_controller]
 }
 

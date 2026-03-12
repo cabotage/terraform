@@ -58,17 +58,22 @@ resource "null_resource" "ca_admission_webhook_ready" {
   }
 
   provisioner "local-exec" {
+    environment = {
+      KUBE_CONTEXT = var.kube_context
+    }
     command = <<-EOT
       echo "Waiting for caBundle injection on ca-admission webhook..."
-      for i in $(seq 1 60); do
-        bundle=$(kubectl get mutatingwebhookconfiguration ca-admission.cabotage.io -o jsonpath='{.webhooks[0].clientConfig.caBundle}' 2>/dev/null)
+      for i in $(seq 1 90); do
+        bundle=$(kubectl --context $KUBE_CONTEXT get mutatingwebhookconfiguration ca-admission.cabotage.io -o jsonpath='{.webhooks[0].clientConfig.caBundle}' 2>/dev/null)
         if [ -n "$bundle" ]; then
           echo "caBundle injected."
           exit 0
         fi
+        [ $((i % 15)) -eq 0 ] && echo "  Still waiting... ($i attempts)"
         sleep 2
       done
-      echo "Timed out waiting for caBundle injection."
+      echo "ERROR: Timed out after 180s waiting for caBundle injection on ca-admission.cabotage.io"
+      kubectl --context $KUBE_CONTEXT get mutatingwebhookconfiguration ca-admission.cabotage.io -o yaml 2>&1 || true
       exit 1
     EOT
   }
