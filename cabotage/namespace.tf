@@ -9,13 +9,13 @@ resource "kubernetes_namespace_v1" "cabotage" {
 
 # --- Destroy-time Cleanup ---
 # Dependency chain (create order):
-#   namespace → namespace_cleanup → operator_deployment → enrollments
+#   namespace + CRD → namespace_cleanup → operator_deployment → enrollments
 #
 # Destroy order (reverse):
 #   enrollments (stuck on kopf finalizer) →
 #   operator_deployment (deleted, kopf gone) →
-#   namespace_cleanup (provisioner fires, strips finalizers) →
-#   namespace (deletes cleanly)
+#   namespace_cleanup (provisioner fires, strips finalizers — CRD still exists) →
+#   CRD + namespace (delete cleanly)
 
 resource "null_resource" "namespace_cleanup" {
   triggers = {
@@ -45,5 +45,8 @@ resource "null_resource" "namespace_cleanup" {
     EOT
   }
 
-  depends_on = [kubernetes_namespace_v1.cabotage]
+  depends_on = [
+    kubernetes_namespace_v1.cabotage,
+    kubectl_manifest.enrollment_operator_crd,
+  ]
 }
