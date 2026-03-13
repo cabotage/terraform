@@ -20,14 +20,12 @@ spec:
     spec:
       serviceAccountName: registry
       containers:
-        - name: cabotage-sidecar-tls
-          image: cabotage/sidecar:4
-          imagePullPolicy: Always
-          command: ["/usr/bin/ghostunnel"]
+        - name: ghostunnel
+          image: ghostunnel/ghostunnel:v1.8.0
           args:
             - "server"
-            - "--cert=/var/run/secrets/tls/tls.crt"
-            - "--key=/var/run/secrets/tls/tls.key"
+            - "--cert=/etc/tls/tls.crt"
+            - "--key=/etc/tls/tls.key"
             - "--cacert=/var/run/secrets/cabotage.io/ca.crt"
             - "--timed-reload=300s"
             - "--shutdown-timeout=10s"
@@ -37,7 +35,7 @@ spec:
             - "--listen=0.0.0.0:5000"
           volumeMounts:
             - name: tls
-              mountPath: /var/run/secrets/tls
+              mountPath: /etc/tls
               readOnly: true
           ports:
             - containerPort: 5000
@@ -54,6 +52,13 @@ spec:
               scheme: HTTPS
               port: 5000
             initialDelaySeconds: 10
+          resources:
+            limits:
+              cpu: "100m"
+              memory: "64Mi"
+            requests:
+              cpu: "50m"
+              memory: "32Mi"
         - name: registry
           image: cabotage/registry:4
           imagePullPolicy: Always
@@ -109,7 +114,7 @@ spec:
             volumeAttributes:
               csi.cert-manager.io/issuer-name: certificate-approver-ca-issuer
               csi.cert-manager.io/issuer-kind: ClusterIssuer
-              csi.cert-manager.io/duration: 9000h
+              csi.cert-manager.io/duration: 1080h  # 45 days
               csi.cert-manager.io/dns-names: >
                 registry.cabotage.svc.cluster.local,
                 registry.cabotage.svc,
