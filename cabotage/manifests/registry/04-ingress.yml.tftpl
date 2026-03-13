@@ -6,22 +6,22 @@ metadata:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/service-upstream: "true"
     cert-manager.io/cluster-issuer: letsencrypt
-  name: cabotage-app
+  name: registry
   namespace: cabotage
 spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - ${hostname}
-    secretName: cabotage-app-tls
+    - registry.${ingress_domain}
+    secretName: registry-tls
   rules:
-  - host: ${hostname}
+  - host: registry.${ingress_domain}
     http:
       paths:
       - pathType: Prefix
         backend:
           service:
-            name: cabotage-app
+            name: registry-ingress
             port:
-              number: 443
+              number: 5000
         path: /

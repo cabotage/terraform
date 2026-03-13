@@ -8,7 +8,7 @@ data:
     version: 0.1
     auth:
       token:
-        realm: https://cabotage-app.cabotage.svc.cluster.local:443/docker/auth
+        realm: https://${hostname}/docker/auth
         service: cabotage-registry
         issuer: cabotage-app
         rootcertbundle: /etc/docker/registry-signing/public_key_bundle
@@ -33,6 +33,6 @@ data:
         chunksize: "5242880"
     http:
       addr: 0.0.0.0:4999
-      host: https://registry.cabotage.svc.cluster.local:5000
+      host: https://registry.${ingress_domain}
       headers:
         X-Content-Type-Options: [nosniff]
