@@ -71,7 +71,7 @@ data "aws_iam_role" "vault_unseal" {
 }
 
 module "cabotage" {
-  source = "../cabotage"
+  source = "../../../modules/cabotage"
 
   cluster_identifier      = "arn:aws:eks:us-east-1:318662118699:cluster/dev-astral"
   kube_context            = "arn:aws:eks:us-east-1:318662118699:cluster/dev-astral"

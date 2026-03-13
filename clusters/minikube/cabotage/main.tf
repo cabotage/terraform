@@ -43,7 +43,7 @@ provider "kubectl" {
 }
 
 module "cabotage" {
-  source = "../cabotage"
+  source = "../../../modules/cabotage"
 
   cluster_identifier        = "minikube"
   kube_context              = "minikube"
