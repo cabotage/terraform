@@ -46,7 +46,7 @@ provider "helm" {
 }
 
 module "cluster" {
-  source = "./cabotage-eks"
+  source = "../../../modules/cabotage-eks"
 
   project_name = "cabotage"
   cluster_name = "dev-astral"
