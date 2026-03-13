@@ -116,6 +116,18 @@ variable "ingress_controller_selector" {
   }
 }
 
+variable "enable_vault_auto_unseal" {
+  description = "Create a KMS key and IRSA role for Vault auto-unseal"
+  type        = bool
+  default     = false
+}
+
+variable "vault_namespace" {
+  description = "Kubernetes namespace where Vault runs (for IRSA binding)"
+  type        = string
+  default     = "cabotage"
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)

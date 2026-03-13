@@ -83,6 +83,61 @@ module "eks" {
   tags = local.tags
 }
 
+# --- Vault KMS Auto-Unseal ---
+
+resource "aws_kms_key" "vault_unseal" {
+  count = var.enable_vault_auto_unseal ? 1 : 0
+
+  description = "Vault auto-unseal key for ${var.cluster_name}"
+  key_usage   = "ENCRYPT_DECRYPT"
+
+  tags = merge(local.tags, {
+    Name = "${var.cluster_name}-vault-unseal"
+  })
+}
+
+resource "aws_kms_alias" "vault_unseal" {
+  count = var.enable_vault_auto_unseal ? 1 : 0
+
+  name          = "alias/${var.cluster_name}-vault-unseal"
+  target_key_id = aws_kms_key.vault_unseal[0].key_id
+}
+
+module "vault_unseal_irsa" {
+  count   = var.enable_vault_auto_unseal ? 1 : 0
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts"
+  version = "~> 6.0"
+
+  name = "${var.cluster_name}-vault-unseal"
+
+  oidc_providers = {
+    main = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["${var.vault_namespace}:vault"]
+    }
+  }
+
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy" "vault_unseal_kms" {
+  count = var.enable_vault_auto_unseal ? 1 : 0
+
+  name = "vault-kms-unseal"
+  role = module.vault_unseal_irsa[0].name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["kms:Encrypt", "kms:Decrypt", "kms:DescribeKey"]
+        Resource = [aws_kms_key.vault_unseal[0].arn]
+      }
+    ]
+  })
+}
+
 # --- EBS CSI Driver ---
 
 module "ebs_csi_irsa" {

@@ -23,6 +23,16 @@ output "cluster_oidc_provider_arn" {
   value       = module.eks.oidc_provider_arn
 }
 
+output "vault_unseal_kms_key_id" {
+  description = "KMS key ID for Vault auto-unseal (empty if disabled)"
+  value       = var.enable_vault_auto_unseal ? aws_kms_key.vault_unseal[0].key_id : ""
+}
+
+output "vault_unseal_irsa_role_arn" {
+  description = "IRSA role ARN for Vault auto-unseal (empty if disabled)"
+  value       = var.enable_vault_auto_unseal ? module.vault_unseal_irsa[0].arn : ""
+}
+
 output "vpc_id" {
   description = "ID of the VPC"
   value       = module.vpc.vpc_id
