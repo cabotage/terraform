@@ -47,6 +47,7 @@ module "cabotage" {
 
   cluster_identifier        = "minikube"
   kube_context              = "minikube"
+  cabotage_app_image        = "ghcr.io/cabotage/cabotage-app:2026.3.13-0"
   secrets_dir               = abspath(path.module)
   enable_pebble_letsencrypt = true
   forwarded_headers_cidrs   = ["10.96.0.0/12", "10.244.0.0/16"]

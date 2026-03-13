@@ -107,7 +107,9 @@ resource "null_resource" "cabotage_app_bootstrap" {
 # --- Deployments ---
 
 resource "kubectl_manifest" "cabotage_app_deployment_web" {
-  yaml_body = file("${path.module}/manifests/cabotage-app/04-deployment-web.yml")
+  yaml_body = templatefile("${path.module}/manifests/cabotage-app/04-deployment-web.yml.tftpl", {
+    image = var.cabotage_app_image
+  })
 
   wait_for_rollout = false
 
@@ -121,7 +123,9 @@ resource "kubectl_manifest" "cabotage_app_deployment_web" {
 }
 
 resource "kubectl_manifest" "cabotage_app_deployment_worker" {
-  yaml_body = file("${path.module}/manifests/cabotage-app/04-deployment-worker.yml")
+  yaml_body = templatefile("${path.module}/manifests/cabotage-app/04-deployment-worker.yml.tftpl", {
+    image = var.cabotage_app_image
+  })
 
   wait_for_rollout = false
 
@@ -135,7 +139,9 @@ resource "kubectl_manifest" "cabotage_app_deployment_worker" {
 }
 
 resource "kubectl_manifest" "cabotage_app_deployment_worker_beat" {
-  yaml_body = file("${path.module}/manifests/cabotage-app/04-deployment-worker-beat.yml")
+  yaml_body = templatefile("${path.module}/manifests/cabotage-app/04-deployment-worker-beat.yml.tftpl", {
+    image = var.cabotage_app_image
+  })
 
   wait_for_rollout = false
 
@@ -163,6 +169,7 @@ resource "kubectl_manifest" "cabotage_app_service" {
 resource "null_resource" "cabotage_app_configure" {
   triggers = {
     deployment_id = kubectl_manifest.cabotage_app_deployment_web.id
+    image         = var.cabotage_app_image
   }
 
   provisioner "local-exec" {
