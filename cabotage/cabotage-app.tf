@@ -5,6 +5,14 @@
 # Bootstrap script configures vault policy, consul policy, transit backend.
 # Configure script patches DB/Redis/S3 URIs and runs DB migrations.
 
+locals {
+  cabotage_app_configmap = templatefile("${path.module}/manifests/cabotage-app/03-configmap.yml.tftpl", {
+    hostname       = var.cabotage_app_hostname
+    ingress_domain = var.cabotage_ingress_domain
+  })
+  cabotage_app_config_hash = sha256(local.cabotage_app_configmap)
+}
+
 # --- RBAC ---
 
 resource "kubectl_manifest" "cabotage_app_role" {
@@ -75,10 +83,7 @@ resource "null_resource" "cabotage_app_enrollment_ready" {
 # --- ConfigMap ---
 
 resource "kubectl_manifest" "cabotage_app_configmap" {
-  yaml_body = templatefile("${path.module}/manifests/cabotage-app/03-configmap.yml.tftpl", {
-    hostname       = var.cabotage_app_hostname
-    ingress_domain = var.cabotage_ingress_domain
-  })
+  yaml_body = local.cabotage_app_configmap
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
@@ -107,11 +112,29 @@ resource "null_resource" "cabotage_app_bootstrap" {
   ]
 }
 
+# --- GitHub App Secret ---
+
+resource "kubernetes_secret_v1" "cabotage_github_app" {
+  count = var.github_app_id != "" ? 1 : 0
+
+  metadata {
+    name      = "cabotage-github-app"
+    namespace = kubernetes_namespace_v1.cabotage.metadata[0].name
+  }
+
+  data = {
+    app-id         = var.github_app_id
+    private-key    = base64encode(file("${var.secrets_dir}/github-app-private-key.pem"))
+    webhook-secret = trimspace(file("${var.secrets_dir}/github-webhook-secret"))
+  }
+}
+
 # --- Deployments ---
 
 resource "kubectl_manifest" "cabotage_app_deployment_web" {
   yaml_body = templatefile("${path.module}/manifests/cabotage-app/04-deployment-web.yml.tftpl", {
-    image = var.cabotage_app_image
+    image       = var.cabotage_app_image
+    config_hash = local.cabotage_app_config_hash
   })
 
   wait_for_rollout = false
@@ -127,7 +150,8 @@ resource "kubectl_manifest" "cabotage_app_deployment_web" {
 
 resource "kubectl_manifest" "cabotage_app_deployment_worker" {
   yaml_body = templatefile("${path.module}/manifests/cabotage-app/04-deployment-worker.yml.tftpl", {
-    image = var.cabotage_app_image
+    image       = var.cabotage_app_image
+    config_hash = local.cabotage_app_config_hash
   })
 
   wait_for_rollout = false
@@ -143,7 +167,8 @@ resource "kubectl_manifest" "cabotage_app_deployment_worker" {
 
 resource "kubectl_manifest" "cabotage_app_deployment_worker_beat" {
   yaml_body = templatefile("${path.module}/manifests/cabotage-app/04-deployment-worker-beat.yml.tftpl", {
-    image = var.cabotage_app_image
+    image       = var.cabotage_app_image
+    config_hash = local.cabotage_app_config_hash
   })
 
   wait_for_rollout = false

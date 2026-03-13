@@ -86,6 +86,12 @@ variable "cabotage_app_hostname" {
   type        = string
 }
 
+variable "github_app_id" {
+  description = "GitHub App ID for cabotage"
+  type        = string
+  default     = ""
+}
+
 variable "cabotage_ingress_domain" {
   description = "Domain used for ingress of cabotage-managed applications"
   type        = string

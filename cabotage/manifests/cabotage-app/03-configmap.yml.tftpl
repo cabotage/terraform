@@ -20,9 +20,9 @@ data:
   CABOTAGE_MINIO_ENDPOINT: rustfs.cabotage.svc.cluster.local:9000
   CABOTAGE_MINIO_PREFIX: cabotage-builds
   CABOTAGE_MINIO_SECURE: "True"
-  CABOTAGE_REGISTRY: registry.cabotage.app
-  CABOTAGE_REGISTRY_BUILD: registry.cabotage.app
-  CABOTAGE_REGISTRY_PULL: registry.cabotage.app
+  CABOTAGE_REGISTRY: registry.${ingress_domain}
+  CABOTAGE_REGISTRY_BUILD: registry.${ingress_domain}
+  CABOTAGE_REGISTRY_PULL: registry.${ingress_domain}
   CABOTAGE_REGISTRY_SECURE: "True"
   CABOTAGE_REGISTRY_VERIFY: "True"
   CABOTAGE_SHELLZ_ENABLED: "True"

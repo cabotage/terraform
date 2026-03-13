@@ -14,6 +14,8 @@ spec:
       component: web
   template:
     metadata:
+      annotations:
+        configmap-hash: ${config_hash}
       labels:
         app: cabotage-app
         component: web
@@ -158,6 +160,24 @@ spec:
                 secretKeyRef:
                   name: cabotage-app-secrets
                   key: registry-auth-secret
+            - name: CABOTAGE_GITHUB_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cabotage-github-app
+                  key: app-id
+                  optional: true
+            - name: CABOTAGE_GITHUB_APP_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cabotage-github-app
+                  key: private-key
+                  optional: true
+            - name: CABOTAGE_GITHUB_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cabotage-github-app
+                  key: webhook-secret
+                  optional: true
           volumeMounts:
             - name: vault-secrets
               mountPath: /var/run/secrets/vault
