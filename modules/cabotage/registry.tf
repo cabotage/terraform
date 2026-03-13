@@ -78,6 +78,7 @@ resource "kubectl_manifest" "registry_ingress" {
 
   depends_on = [
     kubectl_manifest.registry_service_ingress,
+    kubectl_manifest.nginx_ingress_class,
     helm_release.cert_manager,
   ]
 }

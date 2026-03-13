@@ -211,6 +211,7 @@ resource "kubectl_manifest" "cabotage_app_ingress" {
 
   depends_on = [
     kubectl_manifest.cabotage_app_service,
+    kubectl_manifest.nginx_ingress_class,
     helm_release.cert_manager,
   ]
 }
