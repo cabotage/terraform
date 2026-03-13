@@ -1,7 +1,7 @@
 # --- Traefik Ingress Controller / Gateway API ---
 # Step 1 in start-cluster
 
-resource "kubernetes_namespace_v1" "traefik" {
+data "kubernetes_namespace_v1" "traefik" {
   metadata {
     name = "traefik"
   }
@@ -11,7 +11,7 @@ resource "helm_release" "traefik" {
   name       = "traefik"
   repository = "https://traefik.github.io/charts"
   chart      = "traefik"
-  namespace  = kubernetes_namespace_v1.traefik.metadata[0].name
+  namespace  = data.kubernetes_namespace_v1.traefik.metadata[0].name
   version    = var.traefik_chart_version
 
   values = [yamlencode({
@@ -112,7 +112,7 @@ resource "helm_release" "traefik" {
 resource "kubernetes_config_map_v1" "traefik_cabotage_ca" {
   metadata {
     name      = "cabotage-ca"
-    namespace = kubernetes_namespace_v1.traefik.metadata[0].name
+    namespace = data.kubernetes_namespace_v1.traefik.metadata[0].name
   }
 
   data = {
