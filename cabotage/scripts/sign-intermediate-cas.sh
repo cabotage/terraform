@@ -20,13 +20,20 @@ CA_CERT_FILE="${CA_CERT_FILE:-$CA_CERT_FILE}"
 for ca_name in certificate-approver-ca operators-ca; do
   SECRET_NAME="${ca_name}-key-pair"
 
-  # Check if already signed by our root CA
-  existing_issuer=$($KUBECTL get secret "$SECRET_NAME" -n cert-manager \
-    -o jsonpath='{.data.tls\.crt}' 2>/dev/null | base64 -d 2>/dev/null | \
-    openssl x509 -noout -issuer 2>/dev/null || echo "")
-  if printf '%s' "$existing_issuer" | grep -q "Cabotage Root CA"; then
-    echo "$ca_name already signed by root CA."
-    continue
+  # Check if already signed by our current root CA (verify first cert in chain only)
+  existing_cert=$($KUBECTL get secret "$SECRET_NAME" -n cert-manager \
+    -o jsonpath='{.data.tls\.crt}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+  if [ -n "$existing_cert" ]; then
+    # Extract only the first certificate (the intermediate), not the full chain
+    first_cert=$(printf '%s' "$existing_cert" | awk '/BEGIN CERT/,/END CERT/{print; if(/END CERT/) exit}')
+    if printf '%s' "$first_cert" | openssl verify -partial_chain -CAfile "$CA_CERT_FILE" > /dev/null 2>&1; then
+      echo "$ca_name already signed by current root CA."
+      continue
+    fi
+    echo "$ca_name secret exists but was signed by a different root CA. Deleting..."
+    $KUBECTL delete secret "$SECRET_NAME" -n cert-manager
+    $KUBECTL delete certificaterequest -n cert-manager -l cert-manager.io/certificate-name="$ca_name" 2>/dev/null || true
+    sleep 5
   fi
 
   # Wait for cert-manager to create a CertificateRequest (name prefixed with certificate name)

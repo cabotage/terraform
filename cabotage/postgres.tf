@@ -27,8 +27,8 @@ resource "null_resource" "postgres_ca_secret" {
     command = <<-EOT
       echo "Copying operators-ca-crt to postgres namespace..."
       for i in $(seq 1 10); do
-        if kubectl --context $KUBE_CONTEXT get -n cert-manager secret operators-ca-crt -o yaml \
-          | sed 's/namespace: .*/namespace: postgres/' \
+        if kubectl --context $KUBE_CONTEXT get -n cert-manager secret operators-ca-crt -o json \
+          | jq '{apiVersion, kind, type, data} + {metadata: {name: .metadata.name, namespace: "postgres"}}' \
           | kubectl --context $KUBE_CONTEXT apply -f -; then
           echo "Done."
           exit 0

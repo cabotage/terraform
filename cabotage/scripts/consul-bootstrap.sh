@@ -29,7 +29,7 @@ echo "Waiting for port-forward to be ready..."
 wait_for 30 2 curl -sf http://localhost:${CONSUL_LOCAL_PORT}/v1/status/leader
 
 echo "Waiting for Consul leader..."
-wait_for 120 5 sh -c "curl -sf http://localhost:\${CONSUL_LOCAL_PORT}/v1/status/leader | grep -q '\"' "
+wait_for 120 5 sh -c "curl -sf http://localhost:\${CONSUL_LOCAL_PORT}/v1/status/leader | grep -q '.:' "
 echo "Consul is ready."
 
 # --- Bootstrap ACLs ---

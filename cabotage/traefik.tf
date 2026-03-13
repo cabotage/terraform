@@ -1,13 +1,18 @@
 # --- Traefik Ingress Controller / Gateway API ---
 # Step 1 in start-cluster
 
+resource "kubernetes_namespace_v1" "traefik" {
+  metadata {
+    name = "traefik"
+  }
+}
+
 resource "helm_release" "traefik" {
-  name             = "traefik"
-  repository       = "https://traefik.github.io/charts"
-  chart            = "traefik"
-  namespace        = "traefik"
-  create_namespace = true
-  version          = var.traefik_chart_version
+  name       = "traefik"
+  repository = "https://traefik.github.io/charts"
+  chart      = "traefik"
+  namespace  = kubernetes_namespace_v1.traefik.metadata[0].name
+  version    = var.traefik_chart_version
 
   values = [yamlencode({
     deployment = {
@@ -98,6 +103,8 @@ resource "helm_release" "traefik" {
       annotations = {}
     }
   })]
+
+  depends_on = [kubernetes_config_map_v1.traefik_cabotage_ca]
 }
 
 # --- Cabotage CA in Traefik namespace ---
@@ -105,14 +112,12 @@ resource "helm_release" "traefik" {
 resource "kubernetes_config_map_v1" "traefik_cabotage_ca" {
   metadata {
     name      = "cabotage-ca"
-    namespace = "traefik"
+    namespace = kubernetes_namespace_v1.traefik.metadata[0].name
   }
 
   data = {
-    "ca.crt" = file(var.ca_cert_file)
+    "ca.crt" = data.local_file.root_ca_cert.content
   }
-
-  depends_on = [null_resource.root_ca]
 }
 
 resource "kubectl_manifest" "nginx_ingress_class" {
