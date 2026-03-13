@@ -229,14 +229,35 @@ resource "null_resource" "coredns_ingress_patch" {
       KUBE_CONTEXT = var.kube_context
     }
     command = <<-EOT
+      set -e
       INGRESS_IP=$(kubectl --context $KUBE_CONTEXT get svc -n traefik traefik -o jsonpath='{.spec.clusterIP}')
-      kubectl --context $KUBE_CONTEXT get configmap -n kube-system coredns -o json | \
-        jq --arg ip "$INGRESS_IP" '.data.Corefile |= sub("kubernetes cluster.local";
-          "template IN A ingress.cabotage.dev {\n        match .*\\.ingress\\.cabotage\\.dev\n        answer \"{{ .Name }} 60 IN A " + $ip + "\"\n        fallthrough\n    }\n    kubernetes cluster.local")' | \
-        kubectl --context $KUBE_CONTEXT apply -f -
+      kubectl --context $KUBE_CONTEXT get configmap coredns -n kube-system -o jsonpath='{.data.Corefile}' \
+        | awk -v ip="$INGRESS_IP" -v ans='{{ .Name }}' '
+          /template IN A.*ingress\.cabotage\.dev/ { skip=1; next }
+          skip && /\}/ { skip=0; next }
+          skip { next }
+          /kubernetes cluster\.local/ && done==0 {
+            print "    template IN A ingress.cabotage.dev {"
+            print "        match .*\\.ingress\\.cabotage\\.dev"
+            printf "        answer \"%s 60 IN A %s\"\n", ans, ip
+            print "        fallthrough"
+            print "    }"
+            print "    template IN AAAA ingress.cabotage.dev {"
+            print "        match .*\\.ingress\\.cabotage\\.dev"
+            print "        rcode NOERROR"
+            print "        fallthrough"
+            print "    }"
+            done=1
+          }
+          { print }
+        ' > /tmp/Corefile.patched
+      kubectl --context $KUBE_CONTEXT create configmap coredns -n kube-system \
+        --from-file=Corefile=/tmp/Corefile.patched --dry-run=client -o yaml \
+        | kubectl --context $KUBE_CONTEXT apply -f -
+      rm -f /tmp/Corefile.patched
       kubectl --context $KUBE_CONTEXT rollout restart -n kube-system deployment/coredns
     EOT
   }
 
-  depends_on = [kubernetes_deployment_v1.pebble]
+  depends_on = [kubernetes_deployment_v1.pebble, helm_release.traefik]
 }
