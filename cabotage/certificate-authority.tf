@@ -1,12 +1,8 @@
 # --- Certificate Authorities ---
 #
-# Root CA is generated locally (never enters K8s). Intermediate CAs are
-# created by cert-manager (key generation), then signed locally with the
-# root CA key and patched back into the K8s secrets.
-#
-# Local files:
-#   ca_cert_file — root CA certificate (public, safe to commit)
-#   secrets_dir/ca.key — root CA private key
+# Root CA is generated locally via script (key never enters K8s or TF state).
+# Intermediate CAs are created by cert-manager (key generation), then
+# signed locally with the root CA key and patched back into the K8s secrets.
 
 locals {
   # Extract short name from ARN or use as-is (e.g. "arn:aws:eks:...:cluster/dev-astral" -> "dev-astral")
@@ -30,10 +26,13 @@ resource "null_resource" "root_ca" {
     }
   }
 
-  depends_on = [
-    helm_release.cert_manager,
-    kubernetes_namespace_v1.cabotage,
-  ]
+  depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
+data "local_file" "root_ca_cert" {
+  filename = var.ca_cert_file
+
+  depends_on = [null_resource.root_ca]
 }
 
 # --- SelfSigned issuer (bootstraps intermediate key generation) ---
