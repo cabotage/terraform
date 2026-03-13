@@ -138,6 +138,24 @@ variable "vault_replicas" {
   default     = 3
 }
 
+variable "vault_auto_unseal_kms_key_id" {
+  description = "AWS KMS key ID for Vault auto-unseal (empty to disable)"
+  type        = string
+  default     = ""
+}
+
+variable "vault_auto_unseal_role_arn" {
+  description = "IRSA role ARN for Vault KMS auto-unseal (empty to disable)"
+  type        = string
+  default     = ""
+}
+
+variable "vault_auto_unseal_region" {
+  description = "AWS region for the KMS key"
+  type        = string
+  default     = "us-east-1"
+}
+
 # --- RustFS ---
 
 variable "rustfs_image" {

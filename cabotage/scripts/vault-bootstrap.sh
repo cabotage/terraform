@@ -4,6 +4,7 @@ set -e
 NAMESPACE="${NAMESPACE:-cabotage}"
 VAULT_REPLICAS="${VAULT_REPLICAS:-3}"
 CA_CERT_FILE="${CA_CERT_FILE:-$SECRETS_DIR/ca.crt}"
+VAULT_AUTO_UNSEAL="${VAULT_AUTO_UNSEAL:-false}"
 
 . "$(dirname "$0")/_lib.sh"
 
@@ -56,21 +57,49 @@ echo "Vault is available."
 is_init=$(printf '%s' "$status_json" | jq -r '.initialized')
 
 if [ "$is_init" = "false" ]; then
-  echo "Initializing Vault (1 key share, 1 threshold)..."
-  INIT_JSON=$($KUBECTL exec vault-0 -n "$NAMESPACE" -c vault -- sh -c "
-    VAULT_ADDR=https://\$HOSTNAME.vault.$NAMESPACE.svc.cluster.local:8200 \
-    VAULT_CACERT=/var/run/secrets/cabotage.io/ca.crt \
-    vault operator init -key-shares=1 -key-threshold=1 -format=json 2>/dev/null
-  ")
+  if [ "$VAULT_AUTO_UNSEAL" = "true" ]; then
+    echo "Initializing Vault with auto-unseal (1 recovery share, 1 threshold)..."
+    INIT_JSON=$($KUBECTL exec vault-0 -n "$NAMESPACE" -c vault -- sh -c "
+      VAULT_ADDR=https://\$HOSTNAME.vault.$NAMESPACE.svc.cluster.local:8200 \
+      VAULT_CACERT=/var/run/secrets/cabotage.io/ca.crt \
+      vault operator init -recovery-shares=1 -recovery-threshold=1 -format=json 2>/dev/null
+    ")
 
-  VAULT_ROOT_TOKEN=$(printf '%s' "$INIT_JSON" | jq -r '.root_token')
-  UNSEAL_KEY=$(printf '%s' "$INIT_JSON" | jq -r '.unseal_keys_b64[0]')
+    VAULT_ROOT_TOKEN=$(printf '%s' "$INIT_JSON" | jq -r '.root_token')
+    RECOVERY_KEY=$(printf '%s' "$INIT_JSON" | jq -r '.recovery_keys_b64[0]')
 
-  mkdir -p "$SECRETS_DIR"
-  printf '%s' "$VAULT_ROOT_TOKEN" > "$SECRETS_DIR/vault-bootstrap-token"
-  printf '%s' "$UNSEAL_KEY" > "$SECRETS_DIR/vault-unseal-key"
-  chmod 600 "$SECRETS_DIR/vault-bootstrap-token" "$SECRETS_DIR/vault-unseal-key"
-  echo "Vault initialized. Credentials saved to $SECRETS_DIR/"
+    mkdir -p "$SECRETS_DIR"
+    printf '%s' "$VAULT_ROOT_TOKEN" > "$SECRETS_DIR/vault-bootstrap-token"
+    printf '%s' "$RECOVERY_KEY" > "$SECRETS_DIR/vault-recovery-key"
+    chmod 600 "$SECRETS_DIR/vault-bootstrap-token" "$SECRETS_DIR/vault-recovery-key"
+    echo "Vault initialized with auto-unseal. Credentials saved to $SECRETS_DIR/"
+  else
+    echo "Initializing Vault (1 key share, 1 threshold)..."
+    INIT_JSON=$($KUBECTL exec vault-0 -n "$NAMESPACE" -c vault -- sh -c "
+      VAULT_ADDR=https://\$HOSTNAME.vault.$NAMESPACE.svc.cluster.local:8200 \
+      VAULT_CACERT=/var/run/secrets/cabotage.io/ca.crt \
+      vault operator init -key-shares=1 -key-threshold=1 -format=json 2>/dev/null
+    ")
+
+    VAULT_ROOT_TOKEN=$(printf '%s' "$INIT_JSON" | jq -r '.root_token')
+    UNSEAL_KEY=$(printf '%s' "$INIT_JSON" | jq -r '.unseal_keys_b64[0]')
+
+    mkdir -p "$SECRETS_DIR"
+    printf '%s' "$VAULT_ROOT_TOKEN" > "$SECRETS_DIR/vault-bootstrap-token"
+    printf '%s' "$UNSEAL_KEY" > "$SECRETS_DIR/vault-unseal-key"
+    chmod 600 "$SECRETS_DIR/vault-bootstrap-token" "$SECRETS_DIR/vault-unseal-key"
+    echo "Vault initialized. Credentials saved to $SECRETS_DIR/"
+  fi
+elif [ "$VAULT_AUTO_UNSEAL" = "true" ]; then
+  # Auto-unseal: only need the root token
+  if [ -f "$SECRETS_DIR/vault-bootstrap-token" ]; then
+    VAULT_ROOT_TOKEN=$(cat "$SECRETS_DIR/vault-bootstrap-token")
+    echo "Vault already initialized (auto-unseal), using existing root token."
+  else
+    echo "Vault already initialized but root token missing." >&2
+    echo "  Missing: $SECRETS_DIR/vault-bootstrap-token" >&2
+    exit 1
+  fi
 elif [ -f "$SECRETS_DIR/vault-bootstrap-token" ] && [ -f "$SECRETS_DIR/vault-unseal-key" ]; then
   VAULT_ROOT_TOKEN=$(cat "$SECRETS_DIR/vault-bootstrap-token")
   UNSEAL_KEY=$(cat "$SECRETS_DIR/vault-unseal-key")
@@ -101,39 +130,57 @@ else
 fi
 
 # --- Unseal all Vault pods ---
-echo "Unsealing Vault pods..."
-for i in $(seq 0 $((VAULT_REPLICAS - 1))); do
-  seal_json=""
-  for _s in $(seq 1 5); do
-    seal_json=$(vault_status "vault-$i")
-    if printf '%s' "$seal_json" | jq -e '.sealed' > /dev/null 2>&1; then
-      break
+if [ "$VAULT_AUTO_UNSEAL" = "true" ]; then
+  echo "Auto-unseal enabled, waiting for KMS to unseal pods..."
+  for i in $(seq 0 $((VAULT_REPLICAS - 1))); do
+    for _s in $(seq 1 20); do
+      seal_json=$(vault_status "vault-$i")
+      is_sealed=$(printf '%s' "$seal_json" | jq -r '.sealed' 2>/dev/null || echo "")
+      if [ "$is_sealed" = "false" ]; then
+        echo "  vault-$i unsealed via KMS."
+        break
+      fi
+      sleep 3
+    done
+    if [ "$is_sealed" != "false" ]; then
+      echo "  WARNING: vault-$i not unsealed after 60s (sealed=$is_sealed)." >&2
     fi
-    sleep 3
   done
-  is_sealed=$(printf '%s' "$seal_json" | jq -r '.sealed' 2>/dev/null || echo "")
+else
+  echo "Unsealing Vault pods..."
+  for i in $(seq 0 $((VAULT_REPLICAS - 1))); do
+    seal_json=""
+    for _s in $(seq 1 5); do
+      seal_json=$(vault_status "vault-$i")
+      if printf '%s' "$seal_json" | jq -e '.sealed' > /dev/null 2>&1; then
+        break
+      fi
+      sleep 3
+    done
+    is_sealed=$(printf '%s' "$seal_json" | jq -r '.sealed' 2>/dev/null || echo "")
 
-  if [ "$is_sealed" = "true" ]; then
-    echo "  Unsealing vault-$i..."
-    retry 3 5 $KUBECTL exec "vault-$i" -n "$NAMESPACE" -c vault -- sh -c "
-      VAULT_ADDR=https://\$HOSTNAME.vault.$NAMESPACE.svc.cluster.local:8200 \
-      VAULT_CACERT=/var/run/secrets/cabotage.io/ca.crt \
-      vault operator unseal '$UNSEAL_KEY'
-    " > /dev/null 2>&1
-    # Verify unseal succeeded
-    verify_json=$(vault_status "vault-$i")
-    verify_sealed=$(printf '%s' "$verify_json" | jq -r '.sealed' 2>/dev/null || echo "unknown")
-    if [ "$verify_sealed" = "false" ]; then
-      echo "  vault-$i unsealed."
+    if [ "$is_sealed" = "true" ]; then
+      echo "  Unsealing vault-$i..."
+      retry 3 5 $KUBECTL exec "vault-$i" -n "$NAMESPACE" -c vault -- sh -c "
+        VAULT_ADDR=https://\$HOSTNAME.vault.$NAMESPACE.svc.cluster.local:8200 \
+        VAULT_CACERT=/var/run/secrets/cabotage.io/ca.crt \
+        vault operator unseal '$UNSEAL_KEY'
+      " > /dev/null 2>&1
+      # Verify unseal succeeded
+      verify_json=$(vault_status "vault-$i")
+      verify_sealed=$(printf '%s' "$verify_json" | jq -r '.sealed' 2>/dev/null || echo "unknown")
+      if [ "$verify_sealed" = "false" ]; then
+        echo "  vault-$i unsealed."
+      else
+        echo "  WARNING: vault-$i may still be sealed (sealed=$verify_sealed)." >&2
+      fi
+    elif [ "$is_sealed" = "false" ]; then
+      echo "  vault-$i already unsealed."
     else
-      echo "  WARNING: vault-$i may still be sealed (sealed=$verify_sealed)." >&2
+      echo "  vault-$i not reachable, skipping."
     fi
-  elif [ "$is_sealed" = "false" ]; then
-    echo "  vault-$i already unsealed."
-  else
-    echo "  vault-$i not reachable, skipping."
-  fi
-done
+  done
+fi
 
 # Wait for vault to become active
 echo "Waiting for Vault to become active..."

@@ -16,5 +16,11 @@ data:
               "tls_key_file": "/etc/tls/tls.key"
             }
           }
-        ]
+        ]%{ if kms_key_id != "" },
+        "seal": {
+          "awskms": {
+            "kms_key_id": "${kms_key_id}",
+            "region": "${kms_region}"
+          }
+        }%{ endif }
       }

@@ -7,7 +7,9 @@
 # possible. Only the StatefulSet is templated (for replicas, images, datacenter).
 
 resource "kubectl_manifest" "vault_serviceaccount" {
-  yaml_body = file("${path.module}/manifests/vault/00-serviceaccount.yml")
+  yaml_body = templatefile("${path.module}/manifests/vault/00-serviceaccount.yml.tftpl", {
+    irsa_role_arn = var.vault_auto_unseal_role_arn
+  })
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
@@ -17,7 +19,10 @@ resource "kubectl_manifest" "vault_clusterrolebinding" {
 }
 
 resource "kubectl_manifest" "vault_configmap" {
-  yaml_body = file("${path.module}/manifests/vault/03-configmap.yml")
+  yaml_body = templatefile("${path.module}/manifests/vault/03-configmap.yml.tftpl", {
+    kms_key_id = var.vault_auto_unseal_kms_key_id
+    kms_region = var.vault_auto_unseal_region
+  })
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }

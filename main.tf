@@ -65,7 +65,8 @@ module "cluster" {
     }
   }
 
-  ingress_hairpin_domains = ["cabotage.app"]
+  enable_vault_auto_unseal = true
+  ingress_hairpin_domains  = ["cabotage.app"]
 
   tags = {
     Environment = "development"
