@@ -67,7 +67,7 @@ spec:
             - name: vault-secrets
               mountPath: /var/run/secrets/vault
         - name: cabotage-app-worker
-          image: ghcr.io/cabotage/cabotage-app:latest
+          image: ${image}
           imagePullPolicy: Always
           command: ["celery"]
           args:
