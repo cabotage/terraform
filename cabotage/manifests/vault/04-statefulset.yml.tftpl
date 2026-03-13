@@ -233,7 +233,75 @@ spec:
             capabilities:
               add: ["SYS_PTRACE"]
               drop: ["ALL"]
+%{ if dev_auto_unseal ~}
+        - name: auto-unseal
+          image: ${vault_image}
+          command: ["/bin/sh"]
+          args:
+            - -c
+            - |
+              KEY_FILE=/etc/vault-unseal/key
+              echo "auto-unseal: starting"
+              while true; do
+                if [ ! -f "$KEY_FILE" ]; then
+                  echo "auto-unseal: waiting for unseal key secret..."
+                  sleep 10
+                  continue
+                fi
+                UNSEAL_KEY=$(cat "$KEY_FILE")
+                STATUS=$(vault status -format=json 2>/dev/null; true)
+                SEALED=$(echo "$STATUS" | grep -o '"sealed": *[a-z]*' | awk '{print $NF}')
+                if [ -z "$SEALED" ]; then sleep 5; continue; fi
+                if [ "$SEALED" = "true" ]; then
+                  echo "auto-unseal: vault is sealed, unsealing..."
+                  vault operator unseal "$UNSEAL_KEY" >/dev/null 2>&1 && echo "auto-unseal: unsealed" || echo "auto-unseal: unseal failed"
+                fi
+                sleep 5
+              done
+          startupProbe:
+            exec:
+              command: ["true"]
+            failureThreshold: 1
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: VAULT_ADDR
+              value: https://$(POD_NAME).vault.$(POD_NAMESPACE).svc.cluster.local:8200
+            - name: VAULT_CACERT
+              value: /var/run/secrets/cabotage.io/ca.crt
+          volumeMounts:
+            - name: tls
+              mountPath: /etc/tls
+              readOnly: true
+            - name: vault-unseal-key
+              mountPath: /etc/vault-unseal
+              readOnly: true
+          resources:
+            limits:
+              cpu: "10m"
+              memory: "32Mi"
+            requests:
+              cpu: "5m"
+              memory: "16Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+%{ endif ~}
       volumes:
+%{ if dev_auto_unseal ~}
+        - name: vault-unseal-key
+          secret:
+            secretName: vault-unseal-key
+            optional: true
+%{ endif ~}
         - name: tls
           csi:
             driver: csi.cert-manager.io

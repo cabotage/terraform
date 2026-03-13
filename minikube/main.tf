@@ -55,4 +55,5 @@ module "cabotage" {
   traefik_replicas          = 1
   cabotage_app_hostname     = "cabotage.ingress.cabotage.dev"
   cabotage_ingress_domain   = "ingress.cabotage.dev"
+  vault_dev_auto_unseal     = true
 }

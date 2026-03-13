@@ -156,6 +156,12 @@ variable "vault_auto_unseal_region" {
   default     = "us-east-1"
 }
 
+variable "vault_dev_auto_unseal" {
+  description = "Store unseal key in a K8s secret and run a sidecar that auto-unseals (dev only, NOT for production)"
+  type        = bool
+  default     = false
+}
+
 # --- RustFS ---
 
 variable "rustfs_image" {
