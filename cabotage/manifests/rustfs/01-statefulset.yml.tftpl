@@ -157,7 +157,7 @@ spec:
         - ReadWriteOnce
       resources:
         requests:
-          storage: 256Mi
+          storage: ${rustfs_log_size}
   - metadata:
       name: data-0
     spec:
@@ -165,7 +165,7 @@ spec:
         - ReadWriteOnce
       resources:
         requests:
-          storage: 1Gi
+          storage: ${rustfs_storage_size}
   - metadata:
       name: data-1
     spec:
@@ -173,7 +173,7 @@ spec:
         - ReadWriteOnce
       resources:
         requests:
-          storage: 1Gi
+          storage: ${rustfs_storage_size}
   - metadata:
       name: data-2
     spec:
@@ -181,7 +181,7 @@ spec:
         - ReadWriteOnce
       resources:
         requests:
-          storage: 1Gi
+          storage: ${rustfs_storage_size}
   - metadata:
       name: data-3
     spec:
@@ -189,4 +189,4 @@ spec:
         - ReadWriteOnce
       resources:
         requests:
-          storage: 1Gi
+          storage: ${rustfs_storage_size}

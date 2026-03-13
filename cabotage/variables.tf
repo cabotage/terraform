@@ -170,6 +170,18 @@ variable "rustfs_replicas" {
   default     = 4
 }
 
+variable "rustfs_storage_size" {
+  description = "Storage size for each RustFS data volume"
+  type        = string
+  default     = "1Gi"
+}
+
+variable "rustfs_log_size" {
+  description = "Storage size for RustFS log volume"
+  type        = string
+  default     = "256Mi"
+}
+
 # --- CNPG ---
 
 variable "cnpg_chart_version" {
