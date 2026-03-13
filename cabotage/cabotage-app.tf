@@ -114,19 +114,31 @@ resource "null_resource" "cabotage_app_bootstrap" {
 
 # --- GitHub App Secret ---
 
-resource "kubernetes_secret_v1" "cabotage_github_app" {
+resource "null_resource" "cabotage_github_app_secret" {
   count = var.github_app_id != "" ? 1 : 0
 
-  metadata {
-    name      = "cabotage-github-app"
-    namespace = kubernetes_namespace_v1.cabotage.metadata[0].name
+  triggers = {
+    app_id = var.github_app_id
   }
 
-  data = {
-    app-id         = var.github_app_id
-    private-key    = base64encode(file("${var.secrets_dir}/github-app-private-key.pem"))
-    webhook-secret = trimspace(file("${var.secrets_dir}/github-webhook-secret"))
+  provisioner "local-exec" {
+    command = <<-EOT
+      if [ ! -f "${var.secrets_dir}/github-app-private-key.pem" ] || [ ! -f "${var.secrets_dir}/github-webhook-secret" ]; then
+        echo "GitHub App secret files not found in ${var.secrets_dir}, skipping."
+        exit 0
+      fi
+      PRIVATE_KEY_B64=$(base64 < "${var.secrets_dir}/github-app-private-key.pem" | tr -d '\n')
+      WEBHOOK_SECRET=$(cat "${var.secrets_dir}/github-webhook-secret" | tr -d '[:space:]')
+      kubectl --context ${var.kube_context} create secret generic cabotage-github-app \
+        --namespace ${kubernetes_namespace_v1.cabotage.metadata[0].name} \
+        --from-literal=app-id="${var.github_app_id}" \
+        --from-literal=private-key="$PRIVATE_KEY_B64" \
+        --from-literal=webhook-secret="$WEBHOOK_SECRET" \
+        --dry-run=client -o yaml | kubectl --context ${var.kube_context} apply -f -
+    EOT
   }
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 # --- Deployments ---
