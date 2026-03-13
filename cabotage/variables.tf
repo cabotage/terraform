@@ -73,6 +73,14 @@ variable "ca_admission_replicas" {
   default     = 2
 }
 
+# --- Cabotage App ---
+
+variable "cabotage_app_image" {
+  description = "Container image for the cabotage application"
+  type        = string
+  default     = "ghcr.io/cabotage/cabotage-app:latest"
+}
+
 # --- Consul ---
 
 variable "consul_image" {
