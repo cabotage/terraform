@@ -58,6 +58,18 @@ provider "kubectl" {
   config_context = "arn:aws:eks:us-east-1:318662118699:cluster/dev-astral"
 }
 
+data "aws_kms_alias" "vault_unseal" {
+  name = "alias/dev-astral-vault-unseal"
+}
+
+data "aws_iam_roles" "vault_unseal" {
+  name_regex = "^dev-astral-vault-unseal"
+}
+
+data "aws_iam_role" "vault_unseal" {
+  name = tolist(data.aws_iam_roles.vault_unseal.names)[0]
+}
+
 module "cabotage" {
   source = "../cabotage"
 
@@ -70,7 +82,10 @@ module "cabotage" {
   traefik_replicas        = 6
   traefik_aws_lb          = true
   registry_replicas       = 6
-  consul_local_port       = 18501
+  consul_local_port              = 18501
+  vault_auto_unseal_kms_key_id   = data.aws_kms_alias.vault_unseal.target_key_id
+  vault_auto_unseal_role_arn     = data.aws_iam_role.vault_unseal.arn
+  vault_auto_unseal_region       = "us-east-1"
   cabotage_app_hostname   = "astral-dev.cabotage.io"
   cabotage_ingress_domain = "cabotage.app"
   github_app_id           = 3056610

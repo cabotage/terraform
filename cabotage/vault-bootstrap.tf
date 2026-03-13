@@ -6,7 +6,8 @@
 #
 # Secrets stored locally in secrets_dir (never touch K8s):
 #   - vault-bootstrap-token: root token
-#   - vault-unseal-key: unseal key
+#   - vault-unseal-key: unseal key (manual unseal)
+#   - vault-recovery-key: recovery key (auto-unseal)
 #
 # For production, use Shamir key shares with PGP encryption.
 
@@ -22,7 +23,8 @@ resource "null_resource" "vault_bootstrap" {
       CA_CERT_FILE   = var.ca_cert_file
       NAMESPACE      = kubernetes_namespace_v1.cabotage.metadata[0].name
       VAULT_REPLICAS = tostring(var.vault_replicas)
-      KUBE_CONTEXT   = var.kube_context
+      KUBE_CONTEXT       = var.kube_context
+      VAULT_AUTO_UNSEAL  = var.vault_auto_unseal_kms_key_id != "" ? "true" : "false"
     }
   }
 
