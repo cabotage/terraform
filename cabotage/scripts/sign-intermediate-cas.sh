@@ -44,6 +44,13 @@ for ca_name in certificate-approver-ca operators-ca; do
     exit 1
   fi
 
+  # Wait for cert-manager to create the secret
+  echo "Waiting for secret $SECRET_NAME..."
+  for _sw in $(seq 1 30); do
+    $KUBECTL get secret "$SECRET_NAME" -n cert-manager > /dev/null 2>&1 && break
+    sleep 2
+  done
+
   # Extract CSR from CertificateRequest
   echo "Signing $ca_name with root CA..."
   $KUBECTL get certificaterequest "$CR_NAME" -n cert-manager \
