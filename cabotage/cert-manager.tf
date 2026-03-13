@@ -174,7 +174,7 @@ resource "kubectl_manifest" "pebble_letsencrypt_issuer" {
         solvers = [{
           http01 = {
             ingress = {
-              ingressClassName = "traefik"
+              ingressClassName = "nginx"
             }
           }
         }]
@@ -204,7 +204,7 @@ resource "kubectl_manifest" "letsencrypt_issuer" {
         solvers = [{
           http01 = {
             ingress = {
-              ingressClassName = "traefik"
+              ingressClassName = "nginx"
             }
           }
         }]
