@@ -32,8 +32,10 @@ resource "kubectl_manifest" "rustfs_service_headless" {
 
 resource "kubectl_manifest" "rustfs_statefulset" {
   yaml_body = templatefile("${path.module}/manifests/rustfs/01-statefulset.yml.tftpl", {
-    replicas    = var.rustfs_replicas
-    rustfs_image = var.rustfs_image
+    replicas            = var.rustfs_replicas
+    rustfs_image        = var.rustfs_image
+    rustfs_storage_size = var.rustfs_storage_size
+    rustfs_log_size     = var.rustfs_log_size
   })
 
   wait_for_rollout = false
