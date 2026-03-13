@@ -64,7 +64,7 @@ variable "acme_email" {
 variable "ca_admission_image" {
   description = "Container image for the CA admission webhook"
   type        = string
-  default     = "cabotage/cabotage-ca-admission:4"
+  default     = "cabotage/cabotage-ca-admission:4.1"
 }
 
 variable "ca_admission_replicas" {

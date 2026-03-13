@@ -27,10 +27,11 @@ spec:
         - name: cabotage-ca-admission
           image: ${image}
           imagePullPolicy: IfNotPresent
-          args:
-            - "--bind=0.0.0.0:8443"
-            - "--certfile=/etc/tls/tls.crt"
-            - "--keyfile=/etc/tls/tls.key"
+          env:
+            - name: TLS_CERTFILE
+              value: /etc/tls/tls.crt
+            - name: TLS_KEYFILE
+              value: /etc/tls/tls.key
           ports:
             - containerPort: 8443
           livenessProbe:
@@ -64,7 +65,7 @@ spec:
             volumeAttributes:
               csi.cert-manager.io/issuer-name: certificate-approver-ca-issuer
               csi.cert-manager.io/issuer-kind: ClusterIssuer
-              csi.cert-manager.io/duration: 9000h  # 375 days
+              csi.cert-manager.io/duration: 1080h  # 45 days
               csi.cert-manager.io/dns-names: >
                 cabotage-ca-admission.cabotage.svc.cluster.local,
                 cabotage-ca-admission.cabotage.svc.cluster,

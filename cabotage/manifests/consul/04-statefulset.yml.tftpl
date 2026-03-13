@@ -28,6 +28,7 @@ spec:
                     values:
                       - consul
               topologyKey: failure-domain.beta.kubernetes.io/zone
+      shareProcessNamespace: true
       automountServiceAccountToken: false
       enableServiceLinks: false
       securityContext:
@@ -120,6 +121,45 @@ spec:
                 - /bin/sh
                 - -c
                 - consul leave
+        - name: cert-watcher
+          image: alpine:3.19
+          command: ["/bin/sh"]
+          args:
+            - -c
+            - |
+              CERT=/etc/tls/tls.crt
+              HASH=""
+              echo "cert-watcher: starting, watching $CERT"
+              while true; do
+                NEW_HASH=$(sha256sum "$CERT" 2>/dev/null | cut -d' ' -f1)
+                if [ -n "$HASH" ] && [ "$NEW_HASH" != "$HASH" ]; then
+                  echo "cert-watcher: cert changed, sending SIGHUP to consul"
+                  CONSUL_PID=$(pgrep -f "consul agent" | head -1)
+                  if [ -n "$CONSUL_PID" ]; then
+                    kill -HUP "$CONSUL_PID" && echo "cert-watcher: sent SIGHUP to consul (pid $CONSUL_PID)"
+                  else
+                    echo "cert-watcher: consul process not found"
+                  fi
+                fi
+                HASH="$NEW_HASH"
+                sleep 5
+              done
+          volumeMounts:
+            - name: tls
+              mountPath: /etc/tls
+              readOnly: true
+          resources:
+            limits:
+              cpu: "10m"
+              memory: "16Mi"
+            requests:
+              cpu: "5m"
+              memory: "8Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add: ["SYS_PTRACE"]
+              drop: ["ALL"]
       volumes:
         - name: tls
           csi:
@@ -128,7 +168,7 @@ spec:
             volumeAttributes:
               csi.cert-manager.io/issuer-name: certificate-approver-ca-issuer
               csi.cert-manager.io/issuer-kind: ClusterIssuer
-              csi.cert-manager.io/duration: 9000h  # 375 days
+              csi.cert-manager.io/duration: 1080h  # 45 days
               csi.cert-manager.io/dns-names: >
                 $${POD_NAME}.consul.$${POD_NAMESPACE}.svc.cluster.local,
                 consul.$${POD_NAMESPACE}.svc.cluster.local,
