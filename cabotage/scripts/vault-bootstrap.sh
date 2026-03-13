@@ -5,6 +5,7 @@ NAMESPACE="${NAMESPACE:-cabotage}"
 VAULT_REPLICAS="${VAULT_REPLICAS:-3}"
 CA_CERT_FILE="${CA_CERT_FILE:-$SECRETS_DIR/ca.crt}"
 VAULT_AUTO_UNSEAL="${VAULT_AUTO_UNSEAL:-false}"
+VAULT_DEV_AUTO_UNSEAL="${VAULT_DEV_AUTO_UNSEAL:-false}"
 
 . "$(dirname "$0")/_lib.sh"
 
@@ -127,6 +128,15 @@ else
     echo "  Missing: vault-bootstrap-token" >&2
   fi
   exit 1
+fi
+
+# --- Dev auto-unseal: store unseal key in K8s secret ---
+if [ "$VAULT_DEV_AUTO_UNSEAL" = "true" ] && [ -n "$UNSEAL_KEY" ]; then
+  echo "Storing unseal key in K8s secret (dev auto-unseal)..."
+  $KUBECTL create secret generic vault-unseal-key \
+    -n "$NAMESPACE" \
+    --from-literal=key="$UNSEAL_KEY" \
+    --dry-run=client -o yaml | $KUBECTL apply -f -
 fi
 
 # --- Unseal all Vault pods ---

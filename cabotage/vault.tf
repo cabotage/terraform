@@ -33,6 +33,7 @@ resource "kubectl_manifest" "vault_statefulset" {
     vault_image       = var.vault_image
     consul_image      = var.consul_image
     consul_datacenter = var.consul_datacenter
+    dev_auto_unseal   = var.vault_dev_auto_unseal
   })
 
   wait_for_rollout = false
