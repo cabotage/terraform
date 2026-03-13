@@ -81,6 +81,17 @@ variable "cabotage_app_image" {
   default     = "ghcr.io/cabotage/cabotage-app:latest"
 }
 
+variable "cabotage_app_hostname" {
+  description = "Public hostname for the cabotage web app ingress"
+  type        = string
+}
+
+variable "cabotage_ingress_domain" {
+  description = "Domain used for ingress of cabotage-managed applications"
+  type        = string
+  default     = "cabotage.app"
+}
+
 # --- Consul ---
 
 variable "consul_image" {
@@ -154,6 +165,13 @@ variable "redis_operator_chart_version" {
 variable "secrets_dir" {
   description = "Local directory to store bootstrap secrets (consul mgmt token, vault root token, unseal key)"
   type        = string
+  default     = ".secrets"
+}
+
+variable "ca_cert_file" {
+  description = "Path to root CA certificate (public, safe to commit)"
+  type        = string
+  default     = "ca.crt"
 }
 
 variable "kube_context" {

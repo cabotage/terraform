@@ -48,9 +48,11 @@ module "cabotage" {
   cluster_identifier        = "minikube"
   kube_context              = "minikube"
   cabotage_app_image        = "ghcr.io/cabotage/cabotage-app:2026.3.13-0"
-  secrets_dir               = abspath(path.module)
+  secrets_dir               = abspath("${path.module}/.secrets")
   enable_pebble_letsencrypt = true
   forwarded_headers_cidrs   = ["10.96.0.0/12", "10.244.0.0/16"]
   proxy_protocol_cidrs      = ["10.96.0.0/12", "10.244.0.0/16"]
   traefik_replicas          = 1
+  cabotage_app_hostname     = "cabotage.ingress.cabotage.dev"
+  cabotage_ingress_domain   = "ingress.cabotage.dev"
 }

@@ -3,6 +3,7 @@ set -e
 
 NAMESPACE="${NAMESPACE:-cabotage}"
 VAULT_REPLICAS="${VAULT_REPLICAS:-3}"
+CA_CERT_FILE="${CA_CERT_FILE:-$SECRETS_DIR/ca.crt}"
 
 . "$(dirname "$0")/_lib.sh"
 
@@ -230,7 +231,7 @@ keyUsage = critical, digitalSignature, keyCertSign, cRLSign
 EXTEOF
 
   openssl x509 -req -in "$TMPDIR/vault-intermediate.csr" \
-    -CA "$SECRETS_DIR/ca.crt" -CAkey "$SECRETS_DIR/ca.key" -CAcreateserial \
+    -CA "$CA_CERT_FILE" -CAkey "$SECRETS_DIR/ca.key" -CAcreateserial \
     -out "$TMPDIR/vault-intermediate.crt" -days 1825 \
     -extfile "$TMPDIR/ext.cnf" 2>/dev/null
 
