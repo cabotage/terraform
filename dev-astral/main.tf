@@ -89,4 +89,6 @@ module "cabotage" {
   cabotage_app_hostname   = "astral-dev.cabotage.io"
   cabotage_ingress_domain = "cabotage.app"
   github_app_id           = 3056610
+  rustfs_storage_size     = "100Gi"
+  rustfs_log_size         = "16Gi"
 }
