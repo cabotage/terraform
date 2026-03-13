@@ -20,52 +20,6 @@ resource "kubectl_manifest" "registry_serviceaccount" {
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
-# --- Enrollment ---
-
-resource "kubectl_manifest" "registry_enrollment" {
-  yaml_body = file("${path.module}/manifests/registry/00-enrollment.yml")
-
-  depends_on = [
-    kubernetes_namespace_v1.cabotage,
-    kubectl_manifest.enrollment_operator_deployment,
-  ]
-}
-
-# --- Wait for Enrollment to be processed ---
-
-resource "null_resource" "registry_enrollment_ready" {
-  triggers = {
-    enrollment_id = kubectl_manifest.registry_enrollment.id
-  }
-
-  provisioner "local-exec" {
-    environment = {
-      KUBE_CONTEXT = var.kube_context
-    }
-    command = <<-EOT
-      echo "Waiting for registry enrollment to be ready..."
-      for i in $(seq 1 60); do
-        ready=$(kubectl --context $KUBE_CONTEXT get cabotageenrollment registry -n cabotage -o jsonpath='{.status.summary.ready}' 2>/dev/null)
-        if [ "$ready" = "true" ]; then
-          echo "Enrollment ready."
-          exit 0
-        fi
-        [ $((i % 12)) -eq 0 ] && echo "  Still waiting... ($i attempts)"
-        sleep 5
-      done
-      echo "ERROR: Timed out after 300s waiting for registry enrollment"
-      kubectl --context $KUBE_CONTEXT get cabotageenrollment registry -n cabotage -o yaml 2>&1 || true
-      exit 1
-    EOT
-  }
-
-  depends_on = [
-    kubectl_manifest.registry_enrollment,
-    null_resource.vault_bootstrap,
-    null_resource.consul_bootstrap,
-  ]
-}
-
 # --- ConfigMap ---
 
 resource "kubectl_manifest" "registry_configmap" {
@@ -79,16 +33,17 @@ resource "kubectl_manifest" "registry_configmap" {
 resource "kubectl_manifest" "registry_deployment" {
   yaml_body = templatefile("${path.module}/manifests/registry/02-deployment.yml.tftpl", {
     config_hash = local.registry_config_hash
+    replicas    = var.registry_replicas
   })
 
   wait_for_rollout = false
 
   depends_on = [
     kubectl_manifest.registry_serviceaccount,
-    null_resource.registry_enrollment_ready,
     kubectl_manifest.registry_configmap,
-    null_resource.cabotage_app_bootstrap,
     null_resource.ca_admission_webhook_ready,
+    helm_release.cert_manager_csi_driver,
+    kubectl_manifest.certificate_approver_ca_issuer,
   ]
 }
 
