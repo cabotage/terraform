@@ -72,6 +72,16 @@ resource "helm_release" "traefik" {
       }
     ]
 
+    volumes = [{
+      name      = "cabotage-ca"
+      mountPath = "/etc/traefik/certs"
+      type      = "configMap"
+    }]
+
+    additionalArguments = [
+      "--serversTransport.rootCAs=/etc/traefik/certs/ca.crt"
+    ]
+
     service = var.traefik_aws_lb ? {
       type = "LoadBalancer"
       annotations = {
@@ -88,4 +98,34 @@ resource "helm_release" "traefik" {
       annotations = {}
     }
   })]
+}
+
+# --- Cabotage CA in Traefik namespace ---
+
+resource "kubernetes_config_map_v1" "traefik_cabotage_ca" {
+  metadata {
+    name      = "cabotage-ca"
+    namespace = "traefik"
+  }
+
+  data = {
+    "ca.crt" = file(var.ca_cert_file)
+  }
+
+  depends_on = [null_resource.root_ca]
+}
+
+resource "kubectl_manifest" "nginx_ingress_class" {
+  yaml_body = yamlencode({
+    apiVersion = "networking.k8s.io/v1"
+    kind       = "IngressClass"
+    metadata = {
+      name = "nginx"
+    }
+    spec = {
+      controller = "traefik.io/ingress-controller"
+    }
+  })
+
+  depends_on = [helm_release.traefik]
 }

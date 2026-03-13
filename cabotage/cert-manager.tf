@@ -174,7 +174,7 @@ resource "kubectl_manifest" "pebble_letsencrypt_issuer" {
         solvers = [{
           http01 = {
             ingress = {
-              class = "nginx"
+              ingressClassName = "traefik"
             }
           }
         }]
@@ -183,6 +183,36 @@ resource "kubectl_manifest" "pebble_letsencrypt_issuer" {
   })
 
   depends_on = [helm_release.cert_manager, kubernetes_deployment_v1.pebble]
+}
+
+resource "kubectl_manifest" "letsencrypt_issuer" {
+  count = var.enable_pebble_letsencrypt ? 0 : 1
+
+  yaml_body = yamlencode({
+    apiVersion = "cert-manager.io/v1"
+    kind       = "ClusterIssuer"
+    metadata = {
+      name = "letsencrypt"
+    }
+    spec = {
+      acme = {
+        server = "https://acme-v02.api.letsencrypt.org/directory"
+        email  = var.acme_email
+        privateKeySecretRef = {
+          name = "letsencrypt-account-key"
+        }
+        solvers = [{
+          http01 = {
+            ingress = {
+              ingressClassName = "traefik"
+            }
+          }
+        }]
+      }
+    }
+  })
+
+  depends_on = [helm_release.cert_manager]
 }
 
 # --- CoreDNS patch for *.ingress.cabotage.dev resolution ---

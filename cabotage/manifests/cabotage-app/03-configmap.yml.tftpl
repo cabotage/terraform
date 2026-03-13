@@ -10,10 +10,10 @@ data:
   CABOTAGE_CONSUL_SCHEME: https
   CABOTAGE_CONSUL_TOKEN_FILE: /var/run/secrets/vault/consul-token
   CABOTAGE_CONSUL_VERIFY: /var/run/secrets/cabotage.io/ca.crt
-  CABOTAGE_INGRESS_DOMAIN: cabotage.app
+  CABOTAGE_INGRESS_DOMAIN: ${ingress_domain}
   CABOTAGE_SIDECAR_IMAGE: cabotage/sidecar:4
   CABOTAGE_EXT_PREFERRED_URL_SCHEME: https
-  CABOTAGE_EXT_SERVER_NAME: astral-dev.cabotage.io
+  CABOTAGE_EXT_SERVER_NAME: ${hostname}
   CABOTAGE_KUBERNETES_ENABLED: "True"
   CABOTAGE_MINIO_BUCKET: cabotage-registry
   CABOTAGE_MINIO_CA_CERT: /var/run/secrets/cabotage.io/ca.crt

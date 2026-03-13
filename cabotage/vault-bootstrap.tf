@@ -19,6 +19,7 @@ resource "null_resource" "vault_bootstrap" {
     command = "sh ${path.module}/scripts/vault-bootstrap.sh"
     environment = {
       SECRETS_DIR    = var.secrets_dir
+      CA_CERT_FILE   = var.ca_cert_file
       NAMESPACE      = kubernetes_namespace_v1.cabotage.metadata[0].name
       VAULT_REPLICAS = tostring(var.vault_replicas)
       KUBE_CONTEXT   = var.kube_context

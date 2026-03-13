@@ -6,7 +6,9 @@ set -e
 # Generate root CA locally if not present, distribute cert via ConfigMaps.
 # Root CA key never enters K8s.
 
-if [ ! -f "$SECRETS_DIR/ca.crt" ] || [ ! -f "$SECRETS_DIR/ca.key" ]; then
+CA_CERT_FILE="${CA_CERT_FILE:-$SECRETS_DIR/ca.crt}"
+
+if [ ! -f "$CA_CERT_FILE" ] || [ ! -f "$SECRETS_DIR/ca.key" ]; then
   echo "Generating root CA..."
   mkdir -p "$SECRETS_DIR"
   openssl ecparam -genkey -name prime256v1 -noout -out "$SECRETS_DIR/ca.key" 2>/dev/null
@@ -24,16 +26,17 @@ CN = ${CLUSTER_SHORT} Cabotage Root CA
 basicConstraints = critical,CA:TRUE
 keyUsage = critical,keyCertSign,cRLSign
 EOF
-  openssl req -new -x509 -key "$SECRETS_DIR/ca.key" -out "$SECRETS_DIR/ca.crt" \
+  openssl req -new -x509 -key "$SECRETS_DIR/ca.key" -out "$CA_CERT_FILE" \
     -days 3650 -config "$OPENSSL_CNF"
   rm -f "$OPENSSL_CNF"
   chmod 600 "$SECRETS_DIR/ca.key"
-  echo "Root CA saved to $SECRETS_DIR/ca.{crt,key}"
+  echo "Root CA key saved to $SECRETS_DIR/ca.key"
+  echo "Root CA cert saved to $CA_CERT_FILE"
 else
-  echo "Using existing root CA from $SECRETS_DIR/"
+  echo "Using existing root CA."
 fi
 
-CA_CRT=$(cat "$SECRETS_DIR/ca.crt")
+CA_CRT=$(cat "$CA_CERT_FILE")
 for ns in cabotage default; do
   $KUBECTL create configmap cabotage-ca -n "$ns" \
     --from-literal="ca.crt=$CA_CRT" \

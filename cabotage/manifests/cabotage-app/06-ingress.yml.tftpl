@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/service-upstream: "true"
+    cert-manager.io/cluster-issuer: letsencrypt
+  name: cabotage-app
+  namespace: cabotage
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - ${hostname}
+    secretName: cabotage-app-tls
+  rules:
+  - host: ${hostname}
+    http:
+      paths:
+      - pathType: Prefix
+        backend:
+          service:
+            name: cabotage-app
+            port:
+              number: 443
+        path: /
