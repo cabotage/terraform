@@ -12,6 +12,8 @@ spec:
       app: registry
   template:
     metadata:
+      annotations:
+        configmap-hash: ${config_hash}
       labels:
         app: registry
         ca-admission.cabotage.io: "true"

@@ -4,6 +4,14 @@
 # Manifests live in manifests/registry/.
 # Post-deploy script fetches signing cert from cabotage-app and patches config.
 
+locals {
+  registry_configmap = templatefile("${path.module}/manifests/registry/01-configmap.yml.tftpl", {
+    hostname       = var.cabotage_app_hostname
+    ingress_domain = var.cabotage_ingress_domain
+  })
+  registry_config_hash = sha256(local.registry_configmap)
+}
+
 # --- RBAC ---
 
 resource "kubectl_manifest" "registry_serviceaccount" {
@@ -61,7 +69,7 @@ resource "null_resource" "registry_enrollment_ready" {
 # --- ConfigMap ---
 
 resource "kubectl_manifest" "registry_configmap" {
-  yaml_body = file("${path.module}/manifests/registry/01-configmap.yml")
+  yaml_body = local.registry_configmap
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
@@ -69,7 +77,9 @@ resource "kubectl_manifest" "registry_configmap" {
 # --- Deployment ---
 
 resource "kubectl_manifest" "registry_deployment" {
-  yaml_body = file("${path.module}/manifests/registry/02-deployment.yml")
+  yaml_body = templatefile("${path.module}/manifests/registry/02-deployment.yml.tftpl", {
+    config_hash = local.registry_config_hash
+  })
 
   wait_for_rollout = false
 
@@ -102,6 +112,19 @@ resource "kubectl_manifest" "registry_service_ingress" {
   yaml_body = file("${path.module}/manifests/registry/03-service-ingress.yml")
 
   depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
+# --- Ingress ---
+
+resource "kubectl_manifest" "registry_ingress" {
+  yaml_body = templatefile("${path.module}/manifests/registry/04-ingress.yml.tftpl", {
+    ingress_domain = var.cabotage_ingress_domain
+  })
+
+  depends_on = [
+    kubectl_manifest.registry_service_ingress,
+    helm_release.cert_manager,
+  ]
 }
 
 # --- Post-deploy Configuration ---

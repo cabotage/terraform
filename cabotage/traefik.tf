@@ -123,7 +123,7 @@ resource "kubectl_manifest" "nginx_ingress_class" {
       name = "nginx"
     }
     spec = {
-      controller = "traefik.io/ingress-controller"
+      controller = "k8s.io/ingress-nginx"
     }
   })
 
