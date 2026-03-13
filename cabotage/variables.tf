@@ -168,6 +168,12 @@ variable "redis_operator_chart_version" {
   default     = "0.19.0"
 }
 
+variable "registry_replicas" {
+  description = "Number of registry replicas"
+  type        = number
+  default     = 1
+}
+
 variable "secrets_dir" {
   description = "Local directory to store bootstrap secrets (consul mgmt token, vault root token, unseal key)"
   type        = string
