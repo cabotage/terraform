@@ -15,6 +15,8 @@ basicConstraints = critical, CA:TRUE, pathlen:0
 keyUsage = critical, digitalSignature, keyCertSign, cRLSign
 EOF
 
+CA_CERT_FILE="${CA_CERT_FILE:-$CA_CERT_FILE}"
+
 for ca_name in certificate-approver-ca operators-ca; do
   SECRET_NAME="${ca_name}-key-pair"
 
@@ -49,15 +51,15 @@ for ca_name in certificate-approver-ca operators-ca; do
 
   # Sign with root CA
   openssl x509 -req -in "$TMPDIR/int.csr" \
-    -CA "$SECRETS_DIR/ca.crt" -CAkey "$SECRETS_DIR/ca.key" -CAcreateserial \
+    -CA "$CA_CERT_FILE" -CAkey "$SECRETS_DIR/ca.key" -CAcreateserial \
     -out "$TMPDIR/int.crt" -days 1825 -extfile "$TMPDIR/ext.cnf" 2>/dev/null
 
   # Build chain (intermediate + root)
-  cat "$TMPDIR/int.crt" "$SECRETS_DIR/ca.crt" > "$TMPDIR/chain.crt"
+  cat "$TMPDIR/int.crt" "$CA_CERT_FILE" > "$TMPDIR/chain.crt"
 
   # Update the secret with the properly-signed cert chain
   CHAIN_B64=$(base64 < "$TMPDIR/chain.crt" | tr -d '\n')
-  ROOT_B64=$(base64 < "$SECRETS_DIR/ca.crt" | tr -d '\n')
+  ROOT_B64=$(base64 < "$CA_CERT_FILE" | tr -d '\n')
   $KUBECTL patch secret "$SECRET_NAME" -n cert-manager --type merge \
     -p "{\"data\":{\"tls.crt\":\"$CHAIN_B64\",\"ca.crt\":\"$ROOT_B64\"}}"
 

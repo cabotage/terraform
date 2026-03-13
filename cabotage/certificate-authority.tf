@@ -4,9 +4,9 @@
 # created by cert-manager (key generation), then signed locally with the
 # root CA key and patched back into the K8s secrets.
 #
-# Local files (in secrets_dir):
-#   ca.crt  — root CA certificate
-#   ca.key  — root CA private key
+# Local files:
+#   ca_cert_file — root CA certificate (public, safe to commit)
+#   secrets_dir/ca.key — root CA private key
 
 locals {
   # Extract short name from ARN or use as-is (e.g. "arn:aws:eks:...:cluster/dev-astral" -> "dev-astral")
@@ -24,6 +24,7 @@ resource "null_resource" "root_ca" {
     command = "sh ${path.module}/scripts/bootstrap-root-ca.sh"
     environment = {
       SECRETS_DIR  = var.secrets_dir
+      CA_CERT_FILE = var.ca_cert_file
       CLUSTER_ID   = var.cluster_identifier
       KUBE_CONTEXT = var.kube_context
     }
@@ -122,6 +123,7 @@ resource "null_resource" "sign_intermediate_cas" {
     command = "sh ${path.module}/scripts/sign-intermediate-cas.sh"
     environment = {
       SECRETS_DIR  = var.secrets_dir
+      CA_CERT_FILE = var.ca_cert_file
       CLUSTER_ID   = var.cluster_identifier
       KUBE_CONTEXT = var.kube_context
     }

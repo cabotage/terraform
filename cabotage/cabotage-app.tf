@@ -75,7 +75,10 @@ resource "null_resource" "cabotage_app_enrollment_ready" {
 # --- ConfigMap ---
 
 resource "kubectl_manifest" "cabotage_app_configmap" {
-  yaml_body = file("${path.module}/manifests/cabotage-app/03-configmap.yml")
+  yaml_body = templatefile("${path.module}/manifests/cabotage-app/03-configmap.yml.tftpl", {
+    hostname       = var.cabotage_app_hostname
+    ingress_domain = var.cabotage_ingress_domain
+  })
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
@@ -160,6 +163,19 @@ resource "kubectl_manifest" "cabotage_app_service" {
   yaml_body = file("${path.module}/manifests/cabotage-app/05-service.yml")
 
   depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
+# --- Ingress ---
+
+resource "kubectl_manifest" "cabotage_app_ingress" {
+  yaml_body = templatefile("${path.module}/manifests/cabotage-app/06-ingress.yml.tftpl", {
+    hostname = var.cabotage_app_hostname
+  })
+
+  depends_on = [
+    kubectl_manifest.cabotage_app_service,
+    helm_release.cert_manager,
+  ]
 }
 
 # --- Post-deploy Configuration ---
