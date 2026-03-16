@@ -52,14 +52,7 @@ module "cabotage" {
 
 ### Local development with Minikube
 
-```sh
-minikube start --cpus 6 --memory 16000 --container-runtime containerd
-minikube addons enable ingress-dns
-minikube addons enable registry
-cd clusters/minikube/cabotage
-terraform init -upgrade
-terraform apply
-```
+See [`minikube/`](minikube/) for a ready-to-use setup.
 
 ## Prerequisites
 
