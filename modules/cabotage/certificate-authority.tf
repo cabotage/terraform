@@ -7,6 +7,10 @@
 locals {
   # Extract short name from ARN or use as-is (e.g. "arn:aws:eks:...:cluster/dev-astral" -> "dev-astral")
   cluster_short_name = element(split("/", var.cluster_identifier), length(split("/", var.cluster_identifier)) - 1)
+
+  # Namespace local file paths by workspace so multiple envs can coexist
+  secrets_dir  = "${var.secrets_dir}/${terraform.workspace}"
+  ca_cert_file = "${trimsuffix(var.ca_cert_file, ".crt")}.${terraform.workspace}.crt"
 }
 
 # --- Root CA (local) ---
@@ -19,8 +23,8 @@ resource "null_resource" "root_ca" {
   provisioner "local-exec" {
     command = "sh ${path.module}/scripts/bootstrap-root-ca.sh"
     environment = {
-      SECRETS_DIR  = var.secrets_dir
-      CA_CERT_FILE = var.ca_cert_file
+      SECRETS_DIR  = local.secrets_dir
+      CA_CERT_FILE = local.ca_cert_file
       CLUSTER_ID   = var.cluster_identifier
       KUBE_CONTEXT = var.kube_context
     }
@@ -30,7 +34,7 @@ resource "null_resource" "root_ca" {
 }
 
 data "local_file" "root_ca_cert" {
-  filename = var.ca_cert_file
+  filename = local.ca_cert_file
 
   depends_on = [null_resource.root_ca]
 }
@@ -121,8 +125,8 @@ resource "null_resource" "sign_intermediate_cas" {
   provisioner "local-exec" {
     command = "sh ${path.module}/scripts/sign-intermediate-cas.sh"
     environment = {
-      SECRETS_DIR  = var.secrets_dir
-      CA_CERT_FILE = var.ca_cert_file
+      SECRETS_DIR  = local.secrets_dir
+      CA_CERT_FILE = local.ca_cert_file
       CLUSTER_ID   = var.cluster_identifier
       KUBE_CONTEXT = var.kube_context
     }

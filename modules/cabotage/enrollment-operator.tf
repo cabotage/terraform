@@ -75,7 +75,7 @@ resource "null_resource" "enrollment_operator_bootstrap" {
   provisioner "local-exec" {
     command = "sh ${path.module}/scripts/enrollment-operator-bootstrap.sh"
     environment = {
-      SECRETS_DIR  = var.secrets_dir
+      SECRETS_DIR  = local.secrets_dir
       NAMESPACE    = kubernetes_namespace_v1.cabotage.metadata[0].name
       POLICY_FILE  = "${path.module}/scripts/enrollment-operator-policy.hcl"
       KUBE_CONTEXT = var.kube_context

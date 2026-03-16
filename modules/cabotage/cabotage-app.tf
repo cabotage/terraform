@@ -159,7 +159,7 @@ resource "null_resource" "cabotage_app_bootstrap" {
   provisioner "local-exec" {
     command = "sh ${path.module}/scripts/cabotage-app-bootstrap.sh"
     environment = {
-      SECRETS_DIR        = var.secrets_dir
+      SECRETS_DIR        = local.secrets_dir
       NAMESPACE          = kubernetes_namespace_v1.cabotage.metadata[0].name
       VAULT_POLICY_FILE  = "${path.module}/scripts/cabotage-app-policies/vault-policy.hcl"
       CONSUL_POLICY_FILE = "${path.module}/scripts/cabotage-app-policies/consul-policy.hcl"
@@ -184,12 +184,12 @@ resource "null_resource" "cabotage_github_app_secret" {
 
   provisioner "local-exec" {
     command = <<-EOT
-      if [ ! -f "${var.secrets_dir}/github-app-private-key.pem" ] || [ ! -f "${var.secrets_dir}/github-webhook-secret" ]; then
-        echo "GitHub App secret files not found in ${var.secrets_dir}, skipping."
+      if [ ! -f "${local.secrets_dir}/github-app-private-key.pem" ] || [ ! -f "${local.secrets_dir}/github-webhook-secret" ]; then
+        echo "GitHub App secret files not found in ${local.secrets_dir}, skipping."
         exit 0
       fi
-      PRIVATE_KEY_B64=$(base64 < "${var.secrets_dir}/github-app-private-key.pem" | tr -d '\n')
-      WEBHOOK_SECRET=$(cat "${var.secrets_dir}/github-webhook-secret" | tr -d '[:space:]')
+      PRIVATE_KEY_B64=$(base64 < "${local.secrets_dir}/github-app-private-key.pem" | tr -d '\n')
+      WEBHOOK_SECRET=$(cat "${local.secrets_dir}/github-webhook-secret" | tr -d '[:space:]')
       kubectl --context ${var.kube_context} create secret generic cabotage-github-app \
         --namespace ${kubernetes_namespace_v1.cabotage.metadata[0].name} \
         --from-literal=app-id="${var.github_app_id}" \
