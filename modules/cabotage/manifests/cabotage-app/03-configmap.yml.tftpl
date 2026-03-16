@@ -37,4 +37,5 @@ data:
   CABOTAGE_MIMIR_VERIFY: /var/run/secrets/cabotage.io/ca.crt
   CABOTAGE_LOKI_URL: https://resident-loki-read.cabotage.svc.cluster.local:3100
   CABOTAGE_LOKI_VERIFY: /var/run/secrets/cabotage.io/ca.crt
+  CABOTAGE_SECURITY_CONFIRMABLE: "${security_confirmable ? "True" : "False"}"
   FLASK_APP: cabotage.server.wsgi

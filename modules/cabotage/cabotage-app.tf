@@ -6,12 +6,44 @@
 # Configure script patches DB/Redis/S3 URIs and runs DB migrations.
 
 locals {
-  cabotage_app_configmap = templatefile("${path.module}/manifests/cabotage-app/03-configmap.yml.tftpl", {
-    hostname        = var.cabotage_app_hostname
-    ingress_domain  = var.cabotage_ingress_domain
-    registry_verify = var.registry_verify
-  })
-  cabotage_app_config_hash = sha256(local.cabotage_app_configmap)
+  cabotage_app_config_data = {
+    CABOTAGE_CONSUL_HOST              = "consul.cabotage.svc.cluster.local"
+    CABOTAGE_CONSUL_PORT              = "8443"
+    CABOTAGE_CONSUL_PREFIX            = "cabotage"
+    CABOTAGE_CONSUL_SCHEME            = "https"
+    CABOTAGE_CONSUL_TOKEN_FILE        = "/var/run/secrets/vault/consul-token"
+    CABOTAGE_CONSUL_VERIFY            = "/var/run/secrets/cabotage.io/ca.crt"
+    CABOTAGE_INGRESS_DOMAIN           = var.cabotage_ingress_domain
+    CABOTAGE_SIDECAR_IMAGE            = "cabotage/sidecar:4"
+    CABOTAGE_EXT_PREFERRED_URL_SCHEME = "https"
+    CABOTAGE_EXT_SERVER_NAME          = var.cabotage_app_hostname
+    CABOTAGE_KUBERNETES_ENABLED       = "True"
+    CABOTAGE_MINIO_BUCKET             = "cabotage-registry"
+    CABOTAGE_MINIO_CA_CERT            = "/var/run/secrets/cabotage.io/ca.crt"
+    CABOTAGE_MINIO_ENDPOINT           = "rustfs.cabotage.svc.cluster.local:9000"
+    CABOTAGE_MINIO_PREFIX             = "cabotage-builds"
+    CABOTAGE_MINIO_SECURE             = "True"
+    CABOTAGE_REGISTRY                 = "registry.${var.cabotage_ingress_domain}"
+    CABOTAGE_REGISTRY_BUILD           = "registry.${var.cabotage_ingress_domain}"
+    CABOTAGE_REGISTRY_PULL            = "registry.${var.cabotage_ingress_domain}"
+    CABOTAGE_REGISTRY_SECURE          = "True"
+    CABOTAGE_REGISTRY_VERIFY          = var.registry_verify
+    CABOTAGE_SHELLZ_ENABLED           = "True"
+    CABOTAGE_VAULT_LEASE_PATH         = "/var/run/secrets/vault"
+    CABOTAGE_VAULT_PREFIX             = "cabotage-secrets"
+    CABOTAGE_VAULT_SIGNING_KEY        = "registry"
+    CABOTAGE_VAULT_SIGNING_MOUNT      = "cabotage-app-transit"
+    CABOTAGE_VAULT_TOKEN_FILE         = "/var/run/secrets/vault/vault-token"
+    CABOTAGE_VAULT_URL                = "https://vault.cabotage.svc.cluster.local"
+    CABOTAGE_VAULT_VERIFY             = "/var/run/secrets/cabotage.io/ca.crt"
+    CABOTAGE_MIMIR_URL                = "https://resident-mimir-read.cabotage.svc.cluster.local:8080"
+    CABOTAGE_MIMIR_VERIFY             = "/var/run/secrets/cabotage.io/ca.crt"
+    CABOTAGE_LOKI_URL                 = "https://resident-loki-read.cabotage.svc.cluster.local:3100"
+    CABOTAGE_LOKI_VERIFY              = "/var/run/secrets/cabotage.io/ca.crt"
+    CABOTAGE_SECURITY_CONFIRMABLE     = var.security_confirmable ? "True" : "False"
+    FLASK_APP                         = "cabotage.server.wsgi"
+  }
+  cabotage_app_config_hash = sha256(jsonencode(local.cabotage_app_config_data))
 }
 
 # --- RBAC ---
@@ -83,10 +115,38 @@ resource "null_resource" "cabotage_app_enrollment_ready" {
 
 # --- ConfigMap ---
 
-resource "kubectl_manifest" "cabotage_app_configmap" {
-  yaml_body = local.cabotage_app_configmap
+resource "kubernetes_config_map_v1" "cabotage_app_configmap" {
+  metadata {
+    name      = "cabotage-config"
+    namespace = "cabotage"
+  }
+
+  data = local.cabotage_app_config_data
 
   depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
+# --- Rollout restart on any configmap change (including drift correction) ---
+
+resource "null_resource" "cabotage_app_configmap_rollout" {
+  lifecycle {
+    replace_triggered_by = [kubernetes_config_map_v1.cabotage_app_configmap]
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      kubectl --context ${var.kube_context} rollout restart -n cabotage deployment/cabotage-app-web deployment/cabotage-app-worker deployment/cabotage-app-worker-beat
+      kubectl --context ${var.kube_context} rollout status -n cabotage deployment/cabotage-app-web --timeout=300s
+      kubectl --context ${var.kube_context} rollout status -n cabotage deployment/cabotage-app-worker --timeout=300s
+      kubectl --context ${var.kube_context} rollout status -n cabotage deployment/cabotage-app-worker-beat --timeout=300s
+    EOT
+  }
+
+  depends_on = [
+    kubectl_manifest.cabotage_app_deployment_web,
+    kubectl_manifest.cabotage_app_deployment_worker,
+    kubectl_manifest.cabotage_app_deployment_worker_beat,
+  ]
 }
 
 # --- Vault/Consul Bootstrap ---
@@ -155,7 +215,7 @@ resource "kubectl_manifest" "cabotage_app_deployment_web" {
   depends_on = [
     kubectl_manifest.cabotage_app_rolebinding,
     null_resource.cabotage_app_enrollment_ready,
-    kubectl_manifest.cabotage_app_configmap,
+    kubernetes_config_map_v1.cabotage_app_configmap,
     null_resource.cabotage_app_bootstrap,
     null_resource.ca_admission_webhook_ready,
   ]
@@ -172,7 +232,7 @@ resource "kubectl_manifest" "cabotage_app_deployment_worker" {
   depends_on = [
     kubectl_manifest.cabotage_app_rolebinding,
     null_resource.cabotage_app_enrollment_ready,
-    kubectl_manifest.cabotage_app_configmap,
+    kubernetes_config_map_v1.cabotage_app_configmap,
     null_resource.cabotage_app_bootstrap,
     null_resource.ca_admission_webhook_ready,
   ]
@@ -189,7 +249,7 @@ resource "kubectl_manifest" "cabotage_app_deployment_worker_beat" {
   depends_on = [
     kubectl_manifest.cabotage_app_rolebinding,
     null_resource.cabotage_app_enrollment_ready,
-    kubectl_manifest.cabotage_app_configmap,
+    kubernetes_config_map_v1.cabotage_app_configmap,
     null_resource.cabotage_app_bootstrap,
     null_resource.ca_admission_webhook_ready,
   ]
