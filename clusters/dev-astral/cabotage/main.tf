@@ -75,7 +75,7 @@ module "cabotage" {
 
   cluster_identifier      = "arn:aws:eks:us-east-1:318662118699:cluster/dev-astral"
   kube_context            = "arn:aws:eks:us-east-1:318662118699:cluster/dev-astral"
-  cabotage_app_image      = "ghcr.io/cabotage/cabotage-app:2026.3.13-0"
+  cabotage_app_image      = "ghcr.io/cabotage/cabotage-app:2026.3.16-0"
   secrets_dir             = abspath("${path.module}/.secrets")
   forwarded_headers_cidrs = ["10.0.0.0/16", "10.100.0.0/16"]
   proxy_protocol_cidrs    = ["10.0.0.0/16"]
