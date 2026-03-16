@@ -33,6 +33,12 @@ variable "traefik_aws_lb" {
   default     = false
 }
 
+variable "traefik_load_balancer" {
+  description = "Use LoadBalancer service type for Traefik (without AWS annotations)"
+  type        = bool
+  default     = false
+}
+
 # --- cert-manager ---
 
 variable "cert_manager_chart_version" {
