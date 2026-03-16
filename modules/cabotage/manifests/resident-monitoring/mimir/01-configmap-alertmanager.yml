@@ -8,7 +8,7 @@ data:
     route:
       receiver: alert-echo
       group_by: [alertname, deployment]
-      group_wait: 10s
+      group_wait: 5s
       group_interval: 15s
       repeat_interval: 15m
     receivers:

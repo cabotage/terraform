@@ -7,7 +7,7 @@ data:
   rules.yml: |
     groups:
       - name: traefik_latency
-        interval: 15s
+        interval: 10s
         rules:
           - record: traefik:router_request_duration_seconds_bucket:rate30s
             expr: sum by (le, service) (rate(traefik_router_request_duration_seconds_bucket[30s]))
@@ -16,8 +16,8 @@ data:
           - record: traefik:router_request_duration_seconds_bucket:rate5m
             expr: sum by (le, service) (rate(traefik_router_request_duration_seconds_bucket[5m]))
 
-      - name: resident_deployment_mapping
-        interval: 15s
+      - name: resident_deployment_alerts
+        interval: 10s
         rules:
           - record: cabotage:resident_deployment_pod
             expr: |
@@ -41,57 +41,70 @@ data:
                 "owner_name", "$1", "replicaset", "(.*)"
               )
 
-      - name: resident_deployment_crashes
-        interval: 15s
-        rules:
-          - alert: ResidentDeploymentCrashLooping
-            expr: |
-              (
-                increase(kube_pod_container_status_restarts_total[3m]) > 0
-              )
-              * on (namespace, pod) group_left(deployment)
-              cabotage:resident_deployment_pod
-            for: 30s
-            labels:
-              severity: warning
-            annotations:
-              summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has crash looping pods"
-              description: "Container {{ $labels.container }} in pod {{ $labels.pod }} (deployment {{ $labels.deployment }}) has restarted {{ $value }} time(s) in the last 3 minutes."
-
           - alert: ResidentDeploymentOOMKilled
             expr: |
-              kube_pod_container_status_last_terminated_reason{reason="OOMKilled"}
-              * on (namespace, pod) group_left(deployment)
-              cabotage:resident_deployment_pod
+              max by (namespace, deployment) (
+                (
+                  max_over_time(
+                    kube_pod_container_status_last_terminated_reason{reason="OOMKilled"}[10m]
+                  ) >= 1
+                )
+                * on (namespace, pod) group_left(deployment)
+                cabotage:resident_deployment_pod
+              ) > 0
             for: 0m
             labels:
               severity: critical
             annotations:
               summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has OOM killed pods"
-              description: "Container {{ $labels.container }} in pod {{ $labels.pod }} (deployment {{ $labels.deployment }}) was terminated due to OOM."
-
-          - alert: ResidentDeploymentPodNotReady
-            expr: |
-              (
-                kube_pod_status_phase{phase=~"Failed|Unknown"} == 1
-              )
-              * on (namespace, pod) group_left(deployment)
-              cabotage:resident_deployment_pod
-            for: 30s
-            labels:
-              severity: warning
-            annotations:
-              summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has pods in {{ $labels.phase }} state"
-              description: "Pod {{ $labels.pod }} (deployment {{ $labels.deployment }}) has been in {{ $labels.phase }} phase for more than 30 seconds."
+              description: "A container in deployment {{ $labels.deployment }} was terminated due to OOM."
 
           - alert: ResidentDeploymentCrashLoopBackOff
             expr: |
-              kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"}
-              * on (namespace, pod) group_left(deployment)
-              cabotage:resident_deployment_pod
+              max by (namespace, deployment) (
+                (
+                  max_over_time(
+                    kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"}[10m]
+                  ) >= 1
+                )
+                * on (namespace, pod) group_left(deployment)
+                cabotage:resident_deployment_pod
+              ) > 0
             for: 30s
             labels:
               severity: critical
             annotations:
               summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has pods in CrashLoopBackOff"
-              description: "Container {{ $labels.container }} in pod {{ $labels.pod }} (deployment {{ $labels.deployment }}) has been in CrashLoopBackOff for more than 30 seconds."
+              description: "A container in deployment {{ $labels.deployment }} is in CrashLoopBackOff."
+
+          - alert: ResidentDeploymentContainerWaiting
+            expr: |
+              max by (namespace, deployment) (
+                (
+                  max_over_time(
+                    kube_pod_container_status_waiting_reason{reason!="CrashLoopBackOff"}[10m]
+                  ) >= 1
+                )
+                * on (namespace, pod) group_left(deployment)
+                cabotage:resident_deployment_pod
+              ) > 0
+            for: 30s
+            labels:
+              severity: warning
+            annotations:
+              summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has containers in a waiting state"
+              description: "A container in deployment {{ $labels.deployment }} is waiting (e.g. ImagePullBackOff, ErrImagePull)."
+
+          - alert: ResidentDeploymentPodNotReady
+            expr: |
+              max by (namespace, deployment) (
+                (kube_pod_status_phase{phase=~"Failed|Unknown"} == 1)
+                * on (namespace, pod) group_left(deployment)
+                cabotage:resident_deployment_pod
+              ) > 0
+            for: 30s
+            labels:
+              severity: warning
+            annotations:
+              summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has pods in a failed state"
+              description: "A pod in deployment {{ $labels.deployment }} is in Failed or Unknown phase."
