@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: resident-mimir-alertmanager-config
+  namespace: cabotage
+data:
+  alertmanager.yml: |
+    route:
+      receiver: alert-echo
+      group_by: [alertname, deployment]
+      group_wait: 10s
+      group_interval: 15s
+      repeat_interval: 15m
+    receivers:
+    - name: alert-echo
+      webhook_configs:
+      - url: http://alert-echo.cabotage.svc.cluster.local:8090/
+        send_resolved: true
