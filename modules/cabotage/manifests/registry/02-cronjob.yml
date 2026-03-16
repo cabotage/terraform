@@ -28,6 +28,17 @@ spec:
               image: cabotage/registry:4
               imagePullPolicy: Always
               args: ['garbage-collect', '/etc/docker/registry-local/config.yml', '--delete-untagged=true']
+              env:
+                - name: REGISTRY_STORAGE_S3_ACCESSKEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: rustfs-cabotage-registry
+                      key: access-key-id
+                - name: REGISTRY_STORAGE_S3_SECRETKEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: rustfs-cabotage-registry
+                      key: secret-key
               volumeMounts:
                 - name: registry-config
                   mountPath: /etc/docker/registry-local
