@@ -98,6 +98,9 @@ resource "helm_release" "traefik" {
         "service.beta.kubernetes.io/aws-load-balancer-connection-draining-enabled" = "true"
         "service.beta.kubernetes.io/aws-load-balancer-connection-draining-timeout" = "240"
       }
+    } : var.traefik_load_balancer ? {
+      type        = "LoadBalancer"
+      annotations = {}
     } : {
       type        = "NodePort"
       annotations = {}

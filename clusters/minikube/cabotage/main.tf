@@ -42,6 +42,12 @@ provider "kubectl" {
   config_context = "minikube"
 }
 
+resource "kubernetes_namespace_v1" "traefik" {
+  metadata {
+    name = "traefik"
+  }
+}
+
 module "cabotage" {
   source = "../../../modules/cabotage"
 
@@ -53,6 +59,7 @@ module "cabotage" {
   forwarded_headers_cidrs   = ["10.96.0.0/12", "10.244.0.0/16"]
   proxy_protocol_cidrs      = ["10.96.0.0/12", "10.244.0.0/16"]
   traefik_replicas          = 1
+  traefik_load_balancer     = true
   cabotage_app_hostname     = "cabotage.ingress.cabotage.dev"
   cabotage_ingress_domain   = "ingress.cabotage.dev"
   vault_dev_auto_unseal     = true
