@@ -38,7 +38,8 @@ spec:
         fsGroup: 20000
       initContainers:
         - name: consul-secret-writer
-          image: alpine:3.17
+          image: busybox:1.37
+          imagePullPolicy: IfNotPresent
           env:
             - name: CONSUL_ACL_AGENT_TOKEN
               valueFrom:
@@ -122,7 +123,8 @@ spec:
                 - -c
                 - consul leave
         - name: cert-watcher
-          image: alpine:3.19
+          image: busybox:1.37
+          imagePullPolicy: IfNotPresent
           command: ["/bin/sh"]
           args:
             - -c

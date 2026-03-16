@@ -39,7 +39,8 @@ spec:
       serviceAccountName: rustfs
       initContainers:
       - name: init-permissions
-        image: busybox
+        image: busybox:1.37
+        imagePullPolicy: IfNotPresent
         command: ["/bin/sh"]
         args:
           - -c
@@ -53,7 +54,8 @@ spec:
         - name: logs
           mountPath: /logs
       - name: init-tls
-        image: busybox
+        image: busybox:1.37
+        imagePullPolicy: IfNotPresent
         command: ["/bin/sh"]
         args:
           - -c
