@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resident-kube-state-metrics
+  namespace: cabotage
+  labels:
+    app: resident-kube-state-metrics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: resident-kube-state-metrics
+  template:
+    metadata:
+      labels:
+        app: resident-kube-state-metrics
+        ca-admission.cabotage.io: "true"
+    spec:
+      serviceAccountName: resident-kube-state-metrics
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+      containers:
+      - name: kube-state-metrics
+        image: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.14.0
+        args:
+        - --resources=pods,replicasets,deployments,statefulsets,daemonsets,jobs
+        - --metric-labels-allowlist=pods=[resident-pod.cabotage.io,app,organization,project,application,process,environment,release,deployment],deployments=[resident-deployment.cabotage.io,app,organization,project,application,process,environment]
+        - --tls-config=/etc/ksm/web-config.yml
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+        ports:
+        - containerPort: 8080
+          name: https-metrics
+        - containerPort: 8081
+          name: telemetry
+        readinessProbe:
+          httpGet:
+            path: /
+            port: telemetry
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: telemetry
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - name: tls
+          mountPath: /etc/tls
+          readOnly: true
+        - name: web-config
+          mountPath: /etc/ksm
+          readOnly: true
+      volumes:
+      - name: tls
+        secret:
+          secretName: resident-kube-state-metrics-tls
+      - name: web-config
+        configMap:
+          name: resident-kube-state-metrics-web-config

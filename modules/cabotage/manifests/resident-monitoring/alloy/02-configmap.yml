@@ -151,6 +151,56 @@ data:
       forward_to = [prometheus.remote_write.default.receiver]
     }
 
+    // --- Metrics: scrape kube-state-metrics for pod status ---
+
+    discovery.kubernetes "kube_state_metrics" {
+      role = "endpoints"
+      namespaces {
+        names = ["cabotage"]
+      }
+      selectors {
+        role  = "endpoints"
+        label = "app=resident-kube-state-metrics"
+      }
+    }
+
+    discovery.relabel "kube_state_metrics" {
+      targets = discovery.kubernetes.kube_state_metrics.targets
+
+      rule {
+        source_labels = ["__meta_kubernetes_endpoint_port_name"]
+        regex         = "https-metrics"
+        action        = "keep"
+      }
+
+      rule {
+        target_label = "__address__"
+        replacement  = "resident-kube-state-metrics.cabotage.svc.cluster.local:8080"
+      }
+    }
+
+    prometheus.scrape "kube_state_metrics" {
+      targets         = discovery.relabel.kube_state_metrics.output
+      scheme          = "https"
+      scrape_interval = "15s"
+
+      tls_config {
+        ca_file = "/var/run/secrets/cabotage.io/ca.crt"
+      }
+
+      forward_to = [prometheus.relabel.kube_state_metrics.receiver]
+    }
+
+    prometheus.relabel "kube_state_metrics" {
+      rule {
+        source_labels = ["__name__"]
+        regex  = "kube_pod_container_status_restarts_total|kube_pod_container_status_waiting_reason|kube_pod_container_status_terminated_reason|kube_pod_status_phase|kube_pod_container_status_ready|kube_pod_labels|kube_pod_container_info|kube_pod_container_status_last_terminated_reason|kube_pod_owner|kube_replicaset_owner|kube_replicaset_status_replicas|kube_deployment_labels"
+        action = "keep"
+      }
+
+      forward_to = [prometheus.remote_write.default.receiver]
+    }
+
     // --- Logs: collect traefik access logs ---
 
     discovery.relabel "traefik_logs" {

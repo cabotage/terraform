@@ -101,6 +101,9 @@ spec:
         - name: rules
           mountPath: /etc/mimir/rules/anonymous
           readOnly: true
+        - name: alertmanager-config
+          mountPath: /etc/mimir/alertmanager
+          readOnly: true
       volumes:
       - name: config
         configMap:
@@ -111,6 +114,9 @@ spec:
       - name: rules
         configMap:
           name: resident-mimir-rules
+      - name: alertmanager-config
+        configMap:
+          name: resident-mimir-alertmanager-config
   volumeClaimTemplates:
   - metadata:
       name: data

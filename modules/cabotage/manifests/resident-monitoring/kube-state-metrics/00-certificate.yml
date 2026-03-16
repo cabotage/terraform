@@ -1,0 +1,29 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: resident-kube-state-metrics-tls
+  namespace: cabotage
+spec:
+  secretName: resident-kube-state-metrics-tls
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  subject:
+    organizations:
+    - cabotage
+  commonName: resident-kube-state-metrics
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  usages:
+    - digital signature
+    - key encipherment
+  dnsNames:
+  - resident-kube-state-metrics
+  - resident-kube-state-metrics.cabotage
+  - resident-kube-state-metrics.cabotage.svc
+  - resident-kube-state-metrics.cabotage.svc.cluster.local
+  issuerRef:
+    name: certificate-approver-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io

@@ -45,8 +45,13 @@ data:
       filepath: /data/metrics-activity.log
     alertmanager:
       data_dir: /data/alertmanager
+      fallback_config_file: /etc/mimir/alertmanager/alertmanager.yml
     ruler:
       rule_path: /data/ruler
+      alertmanager_url: https://resident-mimir-backend.cabotage.svc.cluster.local:8080/alertmanager
+      alertmanager_client:
+        tls_enabled: true
+        tls_ca_path: /var/run/secrets/cabotage.io/ca.crt
     ruler_storage:
       backend: local
       local:
