@@ -107,12 +107,18 @@ spec:
             port: 9000
             scheme: HTTPS
           initialDelaySeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /health
+            path: /health/ready
             port: 9000
             scheme: HTTPS
           initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         volumeMounts:
         - name: tls
           mountPath: /etc/tls/rustfs

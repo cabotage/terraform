@@ -179,7 +179,7 @@ variable "vault_dev_auto_unseal" {
 variable "rustfs_image" {
   description = "Container image for RustFS"
   type        = string
-  default     = "rustfs/rustfs:1.0.0-alpha.82"
+  default     = "rustfs/rustfs:1.0.0-alpha.86"
 }
 
 variable "rustfs_replicas" {
