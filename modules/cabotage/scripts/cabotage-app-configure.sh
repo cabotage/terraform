@@ -23,21 +23,18 @@ if [ -z "$REDIS_PASSWORD" ]; then
 fi
 REDIS_URI="rediss://:${REDIS_PASSWORD}@cabotage.redis.svc.cluster.local:6379/0?ssl_ca_certs=/var/run/secrets/cabotage.io/ca.crt&ssl_cert_reqs=required"
 
-# --- Generate app secrets ---
-SECRET_KEY=$(openssl rand -base64 48)
-PASSWORD_SALT=$(openssl rand -base64 48)
-REGISTRY_AUTH_SECRET=$(openssl rand -base64 32)
+# --- Configure cabotage-app-secrets ---
+echo "Configuring cabotage-app-secrets..."
+ensure_secret "cabotage-app-secrets" "$NAMESPACE"
 
-# --- Create cabotage-app-secrets ---
-echo "Creating cabotage-app-secrets..."
-$KUBECTL create secret generic cabotage-app-secrets \
-  --namespace "$NAMESPACE" \
-  --from-literal=database-uri="$DB_URI" \
-  --from-literal=redis-uri="$REDIS_URI" \
-  --from-literal=secret-key="$SECRET_KEY" \
-  --from-literal=password-salt="$PASSWORD_SALT" \
-  --from-literal=registry-auth-secret="$REGISTRY_AUTH_SECRET" \
-  --dry-run=client -o yaml | $KUBECTL apply -f -
+# Generated once, never overwritten
+ensure_secret_key "cabotage-app-secrets" "$NAMESPACE" "secret-key"            "openssl rand -base64 48"
+ensure_secret_key "cabotage-app-secrets" "$NAMESPACE" "password-salt"         "openssl rand -base64 48"
+ensure_secret_key "cabotage-app-secrets" "$NAMESPACE" "registry-auth-secret"  "openssl rand -base64 32"
+
+# Derived from other services, always updated
+set_secret_key "cabotage-app-secrets" "$NAMESPACE" "database-uri" "$DB_URI"
+set_secret_key "cabotage-app-secrets" "$NAMESPACE" "redis-uri"    "$REDIS_URI"
 
 # --- Restart deployments to pick up secrets ---
 echo "Restarting cabotage-app deployments..."

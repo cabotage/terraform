@@ -4,13 +4,10 @@ set -e
 NAMESPACE="${NAMESPACE:-cabotage}"
 . "$(dirname "$0")/_lib.sh"
 
-# --- Create registry-secrets (http secret) ---
-echo "Creating registry-secrets..."
-HTTP_SECRET=$(openssl rand -base64 32)
-$KUBECTL create secret generic registry-secrets \
-  --namespace "$NAMESPACE" \
-  --from-literal=http-secret="$HTTP_SECRET" \
-  --dry-run=client -o yaml | $KUBECTL apply -f -
+# --- Configure registry-secrets ---
+echo "Configuring registry-secrets..."
+ensure_secret "registry-secrets" "$NAMESPACE"
+ensure_secret_key "registry-secrets" "$NAMESPACE" "http-secret" "openssl rand -base64 32"
 
 # --- Fetch signing cert from cabotage-app ---
 echo "Fetching Docker signing cert from cabotage-app..."
