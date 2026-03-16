@@ -65,3 +65,34 @@ kill_port() {
   lsof -ti :"$1" | xargs kill 2>/dev/null || true
   sleep 1
 }
+
+# ensure_secret <secret_name> <namespace>
+# Create the secret if it doesn't exist yet.
+ensure_secret() {
+  $KUBECTL get secret "$1" -n "$2" >/dev/null 2>&1 || \
+    $KUBECTL create secret generic "$1" --namespace "$2"
+}
+
+# ensure_secret_key <secret_name> <namespace> <key> <gen_cmd>
+# Generate a secret key only if it doesn't already exist.
+ensure_secret_key() {
+  _secret="$1"; _ns="$2"; _key="$3"; _gen_cmd="$4"
+  _existing=$($KUBECTL get secret "$_secret" -n "$_ns" -o jsonpath="{.data.${_key}}" 2>/dev/null || true)
+  if [ -n "$_existing" ]; then
+    echo "  $_key: preserved"
+  else
+    _value=$(eval "$_gen_cmd")
+    $KUBECTL patch secret "$_secret" -n "$_ns" \
+      -p "{\"data\":{\"${_key}\":\"$(printf '%s' "$_value" | base64)\"}}"
+    echo "  $_key: generated"
+  fi
+}
+
+# set_secret_key <secret_name> <namespace> <key> <value>
+# Always set a secret key to the given value.
+set_secret_key() {
+  _secret="$1"; _ns="$2"; _key="$3"; _value="$4"
+  $KUBECTL patch secret "$_secret" -n "$_ns" \
+    -p "{\"data\":{\"${_key}\":\"$(printf '%s' "$_value" | base64)\"}}"
+  echo "  $_key: updated"
+}
