@@ -24,7 +24,7 @@ data:
   CABOTAGE_REGISTRY_BUILD: registry.${ingress_domain}
   CABOTAGE_REGISTRY_PULL: registry.${ingress_domain}
   CABOTAGE_REGISTRY_SECURE: "True"
-  CABOTAGE_REGISTRY_VERIFY: "True"
+  CABOTAGE_REGISTRY_VERIFY: ${registry_verify}
   CABOTAGE_SHELLZ_ENABLED: "True"
   CABOTAGE_VAULT_LEASE_PATH: /var/run/secrets/vault
   CABOTAGE_VAULT_PREFIX: cabotage-secrets
