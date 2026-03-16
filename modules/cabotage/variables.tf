@@ -210,6 +210,12 @@ variable "redis_operator_chart_version" {
   default     = "0.19.0"
 }
 
+variable "security_confirmable" {
+  description = "Enable Flask-Security email confirmation (disable in minikube)"
+  type        = bool
+  default     = true
+}
+
 variable "registry_verify" {
   description = "TLS verification for registry: 'True' for system trust store, or a path to a CA cert file"
   type        = string
