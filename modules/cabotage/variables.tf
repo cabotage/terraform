@@ -210,6 +210,12 @@ variable "redis_operator_chart_version" {
   default     = "0.19.0"
 }
 
+variable "registry_verify" {
+  description = "TLS verification for registry: 'True' for system trust store, or a path to a CA cert file"
+  type        = string
+  default     = "True"
+}
+
 variable "registry_replicas" {
   description = "Number of registry replicas"
   type        = number

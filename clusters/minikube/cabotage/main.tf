@@ -62,5 +62,6 @@ module "cabotage" {
   traefik_load_balancer     = true
   cabotage_app_hostname     = "cabotage.ingress.cabotage.dev"
   cabotage_ingress_domain   = "ingress.cabotage.dev"
+  registry_verify           = "/var/run/secrets/cabotage.io/ca.crt"
   vault_dev_auto_unseal     = true
 }

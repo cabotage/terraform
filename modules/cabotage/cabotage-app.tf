@@ -7,8 +7,9 @@
 
 locals {
   cabotage_app_configmap = templatefile("${path.module}/manifests/cabotage-app/03-configmap.yml.tftpl", {
-    hostname       = var.cabotage_app_hostname
-    ingress_domain = var.cabotage_ingress_domain
+    hostname        = var.cabotage_app_hostname
+    ingress_domain  = var.cabotage_ingress_domain
+    registry_verify = var.registry_verify
   })
   cabotage_app_config_hash = sha256(local.cabotage_app_configmap)
 }
