@@ -39,6 +39,12 @@ variable "traefik_load_balancer" {
   default     = false
 }
 
+variable "traefik_host_network" {
+  description = "Run Traefik with hostNetwork to bind ports directly on the node (minikube only, NOT for production)"
+  type        = bool
+  default     = false
+}
+
 # --- cert-manager ---
 
 variable "cert_manager_chart_version" {
