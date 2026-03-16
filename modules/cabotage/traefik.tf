@@ -27,22 +27,22 @@ resource "helm_release" "traefik" {
     }
 
     ports = {
-      web = {
+      web = merge({
         forwardedHeaders = {
           trustedIPs = var.forwarded_headers_cidrs
         }
         proxyProtocol = {
           trustedIPs = var.proxy_protocol_cidrs
         }
-      }
-      websecure = {
+      }, var.traefik_host_network ? { port = 80 } : {})
+      websecure = merge({
         forwardedHeaders = {
           trustedIPs = var.forwarded_headers_cidrs
         }
         proxyProtocol = {
           trustedIPs = var.proxy_protocol_cidrs
         }
-      }
+      }, var.traefik_host_network ? { port = 443 } : {})
     }
 
     providers = {
@@ -87,7 +87,12 @@ resource "helm_release" "traefik" {
       "--serversTransport.rootCAs=/etc/traefik/certs/ca.crt"
     ]
 
-    service = var.traefik_aws_lb ? {
+    hostNetwork = var.traefik_host_network ? true : null
+
+    service = var.traefik_host_network ? {
+      type        = "ClusterIP"
+      annotations = {}
+    } : var.traefik_aws_lb ? {
       type = "LoadBalancer"
       annotations = {
         "service.beta.kubernetes.io/aws-load-balancer-proxy-protocol"              = "*"
