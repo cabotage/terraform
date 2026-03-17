@@ -33,6 +33,19 @@ output "vault_unseal_irsa_role_arn" {
   value       = var.enable_vault_auto_unseal ? module.vault_unseal_irsa[0].arn : ""
 }
 
+output "s3_storage" {
+  description = "S3 storage configuration for the cabotage module (null when disabled)"
+  value = var.enable_s3_storage ? {
+    region            = data.aws_region.current.id
+    registry_bucket   = aws_s3_bucket.storage["registry"].bucket
+    registry_role_arn = module.s3_irsa["registry"].arn
+    loki_bucket       = aws_s3_bucket.storage["loki"].bucket
+    loki_role_arn     = module.s3_irsa["loki"].arn
+    mimir_bucket      = aws_s3_bucket.storage["mimir"].bucket
+    mimir_role_arn    = module.s3_irsa["mimir"].arn
+  } : null
+}
+
 output "vpc_id" {
   description = "ID of the VPC"
   value       = module.vpc.vpc_id
