@@ -16,14 +16,20 @@ data:
       storage:
         backend: s3
         s3:
+%{ if use_s3 ~}
+          endpoint: s3.${s3_region}.amazonaws.com
+          bucket_name: ${s3_bucket}
+          region: ${s3_region}
+%{ else ~}
           endpoint: rustfs.cabotage.svc.cluster.local:9000
           bucket_name: resident-mimir
-          access_key_id: ${S3_ACCESS_KEY_ID}
-          secret_access_key: ${S3_SECRET_KEY}
+          access_key_id: $${S3_ACCESS_KEY_ID}
+          secret_access_key: $${S3_SECRET_KEY}
           insecure: false
           bucket_lookup_type: path
           http:
             tls_ca_path: /var/run/secrets/cabotage.io/ca.crt
+%{ endif ~}
     memberlist:
       join_members:
         - resident-mimir-memberlist.cabotage.svc.cluster.local:7946

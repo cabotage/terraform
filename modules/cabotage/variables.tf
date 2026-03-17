@@ -234,6 +234,60 @@ variable "registry_replicas" {
   default     = 1
 }
 
+# --- Object Storage ---
+
+variable "s3_storage" {
+  description = "S3 storage configuration (from cabotage-eks). When set, S3 is used instead of RustFS."
+  type = object({
+    region            = string
+    registry_bucket   = string
+    registry_role_arn = string
+    loki_bucket       = string
+    loki_role_arn     = string
+    mimir_bucket      = string
+    mimir_role_arn    = string
+  })
+  default = null
+}
+
+# --- Resident Monitoring ---
+
+variable "loki_backend_replicas" {
+  description = "Number of replicas for resident-loki-backend"
+  type        = number
+  default     = 1
+}
+
+variable "loki_read_replicas" {
+  description = "Number of replicas for resident-loki-read"
+  type        = number
+  default     = 1
+}
+
+variable "loki_write_replicas" {
+  description = "Number of replicas for resident-loki-write"
+  type        = number
+  default     = 1
+}
+
+variable "mimir_backend_replicas" {
+  description = "Number of replicas for resident-mimir-backend"
+  type        = number
+  default     = 1
+}
+
+variable "mimir_read_replicas" {
+  description = "Number of replicas for resident-mimir-read"
+  type        = number
+  default     = 1
+}
+
+variable "mimir_write_replicas" {
+  description = "Number of replicas for resident-mimir-write"
+  type        = number
+  default     = 1
+}
+
 variable "secrets_dir" {
   description = "Local directory to store bootstrap secrets (consul mgmt token, vault root token, unseal key)"
   type        = string
