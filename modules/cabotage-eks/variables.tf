@@ -128,6 +128,20 @@ variable "vault_namespace" {
   default     = "cabotage"
 }
 
+# --- S3 Storage ---
+
+variable "enable_s3_storage" {
+  description = "Create S3 buckets and IAM users for registry, loki, and mimir (alternative to RustFS)"
+  type        = bool
+  default     = false
+}
+
+variable "s3_bucket_prefix" {
+  description = "Prefix for S3 bucket names (e.g. 'myproject' creates myproject-registry, myproject-loki, myproject-mimir)"
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)
