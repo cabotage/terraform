@@ -8,6 +8,9 @@ locals {
   registry_configmap = templatefile("${path.module}/manifests/registry/01-configmap.yml.tftpl", {
     hostname       = var.cabotage_app_hostname
     ingress_domain = var.cabotage_ingress_domain
+    use_s3         = local.use_s3
+    s3_bucket      = local.use_s3 ? var.s3_storage.registry_bucket : ""
+    s3_region      = local.use_s3 ? var.s3_storage.region : ""
   })
   registry_config_hash = sha256(local.registry_configmap)
 }
@@ -15,7 +18,9 @@ locals {
 # --- RBAC ---
 
 resource "kubectl_manifest" "registry_serviceaccount" {
-  yaml_body = file("${path.module}/manifests/registry/00-serviceaccount.yml")
+  yaml_body = templatefile("${path.module}/manifests/registry/00-serviceaccount.yml.tftpl", {
+    role_arn = local.use_s3 ? var.s3_storage.registry_role_arn : ""
+  })
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
@@ -34,6 +39,7 @@ resource "kubectl_manifest" "registry_deployment" {
   yaml_body = templatefile("${path.module}/manifests/registry/02-deployment.yml.tftpl", {
     config_hash = local.registry_config_hash
     replicas    = var.registry_replicas
+    use_s3      = local.use_s3
   })
 
   wait_for_rollout = false
@@ -50,7 +56,9 @@ resource "kubectl_manifest" "registry_deployment" {
 # --- CronJob (Garbage Collection) ---
 
 resource "kubectl_manifest" "registry_cronjob" {
-  yaml_body = file("${path.module}/manifests/registry/02-cronjob.yml")
+  yaml_body = templatefile("${path.module}/manifests/registry/02-cronjob.yml.tftpl", {
+    use_s3 = local.use_s3
+  })
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }

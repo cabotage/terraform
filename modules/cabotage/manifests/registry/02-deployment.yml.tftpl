@@ -19,6 +19,15 @@ spec:
         ca-admission.cabotage.io: "true"
     spec:
       serviceAccountName: registry
+%{ if !use_s3 ~}
+      initContainers:
+        - name: ca-setup
+          image: busybox:1.37
+          command: ["sh", "-c", "cat /etc/ssl/certs/ca-certificates.crt /var/run/secrets/cabotage.io/ca.crt > /certs/ca-certificates.crt"]
+          volumeMounts:
+            - name: ca-bundle
+              mountPath: /certs
+%{ endif ~}
       containers:
         - name: ghostunnel
           image: ghostunnel/ghostunnel:v1.8.0
@@ -60,10 +69,11 @@ spec:
               cpu: "50m"
               memory: "32Mi"
         - name: registry
-          image: cabotage/registry:4
+          image: registry:3.0.0
           imagePullPolicy: Always
           args: ['/etc/docker/registry-local/config.yml']
           env:
+%{ if !use_s3 ~}
             - name: REGISTRY_STORAGE_S3_ACCESSKEY
               valueFrom:
                 secretKeyRef:
@@ -74,6 +84,9 @@ spec:
                 secretKeyRef:
                   name: rustfs-cabotage-registry
                   key: secret-key
+            - name: SSL_CERT_FILE
+              value: /certs/ca-certificates.crt
+%{ endif ~}
             - name: REGISTRY_HTTP_SECRET
               valueFrom:
                 secretKeyRef:
@@ -98,6 +111,11 @@ spec:
             - name: registry-signing-cert
               mountPath: /etc/docker/registry-signing
               readOnly: true
+%{ if !use_s3 ~}
+            - name: ca-bundle
+              mountPath: /certs
+              readOnly: true
+%{ endif ~}
           resources:
             limits:
               memory: "512Mi"
@@ -127,3 +145,7 @@ spec:
         - name: registry-signing-cert
           secret:
             secretName: registry-signing-cert
+%{ if !use_s3 ~}
+        - name: ca-bundle
+          emptyDir: {}
+%{ endif ~}

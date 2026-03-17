@@ -21,15 +21,20 @@ data:
           store: memberlist
       storage:
         s3:
+%{ if use_s3 ~}
+          bucketnames: ${s3_bucket}
+          region: ${s3_region}
+%{ else ~}
           endpoint: rustfs.cabotage.svc.cluster.local:9000
           bucketnames: resident-loki
-          access_key_id: ${S3_ACCESS_KEY_ID}
-          secret_access_key: ${S3_SECRET_KEY}
+          access_key_id: $${S3_ACCESS_KEY_ID}
+          secret_access_key: $${S3_SECRET_KEY}
           s3forcepathstyle: true
           region: us-east-2
           http_config:
             insecure_skip_verify: false
             ca_file: /var/run/secrets/cabotage.io/ca.crt
+%{ endif ~}
     memberlist:
       join_members:
         - resident-loki-memberlist.cabotage.svc.cluster.local:7946

@@ -21,11 +21,24 @@ if [ -z "$SIGNING_CERT" ]; then
   exit 1
 fi
 
+# --- Fetch signing JWKS from cabotage-app ---
+echo "Fetching Docker signing JWKS from cabotage-app..."
+SIGNING_JWKS=$(
+  retry 10 5 $KUBECTL -n "$NAMESPACE" exec statefulset/consul -c consul -- \
+    curl --silent --fail --cacert /var/run/secrets/cabotage.io/ca.crt \
+    https://cabotage-app.cabotage.svc.cluster.local/signing-jwks
+)
+if [ -z "$SIGNING_JWKS" ]; then
+  echo "Failed: signing JWKS is empty after retries"
+  exit 1
+fi
+
 # --- Create signing cert secret ---
 echo "Creating registry-signing-cert secret..."
 $KUBECTL create secret generic registry-signing-cert \
   --namespace "$NAMESPACE" \
   --from-literal=public_key_bundle="$SIGNING_CERT" \
+  --from-literal=jwks.json="$SIGNING_JWKS" \
   --dry-run=client -o yaml | $KUBECTL apply -f -
 
 # --- Restart registry ---
