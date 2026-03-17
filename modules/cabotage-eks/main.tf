@@ -68,7 +68,9 @@ module "eks" {
   }
 
   eks_managed_node_groups = {
-    for name, config in var.node_groups : name => merge(config, {
+    for name, config in var.node_groups : name => merge({
+      disk_size = var.node_group_disk_size
+    }, config, {
       cloudinit_pre_nodeadm = length(var.ingress_hairpin_domains) > 0 ? [
         {
           content_type = "text/x-shellscript"

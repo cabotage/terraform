@@ -72,6 +72,12 @@ variable "node_groups" {
   }
 }
 
+variable "node_group_disk_size" {
+  description = "Root EBS volume size in GiB for EKS managed node groups"
+  type        = number
+  default     = 20
+}
+
 variable "gp3_as_default_storage_class" {
   description = "Set the gp3 StorageClass as the cluster default"
   type        = bool
