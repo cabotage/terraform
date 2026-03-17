@@ -2,5 +2,5 @@
 *.tfstate
 *.tfstate.backup
 .secrets/
-ca.crt
-ca.srl
+ca.default.crt
+ca.default.srl
