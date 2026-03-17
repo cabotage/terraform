@@ -50,7 +50,7 @@ module "eks" {
   endpoint_public_access  = var.cluster_endpoint_public_access
   endpoint_private_access = true
 
-  cluster_enabled_log_types               = var.cluster_enabled_log_types
+  enabled_log_types                       = var.enabled_log_types
   cloudwatch_log_group_retention_in_days  = var.cloudwatch_log_group_retention_in_days
   enable_cluster_creator_admin_permissions = var.enable_cluster_creator_admin_permissions
   access_entries                          = var.access_entries
