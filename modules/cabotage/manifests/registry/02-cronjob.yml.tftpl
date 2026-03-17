@@ -17,17 +17,21 @@ spec:
             ca-admission.cabotage.io: "true"
         spec:
           serviceAccountName: registry
-          # Unfortunately we need root to alter ca certificates
-          #securityContext:
-          #  runAsNonRoot: true
-          #  runAsUser: 20004
-          #  runAsGroup: 20004
-          #  fsGroup: 20004
+%{ if !use_s3 ~}
+          initContainers:
+            - name: ca-setup
+              image: busybox:1.37
+              command: ["sh", "-c", "cp /var/run/secrets/cabotage.io/ca.crt /certs/ca-certificates.crt"]
+              volumeMounts:
+                - name: ca-bundle
+                  mountPath: /certs
+%{ endif ~}
           containers:
             - name: registry-garbage-collection
-              image: cabotage/registry:4
+              image: registry:3.0.0
               imagePullPolicy: Always
               args: ['garbage-collect', '/etc/docker/registry-local/config.yml', '--delete-untagged=true']
+%{ if !use_s3 ~}
               env:
                 - name: REGISTRY_STORAGE_S3_ACCESSKEY
                   valueFrom:
@@ -39,9 +43,17 @@ spec:
                     secretKeyRef:
                       name: rustfs-cabotage-registry
                       key: secret-key
+                - name: SSL_CERT_FILE
+                  value: /certs/ca-certificates.crt
+%{ endif ~}
               volumeMounts:
                 - name: registry-config
                   mountPath: /etc/docker/registry-local
+%{ if !use_s3 ~}
+                - name: ca-bundle
+                  mountPath: /certs
+                  readOnly: true
+%{ endif ~}
               resources:
                 limits:
                   memory: "512Mi"
@@ -55,3 +67,7 @@ spec:
             - name: registry-config
               configMap:
                 name: registry-config
+%{ if !use_s3 ~}
+            - name: ca-bundle
+              emptyDir: {}
+%{ endif ~}
