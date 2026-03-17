@@ -8,7 +8,7 @@ metadata:
     component: read
 spec:
   serviceName: resident-loki-read
-  replicas: 1
+  replicas: ${replicas}
   podManagementPolicy: Parallel
   updateStrategy:
     type: RollingUpdate
@@ -51,6 +51,7 @@ spec:
           readOnlyRootFilesystem: true
           capabilities:
             drop: ["ALL"]
+%{ if !use_s3 ~}
         env:
         - name: S3_ACCESS_KEY_ID
           valueFrom:
@@ -62,6 +63,7 @@ spec:
             secretKeyRef:
               name: rustfs-resident-loki
               key: secret-key
+%{ endif ~}
         ports:
         - containerPort: 3100
           name: https
