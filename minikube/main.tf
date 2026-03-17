@@ -59,6 +59,7 @@ module "cabotage" {
   forwarded_headers_cidrs   = ["10.96.0.0/12", "10.244.0.0/16"]
   proxy_protocol_cidrs      = ["10.96.0.0/12", "10.244.0.0/16"]
   traefik_replicas          = 1
+  traefik_aws_lb            = false
   traefik_host_network      = true
   cabotage_app_hostname     = "cabotage.ingress.cabotage.dev"
   cabotage_ingress_domain   = "ingress.cabotage.dev"

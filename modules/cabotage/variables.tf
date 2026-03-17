@@ -30,7 +30,7 @@ variable "traefik_replicas" {
 variable "traefik_aws_lb" {
   description = "Enable AWS NLB annotations and LoadBalancer service type for Traefik"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "traefik_load_balancer" {
