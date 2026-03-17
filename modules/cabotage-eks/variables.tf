@@ -148,6 +148,30 @@ variable "s3_bucket_prefix" {
   default     = ""
 }
 
+variable "cluster_enabled_log_types" {
+  description = "List of EKS control plane log types to enable. Valid values: api, audit, authenticator, controllerManager, scheduler."
+  type        = list(string)
+  default     = []
+}
+
+variable "cloudwatch_log_group_retention_in_days" {
+  description = "Number of days to retain EKS control plane log events."
+  type        = number
+  default     = 90
+}
+
+variable "enable_cluster_creator_admin_permissions" {
+  description = "Grant the current caller admin access to the EKS cluster. Disable this to manage access entries explicitly via the access_entries variable."
+  type        = bool
+  default     = true
+}
+
+variable "access_entries" {
+  description = "Map of access entries to add to the EKS cluster."
+  type        = any
+  default     = {}
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)
