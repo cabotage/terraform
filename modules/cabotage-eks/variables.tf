@@ -148,6 +148,12 @@ variable "s3_bucket_prefix" {
   default     = ""
 }
 
+variable "kms_key_administrators" {
+  description = "A list of IAM ARNs for KMS key administrators. If not set, the current caller identity is used."
+  type        = list(string)
+  default     = []
+}
+
 variable "enabled_log_types" {
   description = "List of EKS control plane log types to enable. Valid values: api, audit, authenticator, controllerManager, scheduler."
   type        = list(string)
