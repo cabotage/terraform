@@ -2,10 +2,14 @@
 #
 # Replaces MinIO. Manifests live in manifests/rustfs/.
 # Only the StatefulSet is templated (for replicas and image).
+#
+# Skipped entirely when var.s3_storage is set (AWS S3 used instead).
 
 # --- Admin Credentials ---
 
 resource "null_resource" "rustfs_admin_secret" {
+  count = local.use_s3 ? 0 : 1
+
   provisioner "local-exec" {
     environment = {
       KUBE_CONTEXT = var.kube_context
@@ -19,18 +23,24 @@ resource "null_resource" "rustfs_admin_secret" {
 # --- Manifests ---
 
 resource "kubectl_manifest" "rustfs_serviceaccount" {
+  count = local.use_s3 ? 0 : 1
+
   yaml_body = file("${path.module}/manifests/rustfs/00-serviceaccount.yml")
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "rustfs_service_headless" {
+  count = local.use_s3 ? 0 : 1
+
   yaml_body = file("${path.module}/manifests/rustfs/01-service-headless.yml")
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "rustfs_statefulset" {
+  count = local.use_s3 ? 0 : 1
+
   yaml_body = templatefile("${path.module}/manifests/rustfs/01-statefulset.yml.tftpl", {
     replicas            = var.rustfs_replicas
     rustfs_image        = var.rustfs_image
@@ -52,6 +62,8 @@ resource "kubectl_manifest" "rustfs_statefulset" {
 }
 
 resource "kubectl_manifest" "rustfs_console_service_headless" {
+  count = local.use_s3 ? 0 : 1
+
   yaml_body = file("${path.module}/manifests/rustfs/02-console-service-headless.yml")
 
   depends_on = [kubernetes_namespace_v1.cabotage]
@@ -60,8 +72,10 @@ resource "kubectl_manifest" "rustfs_console_service_headless" {
 # --- Bucket Creation ---
 
 resource "null_resource" "rustfs_create_buckets" {
+  count = local.use_s3 ? 0 : 1
+
   triggers = {
-    statefulset_id = kubectl_manifest.rustfs_statefulset.id
+    statefulset_id = kubectl_manifest.rustfs_statefulset[0].id
   }
 
   provisioner "local-exec" {
