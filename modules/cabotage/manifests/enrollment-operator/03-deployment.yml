@@ -40,7 +40,7 @@ spec:
             - name: vault-token
               mountPath: /var/run/secrets/vault
         - name: enrollment-operator
-          image: cabotage/enrollment-operator:4.2
+          image: cabotage/enrollment-operator:4.3a1
           args:
             - "--verbose"
             - "--liveness"
