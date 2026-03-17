@@ -148,7 +148,7 @@ variable "s3_bucket_prefix" {
   default     = ""
 }
 
-variable "cluster_enabled_log_types" {
+variable "enabled_log_types" {
   description = "List of EKS control plane log types to enable. Valid values: api, audit, authenticator, controllerManager, scheduler."
   type        = list(string)
   default     = []
