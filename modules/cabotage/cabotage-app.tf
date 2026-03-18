@@ -41,6 +41,8 @@ locals {
     CABOTAGE_LOKI_URL                 = "https://resident-loki-read.cabotage.svc.cluster.local:3100"
     CABOTAGE_LOKI_VERIFY              = "/var/run/secrets/cabotage.io/ca.crt"
     CABOTAGE_SECURITY_CONFIRMABLE     = var.security_confirmable ? "True" : "False"
+    CABOTAGE_GITHUB_OAUTH_ONLY        = var.github_oauth_only ? "True" : "False"
+    CABOTAGE_GITHUB_OAUTH_ALLOWED_ORGS = var.github_oauth_allowed_orgs
     FLASK_APP                         = "cabotage.server.wsgi"
   }
   cabotage_app_config_hash = sha256(jsonencode(local.cabotage_app_config_data))
@@ -190,11 +192,23 @@ resource "null_resource" "cabotage_github_app_secret" {
       fi
       PRIVATE_KEY_B64=$(base64 < "${local.secrets_dir}/github-app-private-key.pem" | tr -d '\n')
       WEBHOOK_SECRET=$(cat "${local.secrets_dir}/github-webhook-secret" | tr -d '[:space:]')
+      CLIENT_ID_ARG=""
+      if [ -f "${local.secrets_dir}/github-app-client-id" ]; then
+        CLIENT_ID=$(cat "${local.secrets_dir}/github-app-client-id" | tr -d '[:space:]')
+        CLIENT_ID_ARG="--from-literal=client-id=$CLIENT_ID"
+      fi
+      CLIENT_SECRET_ARG=""
+      if [ -f "${local.secrets_dir}/github-app-client-secret" ]; then
+        CLIENT_SECRET=$(cat "${local.secrets_dir}/github-app-client-secret" | tr -d '[:space:]')
+        CLIENT_SECRET_ARG="--from-literal=client-secret=$CLIENT_SECRET"
+      fi
       kubectl --context ${var.kube_context} create secret generic cabotage-github-app \
         --namespace ${kubernetes_namespace_v1.cabotage.metadata[0].name} \
         --from-literal=app-id="${var.github_app_id}" \
         --from-literal=private-key="$PRIVATE_KEY_B64" \
         --from-literal=webhook-secret="$WEBHOOK_SECRET" \
+        $CLIENT_ID_ARG \
+        $CLIENT_SECRET_ARG \
         --dry-run=client -o yaml | kubectl --context ${var.kube_context} apply -f -
     EOT
   }
