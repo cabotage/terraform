@@ -3,6 +3,7 @@ MINIKUBE         := minikube -p $(PROFILE)
 MINIKUBE_CPUS    ?= 6
 MINIKUBE_MEMORY  ?= 16000
 SECRETS_DIR      ?= .secrets
+TF_WORKSPACE     ?= default
 MINIKUBE_IP      ?= $(shell $(MINIKUBE) ip 2>/dev/null || echo 192.168.49.2)
 RESOLVER_FILE    := /etc/resolver/minikube-cabotage
 MINIKUBE_CERT    := $(HOME)/.minikube/certs/$(PROFILE)-ca.pem
@@ -23,7 +24,7 @@ clean: destroy ## Remove everything (requires sudo)
 	@sudo rm -f $(RESOLVER_FILE)
 	@rm -f $(MINIKUBE_CERT)
 	@rm -rf $(SECRETS_DIR)
-	@rm -f ca.crt ca.srl
+	@rm -f ca.$(TF_WORKSPACE).crt ca.$(TF_WORKSPACE).srl
 	@rm -f terraform.tfstate terraform.tfstate.backup
 	@rm -rf .terraform .terraform.lock.hcl
 	@echo "Cleaned up."
@@ -80,20 +81,20 @@ verify-dns: ## Verify DNS and app connectivity
 
 # --- File targets ---
 
-$(SECRETS_DIR)/ca.key $(SECRETS_DIR)/ca.crt:
+$(SECRETS_DIR)/$(TF_WORKSPACE)/ca.key ca.$(TF_WORKSPACE).crt:
 	@echo "Generating root CA..."
-	@mkdir -p $(SECRETS_DIR)
-	openssl ecparam -genkey -name prime256v1 -noout -out $(SECRETS_DIR)/ca.key 2>/dev/null
+	@mkdir -p $(SECRETS_DIR)/$(TF_WORKSPACE)
+	openssl ecparam -genkey -name prime256v1 -noout -out $(SECRETS_DIR)/$(TF_WORKSPACE)/ca.key 2>/dev/null
 	openssl req -new -x509 \
-		-key $(SECRETS_DIR)/ca.key \
-		-out $(SECRETS_DIR)/ca.crt \
+		-key $(SECRETS_DIR)/$(TF_WORKSPACE)/ca.key \
+		-out ca.$(TF_WORKSPACE).crt \
 		-days 3650 \
 		-subj "/CN=$(PROFILE) Cabotage Root CA" \
 		-addext "basicConstraints=critical,CA:TRUE" \
 		-addext "keyUsage=critical,keyCertSign,cRLSign"
-	chmod 600 $(SECRETS_DIR)/ca.key
+	chmod 600 $(SECRETS_DIR)/$(TF_WORKSPACE)/ca.key
 
-$(MINIKUBE_CERT): $(SECRETS_DIR)/ca.crt
+$(MINIKUBE_CERT): ca.$(TF_WORKSPACE).crt
 	@mkdir -p $(HOME)/.minikube/certs
-	cp $(SECRETS_DIR)/ca.crt $(MINIKUBE_CERT)
+	cp ca.$(TF_WORKSPACE).crt $(MINIKUBE_CERT)
 	@echo "CA cert copied to $(MINIKUBE_CERT)"
