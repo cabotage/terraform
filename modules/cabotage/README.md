@@ -33,7 +33,7 @@ Designed to be used alongside [`cabotage-eks`](../cabotage-eks), which provision
 - **Cabotage app** — Web, worker, and worker-beat deployments. Bootstrap scripts configure Vault policies, Consul policies, and a transit backend. Post-deploy configuration patches in database/Redis/S3 connection details and runs migrations.
 - **Enrollment operator** — Kopf-based operator that manages `CabotageEnrollment` custom resources for service identity provisioning (Vault/Consul credentials).
 - **Container registry** — Distribution-based registry with RustFS backend storage, garbage collection CronJob, and signing certificate integration with the Cabotage app.
-- **GitHub App integration** (optional) — Configures a GitHub App secret for webhook-driven builds when `github_app_id` is set.
+- **GitHub App integration** (optional) — Configures a GitHub App secret for webhook-driven builds when `github_app_id` is set. Supports OAuth login via `github_oauth_only` and `github_oauth_allowed_orgs`, with client credentials read from the secrets directory.
 
 ### Monitoring
 
@@ -64,6 +64,10 @@ module "cabotage" {
 
   # Optional: GitHub App for webhook builds
   github_app_id = "12345"
+
+  # Optional: GitHub OAuth login
+  github_oauth_only         = true
+  github_oauth_allowed_orgs = "cabotage"
 }
 ```
 
@@ -95,8 +99,9 @@ The module also uses the `kubernetes`, `helm`, `random`, and `null` providers (v
 | **Traefik** | | | |
 | `traefik_chart_version` | Helm chart version | `string` | `"39.0.5"` |
 | `traefik_replicas` | Number of replicas | `number` | `2` |
-| `traefik_aws_lb` | Enable AWS NLB annotations + LoadBalancer type | `bool` | `false` |
+| `traefik_aws_lb` | Enable AWS NLB annotations + LoadBalancer type | `bool` | `true` |
 | `traefik_load_balancer` | Use LoadBalancer type without AWS annotations | `bool` | `false` |
+| `traefik_host_network` | Bind ports directly on the node (minikube only) | `bool` | `false` |
 | **cert-manager** | | | |
 | `cert_manager_chart_version` | Helm chart version | `string` | `"v1.12.15"` |
 | `cert_manager_csi_driver_chart_version` | CSI driver chart version | `string` | `"v0.10.2"` |
@@ -109,6 +114,9 @@ The module also uses the `kubernetes`, `helm`, `random`, and `null` providers (v
 | `cabotage_app_image` | Container image | `string` | `"ghcr.io/cabotage/cabotage-app:latest"` |
 | `cabotage_ingress_domain` | Domain for cabotage-managed app ingress | `string` | `"cabotage.app"` |
 | `github_app_id` | GitHub App ID (empty to skip) | `string` | `""` |
+| `github_oauth_only` | Restrict login to GitHub OAuth only | `bool` | `false` |
+| `github_oauth_allowed_orgs` | Comma-separated GitHub orgs allowed to login via OAuth | `string` | `""` |
+| `security_confirmable` | Enable Flask-Security email confirmation | `bool` | `true` |
 | **Consul** | | | |
 | `consul_image` | Container image | `string` | `"hashicorp/consul:1.20.2"` |
 | `consul_replicas` | Server replicas | `number` | `3` |
@@ -123,7 +131,7 @@ The module also uses the `kubernetes`, `helm`, `random`, and `null` providers (v
 | `vault_auto_unseal_region` | AWS region for KMS key | `string` | `"us-east-1"` |
 | `vault_dev_auto_unseal` | Dev-only: store unseal key in K8s secret + sidecar | `bool` | `false` |
 | **RustFS** | | | |
-| `rustfs_image` | Container image | `string` | `"rustfs/rustfs:1.0.0-alpha.82"` |
+| `rustfs_image` | Container image | `string` | `"rustfs/rustfs:1.0.0-alpha.86"` |
 | `rustfs_replicas` | Number of replicas | `number` | `4` |
 | `rustfs_storage_size` | PVC size per data volume | `string` | `"1Gi"` |
 | `rustfs_log_size` | PVC size for log volume | `string` | `"256Mi"` |
@@ -134,6 +142,15 @@ The module also uses the `kubernetes`, `helm`, `random`, and `null` providers (v
 | **Registry** | | | |
 | `registry_verify` | TLS verification: `"True"` for system trust, or path to CA cert | `string` | `"True"` |
 | `registry_replicas` | Number of replicas | `number` | `1` |
+| **Object storage** | | | |
+| `s3_storage` | S3 config (from cabotage-eks); when set, S3 replaces RustFS | `object` | `null` |
+| **Monitoring** | | | |
+| `loki_backend_replicas` | Loki backend replicas | `number` | `1` |
+| `loki_read_replicas` | Loki read replicas | `number` | `1` |
+| `loki_write_replicas` | Loki write replicas | `number` | `1` |
+| `mimir_backend_replicas` | Mimir backend replicas | `number` | `1` |
+| `mimir_read_replicas` | Mimir read replicas | `number` | `1` |
+| `mimir_write_replicas` | Mimir write replicas | `number` | `1` |
 | **Other** | | | |
 | `secrets_dir` | Local directory for bootstrap secrets | `string` | `".secrets"` |
 | `ca_cert_file` | Path to root CA certificate | `string` | `"ca.crt"` |
@@ -169,5 +186,7 @@ Bootstrap scripts store sensitive material in `secrets_dir` (default `.secrets/`
 | `vault-recovery-key` | Vault recovery key (KMS auto-unseal) |
 | `github-app-private-key.pem` | GitHub App private key (user-provided) |
 | `github-webhook-secret` | GitHub webhook secret (user-provided) |
+| `github-app-client-id` | GitHub App OAuth client ID (user-provided, optional) |
+| `github-app-client-secret` | GitHub App OAuth client secret (user-provided, optional) |
 
 The root CA private key is also stored locally and never enters Kubernetes or Terraform state. For production, use Shamir key shares with PGP encryption for Vault unseal keys.
