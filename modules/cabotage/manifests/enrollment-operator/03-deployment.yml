@@ -20,10 +20,11 @@ spec:
     spec:
       serviceAccountName: enrollment-operator
       initContainers:
-        - name: cabotage-enroller
-          image: cabotage/sidecar:4
+        - name: cabotage-sidecar
+          image: cabotage/sidecar:4.1
+          restartPolicy: Always
           args:
-            - "kube-login"
+            - "kube-login-and-maintain"
             - "--fetch-consul-token"
             - "--vault-consul-role=cabotage-enrollment-operator"
             - "--vault-ca-file=/var/run/secrets/cabotage.io/ca.crt"
@@ -32,13 +33,6 @@ spec:
             - name: vault-token
               mountPath: /var/run/secrets/vault
       containers:
-        - name: cabotage-sidecar
-          image: cabotage/sidecar:4
-          args:
-            - "maintain"
-          volumeMounts:
-            - name: vault-token
-              mountPath: /var/run/secrets/vault
         - name: enrollment-operator
           image: cabotage/enrollment-operator:4.4.1
           args:

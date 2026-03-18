@@ -23,9 +23,10 @@ spec:
     spec:
       serviceAccountName: cabotage-app
       initContainers:
-        - name: cabotage-enroller
-          image: cabotage/sidecar:4
-          imagePullPolicy: Always
+        - name: cabotage-sidecar
+          image: cabotage/sidecar:4.1
+          imagePullPolicy: IfNotPresent
+          restartPolicy: Always
           env:
             - name: NAMESPACE
               valueFrom:
@@ -40,7 +41,7 @@ spec:
                 fieldRef:
                   fieldPath: status.podIP
           args:
-            - "kube-login"
+            - "kube-login-and-maintain"
             - "--namespace=$(NAMESPACE)"
             - "--vault-auth-kubernetes-role=cabotage-cabotage-app"
             - "--fetch-consul-token"
@@ -55,22 +56,9 @@ spec:
             - name: vault-secrets
               mountPath: /var/run/secrets/vault
       containers:
-        - name: cabotage-sidecar
-          image: cabotage/sidecar:4
-          imagePullPolicy: Always
-          env:
-            - name: NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-          args:
-            - "maintain"
-          volumeMounts:
-            - name: vault-secrets
-              mountPath: /var/run/secrets/vault
         - name: cabotage-sidecar-tls
-          image: cabotage/sidecar:4
-          imagePullPolicy: Always
+          image: cabotage/sidecar:4.1
+          imagePullPolicy: IfNotPresent
           command: ["/usr/bin/ghostunnel"]
           args:
             - "server"
@@ -104,7 +92,7 @@ spec:
             initialDelaySeconds: 5
         - name: cabotage-app
           image: ${image}
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           command: ["gunicorn"]
           args:
             - "-c"
