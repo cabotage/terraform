@@ -104,6 +104,18 @@ variable "github_app_id" {
   default     = ""
 }
 
+variable "github_oauth_only" {
+  description = "Restrict login to GitHub OAuth only"
+  type        = bool
+  default     = false
+}
+
+variable "github_oauth_allowed_orgs" {
+  description = "Comma-separated list of GitHub orgs allowed to login via OAuth"
+  type        = string
+  default     = ""
+}
+
 variable "cabotage_ingress_domain" {
   description = "Domain used for ingress of cabotage-managed applications"
   type        = string

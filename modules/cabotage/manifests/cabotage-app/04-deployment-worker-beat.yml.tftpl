@@ -130,6 +130,18 @@ spec:
                   name: cabotage-github-app
                   key: webhook-secret
                   optional: true
+            - name: CABOTAGE_GITHUB_APP_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cabotage-github-app
+                  key: client-id
+                  optional: true
+            - name: CABOTAGE_GITHUB_APP_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cabotage-github-app
+                  key: client-secret
+                  optional: true
           volumeMounts:
             - name: vault-secrets
               mountPath: /var/run/secrets/vault
