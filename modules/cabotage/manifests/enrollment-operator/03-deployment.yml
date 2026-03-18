@@ -34,7 +34,7 @@ spec:
               mountPath: /var/run/secrets/vault
       containers:
         - name: enrollment-operator
-          image: cabotage/enrollment-operator:4.4.3
+          image: cabotage/enrollment-operator:4.4.4
           args:
             - "--verbose"
             - "--liveness"
