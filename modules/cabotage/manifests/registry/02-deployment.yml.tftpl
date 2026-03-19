@@ -42,6 +42,8 @@ spec:
             - "--disable-authentication"
             - "--target=127.0.0.1:4999"
             - "--listen=0.0.0.0:5000"
+            - "--quiet=handshake-errs"
+            - "--quiet=conns"
           volumeMounts:
             - name: tls
               mountPath: /etc/tls
