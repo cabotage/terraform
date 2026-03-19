@@ -64,6 +64,7 @@ data:
       targets      = discovery.relabel.cadvisor.output
       scheme       = "https"
       scrape_interval = "10s"
+      track_timestamps_staleness = true
 
       bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
