@@ -70,6 +70,8 @@ spec:
             - "--disable-authentication"
             - "--target=unix:///var/run/cabotage/cabotage.sock"
             - "--listen=0.0.0.0:8443"
+            - "--quiet=handshake-errs"
+            - "--quiet=conns"
           volumeMounts:
             - name: vault-secrets
               mountPath: /var/run/secrets/vault
