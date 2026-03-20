@@ -40,10 +40,16 @@ locals {
     CABOTAGE_MIMIR_VERIFY             = "/var/run/secrets/cabotage.io/ca.crt"
     CABOTAGE_LOKI_URL                 = "https://resident-loki-read.cabotage.svc.cluster.local:3100"
     CABOTAGE_LOKI_VERIFY              = "/var/run/secrets/cabotage.io/ca.crt"
-    CABOTAGE_SECURITY_CONFIRMABLE     = var.security_confirmable ? "True" : "False"
-    CABOTAGE_GITHUB_OAUTH_ONLY        = var.github_oauth_only ? "True" : "False"
-    CABOTAGE_GITHUB_OAUTH_ALLOWED_ORGS = var.github_oauth_allowed_orgs
-    FLASK_APP                         = "cabotage.server.wsgi"
+    CABOTAGE_SECURITY_CONFIRMABLE                  = var.security_confirmable ? "True" : "False"
+    CABOTAGE_REQUIRE_MFA                           = var.require_mfa ? "True" : "False"
+    CABOTAGE_SECURITY_TWO_FACTOR_ALWAYS_VALIDATE   = var.security_two_factor_always_validate ? "True" : "False"
+    CABOTAGE_SECURITY_TWO_FACTOR_LOGIN_VALIDITY    = var.security_two_factor_login_validity
+    CABOTAGE_SECURITY_MULTI_FACTOR_RECOVERY_CODES_N = tostring(var.security_multi_factor_recovery_codes_n)
+    CABOTAGE_SECURITY_TOTP_ISSUER                  = var.security_totp_issuer
+    CABOTAGE_PROXY_FIX_NUM_PROXIES                 = tostring(var.proxy_fix_num_proxies)
+    CABOTAGE_GITHUB_OAUTH_ONLY                     = var.github_oauth_only ? "True" : "False"
+    CABOTAGE_GITHUB_OAUTH_ALLOWED_ORGS             = var.github_oauth_allowed_orgs
+    FLASK_APP                                      = "cabotage.server.wsgi"
   }
   cabotage_app_config_hash = sha256(jsonencode(local.cabotage_app_config_data))
 }

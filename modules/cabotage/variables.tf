@@ -234,6 +234,44 @@ variable "security_confirmable" {
   default     = true
 }
 
+# --- MFA ---
+
+variable "require_mfa" {
+  description = "Require all users to configure MFA (set False for opt-in rollout)"
+  type        = bool
+  default     = true
+}
+
+variable "security_two_factor_always_validate" {
+  description = "Require 2FA on every login (disables trust cookies)"
+  type        = bool
+  default     = false
+}
+
+variable "security_two_factor_login_validity" {
+  description = "Trust cookie duration (e.g. '30 days')"
+  type        = string
+  default     = "30 days"
+}
+
+variable "security_multi_factor_recovery_codes_n" {
+  description = "Number of recovery codes to generate per user"
+  type        = number
+  default     = 10
+}
+
+variable "security_totp_issuer" {
+  description = "Issuer name shown in authenticator apps"
+  type        = string
+  default     = "cabotage"
+}
+
+variable "proxy_fix_num_proxies" {
+  description = "Number of reverse proxies in front of the app (for ProxyFix / IP tracking)"
+  type        = number
+  default     = 1
+}
+
 variable "registry_verify" {
   description = "TLS verification for registry: 'True' for system trust store, or a path to a CA cert file"
   type        = string

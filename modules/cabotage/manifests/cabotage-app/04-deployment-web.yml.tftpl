@@ -145,6 +145,11 @@ spec:
                 secretKeyRef:
                   name: cabotage-app-secrets
                   key: password-salt
+            - name: CABOTAGE_SECURITY_TOTP_SECRETS
+              valueFrom:
+                secretKeyRef:
+                  name: cabotage-app-secrets
+                  key: totp-secret
             - name: CABOTAGE_REGISTRY_AUTH_SECRET
               valueFrom:
                 secretKeyRef:
