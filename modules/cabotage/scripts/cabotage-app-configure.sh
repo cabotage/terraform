@@ -31,6 +31,16 @@ ensure_secret "cabotage-app-secrets" "$NAMESPACE"
 ensure_secret_key "cabotage-app-secrets" "$NAMESPACE" "secret-key"            "openssl rand -base64 48"
 ensure_secret_key "cabotage-app-secrets" "$NAMESPACE" "password-salt"         "openssl rand -base64 48"
 ensure_secret_key "cabotage-app-secrets" "$NAMESPACE" "registry-auth-secret"  "openssl rand -base64 32"
+# TOTP secret must be a JSON dict for Flask-Security (parsed by from_prefixed_env)
+_totp_existing=$($KUBECTL get secret cabotage-app-secrets -n "$NAMESPACE" -o jsonpath='{.data.totp-secret}' 2>/dev/null || true)
+if [ -n "$_totp_existing" ]; then
+  echo "  totp-secret: preserved"
+else
+  _raw=$(openssl rand -base64 32)
+  _totp_json="{\"1\": \"${_raw}\"}"
+  set_secret_key "cabotage-app-secrets" "$NAMESPACE" "totp-secret" "$_totp_json"
+  echo "  totp-secret: generated"
+fi
 
 # Derived from other services, always updated
 set_secret_key "cabotage-app-secrets" "$NAMESPACE" "database-uri" "$DB_URI"
