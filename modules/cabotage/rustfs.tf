@@ -38,6 +38,16 @@ resource "kubectl_manifest" "rustfs_service_headless" {
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
+locals {
+  rustfs_disks = var.rustfs_disks_per_replica
+  # Single replica + single disk = FS mode (no erasure coding)
+  rustfs_volumes_arg = (
+    var.rustfs_replicas == 1 && local.rustfs_disks == 1
+    ? "/mnt/rustfs0"
+    : "https://rustfs-{0...${var.rustfs_replicas - 1}}.rustfs.cabotage.svc.cluster.local:9000/mnt/rustfs{0...${local.rustfs_disks - 1}}"
+  )
+}
+
 resource "kubectl_manifest" "rustfs_statefulset" {
   count = local.use_s3 ? 0 : 1
 
@@ -46,6 +56,8 @@ resource "kubectl_manifest" "rustfs_statefulset" {
     rustfs_image        = var.rustfs_image
     rustfs_storage_size = var.rustfs_storage_size
     rustfs_log_size     = var.rustfs_log_size
+    disks_per_replica   = var.rustfs_disks_per_replica
+    rustfs_volumes_arg  = local.rustfs_volumes_arg
   })
 
   wait_for_rollout = false

@@ -45,7 +45,9 @@ resource "kubectl_manifest" "alloy_daemonset" {
     kubectl_manifest.alloy_clusterrolebinding,
     kubectl_manifest.alloy_configmap,
     kubectl_manifest.loki_statefulset_write,
+    kubectl_manifest.loki_statefulset_standalone,
     kubectl_manifest.mimir_statefulset_write,
+    kubectl_manifest.mimir_statefulset_standalone,
   ]
 }
 
@@ -80,6 +82,8 @@ resource "kubectl_manifest" "loki_configmap" {
 }
 
 resource "kubectl_manifest" "loki_statefulset_backend" {
+  count = var.loki_standalone ? 0 : 1
+
   yaml_body = templatefile("${path.module}/manifests/resident-monitoring/loki/02-statefulset-backend.yml", {
     replicas = var.loki_backend_replicas
     use_s3   = local.use_s3
@@ -97,6 +101,8 @@ resource "kubectl_manifest" "loki_statefulset_backend" {
 }
 
 resource "kubectl_manifest" "loki_statefulset_read" {
+  count = var.loki_standalone ? 0 : 1
+
   yaml_body = templatefile("${path.module}/manifests/resident-monitoring/loki/02-statefulset-read.yml", {
     replicas = var.loki_read_replicas
     use_s3   = local.use_s3
@@ -114,6 +120,8 @@ resource "kubectl_manifest" "loki_statefulset_read" {
 }
 
 resource "kubectl_manifest" "loki_statefulset_write" {
+  count = var.loki_standalone ? 0 : 1
+
   yaml_body = templatefile("${path.module}/manifests/resident-monitoring/loki/02-statefulset-write.yml", {
     replicas = var.loki_write_replicas
     use_s3   = local.use_s3
@@ -130,8 +138,28 @@ resource "kubectl_manifest" "loki_statefulset_write" {
   ]
 }
 
+resource "kubectl_manifest" "loki_statefulset_standalone" {
+  count = var.loki_standalone ? 1 : 0
+
+  yaml_body = templatefile("${path.module}/manifests/resident-monitoring/loki/02-statefulset-standalone.yml", {
+    use_s3 = local.use_s3
+  })
+
+  wait_for_rollout = false
+
+  depends_on = [
+    kubectl_manifest.loki_serviceaccount,
+    kubectl_manifest.loki_configmap,
+    kubectl_manifest.loki_certificate,
+    null_resource.ca_admission_webhook_ready,
+    null_resource.rustfs_create_buckets,
+  ]
+}
+
 resource "kubectl_manifest" "loki_service_backend" {
-  yaml_body = file("${path.module}/manifests/resident-monitoring/loki/03-service-backend.yml")
+  yaml_body = templatefile("${path.module}/manifests/resident-monitoring/loki/03-service-backend.yml.tftpl", {
+    component = var.loki_standalone ? "standalone" : "backend"
+  })
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
@@ -143,13 +171,17 @@ resource "kubectl_manifest" "loki_service_memberlist" {
 }
 
 resource "kubectl_manifest" "loki_service_read" {
-  yaml_body = file("${path.module}/manifests/resident-monitoring/loki/03-service-read.yml")
+  yaml_body = templatefile("${path.module}/manifests/resident-monitoring/loki/03-service-read.yml.tftpl", {
+    component = var.loki_standalone ? "standalone" : "read"
+  })
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "loki_service_write" {
-  yaml_body = file("${path.module}/manifests/resident-monitoring/loki/03-service-write.yml")
+  yaml_body = templatefile("${path.module}/manifests/resident-monitoring/loki/03-service-write.yml.tftpl", {
+    component = var.loki_standalone ? "standalone" : "write"
+  })
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
@@ -197,6 +229,8 @@ resource "kubectl_manifest" "mimir_configmap_rules" {
 }
 
 resource "kubectl_manifest" "mimir_statefulset_backend" {
+  count = var.mimir_standalone ? 0 : 1
+
   yaml_body = templatefile("${path.module}/manifests/resident-monitoring/mimir/02-statefulset-backend.yml", {
     replicas = var.mimir_backend_replicas
     use_s3   = local.use_s3
@@ -215,6 +249,8 @@ resource "kubectl_manifest" "mimir_statefulset_backend" {
 }
 
 resource "kubectl_manifest" "mimir_statefulset_read" {
+  count = var.mimir_standalone ? 0 : 1
+
   yaml_body = templatefile("${path.module}/manifests/resident-monitoring/mimir/02-statefulset-read.yml", {
     replicas = var.mimir_read_replicas
     use_s3   = local.use_s3
@@ -233,6 +269,8 @@ resource "kubectl_manifest" "mimir_statefulset_read" {
 }
 
 resource "kubectl_manifest" "mimir_statefulset_write" {
+  count = var.mimir_standalone ? 0 : 1
+
   yaml_body = templatefile("${path.module}/manifests/resident-monitoring/mimir/02-statefulset-write.yml", {
     replicas = var.mimir_write_replicas
     use_s3   = local.use_s3
@@ -250,8 +288,29 @@ resource "kubectl_manifest" "mimir_statefulset_write" {
   ]
 }
 
+resource "kubectl_manifest" "mimir_statefulset_standalone" {
+  count = var.mimir_standalone ? 1 : 0
+
+  yaml_body = templatefile("${path.module}/manifests/resident-monitoring/mimir/02-statefulset-standalone.yml", {
+    use_s3 = local.use_s3
+  })
+
+  wait_for_rollout = false
+
+  depends_on = [
+    kubectl_manifest.mimir_serviceaccount,
+    kubectl_manifest.mimir_configmap,
+    kubectl_manifest.mimir_configmap_rules,
+    kubectl_manifest.mimir_certificate,
+    null_resource.ca_admission_webhook_ready,
+    null_resource.rustfs_create_buckets,
+  ]
+}
+
 resource "kubectl_manifest" "mimir_service_backend" {
-  yaml_body = file("${path.module}/manifests/resident-monitoring/mimir/03-service-backend.yml")
+  yaml_body = templatefile("${path.module}/manifests/resident-monitoring/mimir/03-service-backend.yml.tftpl", {
+    component = var.mimir_standalone ? "standalone" : "backend"
+  })
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
@@ -263,13 +322,17 @@ resource "kubectl_manifest" "mimir_service_memberlist" {
 }
 
 resource "kubectl_manifest" "mimir_service_read" {
-  yaml_body = file("${path.module}/manifests/resident-monitoring/mimir/03-service-read.yml")
+  yaml_body = templatefile("${path.module}/manifests/resident-monitoring/mimir/03-service-read.yml.tftpl", {
+    component = var.mimir_standalone ? "standalone" : "read"
+  })
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
 resource "kubectl_manifest" "mimir_service_write" {
-  yaml_body = file("${path.module}/manifests/resident-monitoring/mimir/03-service-write.yml")
+  yaml_body = templatefile("${path.module}/manifests/resident-monitoring/mimir/03-service-write.yml.tftpl", {
+    component = var.mimir_standalone ? "standalone" : "write"
+  })
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }

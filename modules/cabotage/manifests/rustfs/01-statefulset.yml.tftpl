@@ -87,7 +87,7 @@ spec:
         - name: RUSTFS_ADDRESS
           value: ":9000"
         - name: RUSTFS_VOLUMES
-          value: "https://rustfs-{0...3}.rustfs.cabotage.svc.cluster.local:9000/mnt/rustfs{0...3}"
+          value: "${rustfs_volumes_arg}"
         - name: RUSTFS_CONSOLE_ENABLE
           value: "true"
         - name: RUSTFS_CONSOLE_ADDRESS
@@ -127,14 +127,10 @@ spec:
         - name: tls-csi
           mountPath: /etc/tls/rustfs-csi
           readOnly: true
-        - name: data-0
-          mountPath: /mnt/rustfs0
-        - name: data-1
-          mountPath: /mnt/rustfs1
-        - name: data-2
-          mountPath: /mnt/rustfs2
-        - name: data-3
-          mountPath: /mnt/rustfs3
+%{ for i in range(disks_per_replica) ~}
+        - name: data-${i}
+          mountPath: /mnt/rustfs${i}
+%{ endfor ~}
         - name: logs
           mountPath: /logs
       volumes:
@@ -166,35 +162,13 @@ spec:
       resources:
         requests:
           storage: ${rustfs_log_size}
+%{ for i in range(disks_per_replica) ~}
   - metadata:
-      name: data-0
+      name: data-${i}
     spec:
       accessModes:
         - ReadWriteOnce
       resources:
         requests:
           storage: ${rustfs_storage_size}
-  - metadata:
-      name: data-1
-    spec:
-      accessModes:
-        - ReadWriteOnce
-      resources:
-        requests:
-          storage: ${rustfs_storage_size}
-  - metadata:
-      name: data-2
-    spec:
-      accessModes:
-        - ReadWriteOnce
-      resources:
-        requests:
-          storage: ${rustfs_storage_size}
-  - metadata:
-      name: data-3
-    spec:
-      accessModes:
-        - ReadWriteOnce
-      resources:
-        requests:
-          storage: ${rustfs_storage_size}
+%{ endfor ~}

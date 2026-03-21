@@ -1,17 +1,17 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: resident-mimir-backend
+  name: resident-loki-backend
   namespace: cabotage
   labels:
-    app: resident-mimir
+    app: resident-loki
     component: backend
 spec:
   selector:
-    app: resident-mimir
-    component: backend
+    app: resident-loki
+    component: ${component}
   ports:
-  - port: 8080
+  - port: 3100
     targetPort: https
     name: https
   - port: 9095
