@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-tailscale-operator
+  namespace: tailscale
+spec:
+  podSelector:
+    matchLabels:
+      app: operator
+  policyTypes:
+    - Egress
+  egress:
+    # DNS resolution (kube-system CoreDNS)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Tailscale coordination server + K8s API server.
+    # Ports 443 and 8443: K8s API targetPort is 8443 on minikube/kubeadm,
+    # 443 on EKS. Both included for cross-environment compatibility.
+    # No cluster-internal except — VPC CNI does not correctly OR
+    # multiple egress rules, so a separate rule for the K8s API
+    # cannot override an except in this rule.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 443
+          protocol: TCP
+        - port: 8443
+          protocol: TCP

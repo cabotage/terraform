@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-loki
+  namespace: cabotage
+spec:
+  podSelector:
+    matchLabels:
+      app: resident-loki
+  ingress:
+    # Log write from alloy, log read from cabotage-app
+    - from:
+        - podSelector:
+            matchLabels:
+              app: resident-alloy
+        - podSelector:
+            matchLabels:
+              app: cabotage-app
+      ports:
+        - port: 3100
+          protocol: TCP
+    # Loki internal: gRPC + memberlist
+    - from:
+        - podSelector:
+            matchLabels:
+              app: resident-loki
+      ports:
+        - port: 9095
+          protocol: TCP
+        - port: 7946
+          protocol: TCP
