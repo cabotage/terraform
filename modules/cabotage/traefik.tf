@@ -53,10 +53,10 @@ resource "helm_release" "traefik" {
 
     metrics = {
       datadog = {
-        address               = "$(DD_AGENT_HOST):8125"
-        addEntryPointsLabels  = true
-        addRoutersLabels      = true
-        addServicesLabels     = true
+        address              = "$(DD_AGENT_HOST):8125"
+        addEntryPointsLabels = true
+        addRoutersLabels     = true
+        addServicesLabels    = true
       }
       prometheus = {
         addServicesLabels    = true
@@ -92,7 +92,7 @@ resource "helm_release" "traefik" {
     service = var.traefik_host_network ? {
       type        = "ClusterIP"
       annotations = {}
-    } : var.traefik_aws_lb ? {
+      } : var.traefik_aws_lb ? {
       type = "LoadBalancer"
       annotations = {
         "service.beta.kubernetes.io/aws-load-balancer-proxy-protocol"              = "*"
@@ -103,10 +103,10 @@ resource "helm_release" "traefik" {
         "service.beta.kubernetes.io/aws-load-balancer-connection-draining-enabled" = "true"
         "service.beta.kubernetes.io/aws-load-balancer-connection-draining-timeout" = "240"
       }
-    } : var.traefik_load_balancer ? {
+      } : var.traefik_load_balancer ? {
       type        = "LoadBalancer"
       annotations = {}
-    } : {
+      } : {
       type        = "NodePort"
       annotations = {}
     }

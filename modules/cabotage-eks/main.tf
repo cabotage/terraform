@@ -50,11 +50,11 @@ module "eks" {
   endpoint_public_access  = var.cluster_endpoint_public_access
   endpoint_private_access = true
 
-  kms_key_administrators                  = var.kms_key_administrators
-  enabled_log_types                       = var.enabled_log_types
-  cloudwatch_log_group_retention_in_days  = var.cloudwatch_log_group_retention_in_days
+  kms_key_administrators                   = var.kms_key_administrators
+  enabled_log_types                        = var.enabled_log_types
+  cloudwatch_log_group_retention_in_days   = var.cloudwatch_log_group_retention_in_days
   enable_cluster_creator_admin_permissions = var.enable_cluster_creator_admin_permissions
-  access_entries                          = var.access_entries
+  access_entries                           = var.access_entries
 
   addons = {
     coredns                = {}
@@ -74,7 +74,7 @@ module "eks" {
   eks_managed_node_groups = {
     for name, config in var.node_groups : name => merge({
       disk_size = var.node_group_disk_size
-    }, config, {
+      }, config, {
       cloudinit_pre_nodeadm = length(var.ingress_hairpin_domains) > 0 ? [
         {
           content_type = "text/x-shellscript"
@@ -152,7 +152,7 @@ module "ebs_csi_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts"
   version = "~> 6.0"
 
-  name = "${var.cluster_name}-ebs-csi"
+  name                  = "${var.cluster_name}-ebs-csi"
   attach_ebs_csi_policy = true
 
   oidc_providers = {
@@ -199,7 +199,7 @@ module "aws_lb_controller_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts"
   version = "~> 6.0"
 
-  name = "${var.cluster_name}-aws-lb-controller"
+  name                                   = "${var.cluster_name}-aws-lb-controller"
   attach_load_balancer_controller_policy = true
 
   oidc_providers = {

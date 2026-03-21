@@ -29,11 +29,11 @@ resource "null_resource" "consul_bootstrap" {
   provisioner "local-exec" {
     command = "sh ${path.module}/scripts/consul-bootstrap.sh"
     environment = {
-      SECRETS_DIR     = local.secrets_dir
-      NAMESPACE       = kubernetes_namespace_v1.cabotage.metadata[0].name
-      CONSUL_REPLICAS    = tostring(var.consul_replicas)
-      KUBE_CONTEXT       = var.kube_context
-      CONSUL_LOCAL_PORT  = tostring(var.consul_local_port)
+      SECRETS_DIR       = local.secrets_dir
+      NAMESPACE         = kubernetes_namespace_v1.cabotage.metadata[0].name
+      CONSUL_REPLICAS   = tostring(var.consul_replicas)
+      KUBE_CONTEXT      = var.kube_context
+      CONSUL_LOCAL_PORT = tostring(var.consul_local_port)
     }
   }
 
