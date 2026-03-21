@@ -29,7 +29,7 @@ spec:
           containers:
             - name: registry-garbage-collection
               image: registry:3.0.0
-              imagePullPolicy: Always
+              imagePullPolicy: IfNotPresent
               args: ['garbage-collect', '/etc/docker/registry-local/config.yml', '--delete-untagged=true']
 %{ if !use_s3 ~}
               env:
