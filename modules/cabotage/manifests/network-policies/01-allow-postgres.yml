@@ -1,0 +1,39 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-postgres
+  namespace: postgres
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: cabotage
+  ingress:
+    # cabotage-app (web, worker, worker-beat) connects to postgres
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cabotage
+          podSelector:
+            matchLabels:
+              app: cabotage-app
+      ports:
+        - port: 5432
+          protocol: TCP
+    # CNPG operator manages postgres pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudnative-pg
+      ports:
+        - port: 5432
+          protocol: TCP
+        - port: 8000
+          protocol: TCP
+    # Postgres replication between instances
+    - from:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: cabotage
+      ports:
+        - port: 5432
+          protocol: TCP
