@@ -99,7 +99,7 @@ spec:
         - name: RUST_LOG
           value: debug
         image: ${rustfs_image}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9000
         - containerPort: 9001

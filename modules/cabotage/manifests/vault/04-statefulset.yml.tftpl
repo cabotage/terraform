@@ -138,7 +138,7 @@ spec:
               mountPath: /consul/data
         - name: vault
           image: ${vault_image}
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           command: ["vault"]
           args:
           - "server"
