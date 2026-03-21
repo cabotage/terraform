@@ -60,7 +60,8 @@ start: $(MINIKUBE_CERT) ## Generate root CA and start minikube
 		--cpus $(MINIKUBE_CPUS) \
 		--memory $(MINIKUBE_MEMORY) \
 		--embed-certs \
-		--container-runtime containerd
+		--container-runtime containerd \
+		--cni calico
 
 addons: ## Enable required minikube addons
 	$(MINIKUBE) addons enable ingress-dns

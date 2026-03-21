@@ -32,7 +32,10 @@ resource "helm_release" "tailscale_operator" {
       hostname    = var.tailscale_operator_hostname
       defaultTags = ["tag:${var.tailscale_tag_prefix}-operator"]
     }
-    oauth = {
+    oauth = var.tailscale_oauth_client_secret != "" ? {
+      clientId     = var.tailscale_oauth_client_id
+      clientSecret = var.tailscale_oauth_client_secret
+    } : {
       clientId = var.tailscale_workload_identity_client_id
       audience = var.tailscale_workload_identity_audience
     }

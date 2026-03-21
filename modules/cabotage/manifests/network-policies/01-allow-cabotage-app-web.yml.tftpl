@@ -1,0 +1,50 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-cabotage-app-web
+  namespace: cabotage
+spec:
+  podSelector:
+    matchLabels:
+      app: cabotage-app
+      component: web
+  ingress:
+    # External traffic via traefik
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+%{ if traefik_host_network && node_cidr != "" ~}
+        # Traefik uses hostNetwork — traffic arrives from node IPs,
+        # not from a pod IP in the traefik namespace
+        - ipBlock:
+            cidr: ${node_cidr}
+%{ endif ~}
+      ports:
+        - port: 443
+          protocol: TCP
+        - port: 8443
+          protocol: TCP
+    # Tailscale Funnel — proxy pods forward traffic to the app
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: tailscale
+          podSelector:
+            matchLabels:
+              tailscale.com/managed: "true"
+      ports:
+        - port: 443
+          protocol: TCP
+        - port: 8443
+          protocol: TCP
+    # Internal access from consul (bootstrap scripts curl signing-cert endpoint)
+    - from:
+        - podSelector:
+            matchLabels:
+              app: consul
+      ports:
+        - port: 443
+          protocol: TCP
+        - port: 8443
+          protocol: TCP
