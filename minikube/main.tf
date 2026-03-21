@@ -58,6 +58,25 @@ module "cabotage" {
   enable_pebble_letsencrypt = true
   forwarded_headers_cidrs   = ["10.96.0.0/12", "10.244.0.0/16"]
   proxy_protocol_cidrs      = ["10.96.0.0/12", "10.244.0.0/16"]
+  # Lightweight single-node defaults. For a more production-like clustered
+  # setup on minikube (requires a multi-node cluster, e.g.
+  # `minikube start --nodes 3`), use:
+  #
+  #   rustfs_replicas          = 4
+  #   rustfs_disks_per_replica = 4   # erasure coding (16 PVCs total)
+  #   loki_standalone          = false  # separate read/write/backend StatefulSets
+  #   mimir_standalone         = false
+  #   consul_replicas          = 3   # raft quorum (requires anti-affinity zones)
+  #   consul_storage_size      = "10Gi"
+  #   vault_replicas           = 3
+  #
+  rustfs_replicas           = 1
+  rustfs_disks_per_replica  = 1    # FS mode — no erasure coding
+  loki_standalone           = true # single all-in-one process
+  mimir_standalone          = true
+  consul_replicas           = 1
+  consul_storage_size       = "1Gi"
+  vault_replicas            = 1
   traefik_replicas          = 1
   traefik_aws_lb            = false
   traefik_host_network      = true

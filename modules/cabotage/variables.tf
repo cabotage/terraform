@@ -200,6 +200,12 @@ variable "rustfs_replicas" {
   default     = 4
 }
 
+variable "rustfs_disks_per_replica" {
+  description = "Number of data disks per RustFS replica (1 for FS mode, 4+ for erasure coding)"
+  type        = number
+  default     = 4
+}
+
 variable "rustfs_storage_size" {
   description = "Storage size for each RustFS data volume"
   type        = string
@@ -336,6 +342,18 @@ variable "mimir_write_replicas" {
   description = "Number of replicas for resident-mimir-write"
   type        = number
   default     = 1
+}
+
+variable "loki_standalone" {
+  description = "Run Loki as a single all-in-one process instead of read/write/backend split"
+  type        = bool
+  default     = false
+}
+
+variable "mimir_standalone" {
+  description = "Run Mimir as a single all-in-one process instead of read/write/backend split"
+  type        = bool
+  default     = false
 }
 
 variable "secrets_dir" {
