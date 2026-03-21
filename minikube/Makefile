@@ -64,6 +64,8 @@ start: $(MINIKUBE_CERT) ## Generate root CA and start minikube
 
 addons: ## Enable required minikube addons
 	$(MINIKUBE) addons enable ingress-dns
+	$(MINIKUBE) addons enable metrics-server
+	$(MINIKUBE) addons enable registry
 
 dns: ## Configure macOS DNS resolver (requires sudo)
 	@echo "NOTE: sudo is required to write $(RESOLVER_FILE)"
