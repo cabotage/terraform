@@ -72,7 +72,7 @@ spec:
               memory: "32Mi"
         - name: registry
           image: registry:3.0.0
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           args: ['/etc/docker/registry-local/config.yml']
           env:
 %{ if !use_s3 ~}
