@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-cabotage-app-web
+  namespace: cabotage
+spec:
+  podSelector:
+    matchLabels:
+      app: cabotage-app
+      component: web
+  ingress:
+    # External traffic via traefik
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+%{ if traefik_host_network ~}
+        # Traefik uses hostNetwork — traffic arrives from node IPs,
+        # not from a pod IP in the traefik namespace
+        - ipBlock:
+            cidr: ${node_cidr}
+%{ endif ~}
+      ports:
+        - port: 8443
+          protocol: TCP
+    # Internal access from consul (bootstrap scripts curl signing-cert endpoint)
+    - from:
+        - podSelector:
+            matchLabels:
+              app: consul
+      ports:
+        - port: 8443
+          protocol: TCP

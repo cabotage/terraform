@@ -80,6 +80,7 @@ module "cabotage" {
   traefik_replicas          = 1
   traefik_aws_lb            = false
   traefik_host_network      = true
+  node_cidr                 = "192.168.0.0/16"
   cabotage_app_hostname     = "cabotage.ingress.cabotage.dev"
   cabotage_ingress_domain   = "ingress.cabotage.dev"
   registry_verify           = "/var/run/secrets/cabotage.io/ca.crt"

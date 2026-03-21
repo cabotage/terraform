@@ -1,0 +1,132 @@
+# Network policy template for cabotage tenant namespaces.
+#
+# These policies are applied by the cabotage-app worker when it provisions
+# a new tenant namespace. The namespace name is substituted at deploy time.
+#
+# Design principles:
+#   - Default-deny ingress: nothing reaches tenant pods unless explicitly allowed
+#   - Ingress from traefik on :8000 (ghostunnel TLS proxy port)
+#   - Intra-namespace: pods within the tenant can talk to each other
+#   - Egress to DNS: required for name resolution
+#   - Egress to Vault and Consul: tenant pods use envconsul to read secrets
+#     and config from cabotage infrastructure at runtime
+#   - Egress to internet: allowed (most apps need outbound HTTP)
+#   - All other cluster-internal egress blocked: tenants cannot reach postgres,
+#     redis, rustfs, or other infrastructure services
+#
+# Alloy (monitoring) does NOT need network access to tenant pods — it reads
+# logs from the node filesystem (/var/log/pods/) and scrapes metrics via
+# the kubelet cAdvisor proxy on the Kubernetes API.
+#
+# Pod labels set by cabotage-app on tenant pods:
+#   - app: <compact app identifier>
+#   - organization, project, application, process, environment, release, deployment
+#   - ca-admission.cabotage.io: "true"
+#   - resident-pod.cabotage.io: "true"
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: TENANT_NAMESPACE
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-from-traefik
+  namespace: TENANT_NAMESPACE
+spec:
+  podSelector: {}
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - port: 8000
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-intra-namespace
+  namespace: TENANT_NAMESPACE
+spec:
+  podSelector: {}
+  ingress:
+    - from:
+        - podSelector: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: restrict-egress
+  namespace: TENANT_NAMESPACE
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # DNS resolution (kube-system CoreDNS)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Vault — envconsul reads secrets at runtime
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cabotage
+          podSelector:
+            matchLabels:
+              app: vault
+      ports:
+        - port: 443
+          protocol: TCP
+        - port: 8200
+          protocol: TCP
+    # Consul — envconsul reads config at runtime
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cabotage
+          podSelector:
+            matchLabels:
+              app: consul
+      ports:
+        - port: 8443
+          protocol: TCP
+    # Intra-namespace (pods talking to each other)
+    - to:
+        - podSelector: {}
+    # Internet — block cluster-internal CIDRs, allow external.
+    # TCP: all ports allowed.
+    # UDP: only well-known protocols (no UDP 53 — prevents DNS exfil via
+    #   external resolvers; internal DNS is allowed above via kube-system rule).
+    # Additional UDP ports can be added as tenants request them.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+        - protocol: UDP
+          port: 123    # NTP
+        - protocol: UDP
+          port: 443    # QUIC / HTTP3
+        - protocol: UDP
+          port: 8443   # QUIC alt

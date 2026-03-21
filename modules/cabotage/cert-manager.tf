@@ -77,6 +77,40 @@ resource "kubectl_manifest" "letsencrypt_issuer" {
   depends_on = [helm_release.cert_manager]
 }
 
+# --- CoreDNS hardening: disable pod reverse DNS ---
+#
+# By default CoreDNS resolves reverse PTR records for all pod IPs, allowing
+# any pod to enumerate the entire cluster topology. This patches the Corefile
+# to remove in-addr.arpa/ip6.arpa from the kubernetes plugin and set pods to
+# disabled mode.
+
+resource "null_resource" "coredns_hardening" {
+  triggers = {
+    cluster_id = var.cluster_identifier
+  }
+
+  provisioner "local-exec" {
+    environment = {
+      KUBE_CONTEXT = var.kube_context
+    }
+    command = <<-EOT
+      set -e
+      kubectl --context $KUBE_CONTEXT get configmap coredns -n kube-system -o jsonpath='{.data.Corefile}' \
+        | sed \
+          -e 's/pods insecure/pods disabled/' \
+          -e 's/kubernetes cluster\.local in-addr\.arpa ip6\.arpa/kubernetes cluster.local/' \
+          -e '/fallthrough in-addr\.arpa ip6\.arpa/d' \
+        > /tmp/Corefile.hardened
+      kubectl --context $KUBE_CONTEXT create configmap coredns -n kube-system \
+        --from-file=Corefile=/tmp/Corefile.hardened --dry-run=client -o yaml \
+        | kubectl --context $KUBE_CONTEXT apply -f -
+      rm -f /tmp/Corefile.hardened
+      kubectl --context $KUBE_CONTEXT rollout restart -n kube-system deployment/coredns
+      kubectl --context $KUBE_CONTEXT rollout status -n kube-system deployment/coredns --timeout=60s
+    EOT
+  }
+}
+
 # --- CoreDNS patch for *.ingress.cabotage.dev resolution ---
 
 resource "null_resource" "coredns_ingress_patch" {
@@ -121,5 +155,8 @@ resource "null_resource" "coredns_ingress_patch" {
     EOT
   }
 
-  depends_on = [helm_release.traefik]
+  depends_on = [
+    helm_release.traefik,
+    null_resource.coredns_hardening,
+  ]
 }

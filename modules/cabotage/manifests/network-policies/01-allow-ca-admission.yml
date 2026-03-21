@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-ca-admission
+  namespace: cabotage
+spec:
+  podSelector:
+    matchLabels:
+      app: cabotage-ca-admission
+  ingress:
+    # Kubernetes API server calls the webhook from the host network.
+    # The API server source IP is not predictable, so this must allow
+    # all sources on the webhook port. The webhook authenticates via
+    # its TLS certificate.
+    - ports:
+        - port: 8443
+          protocol: TCP

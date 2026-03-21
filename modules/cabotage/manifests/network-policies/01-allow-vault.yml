@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-vault
+  namespace: cabotage
+spec:
+  podSelector:
+    matchLabels:
+      app: vault
+  ingress:
+    # Vault API — cabotage sidecars and tenant pods (envconsul) authenticate here
+    - from:
+        - podSelector: {}
+        - namespaceSelector:
+            matchLabels:
+              resident-namespace.cabotage.io: "true"
+      ports:
+        - port: 8200
+          protocol: TCP
+    # Vault cluster protocol — vault-to-vault only
+    - from:
+        - podSelector:
+            matchLabels:
+              app: vault
+      ports:
+        - port: 8201
+          protocol: TCP

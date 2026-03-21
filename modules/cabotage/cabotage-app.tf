@@ -50,6 +50,7 @@ locals {
     CABOTAGE_GITHUB_OAUTH_ONLY                      = var.github_oauth_only ? "True" : "False"
     CABOTAGE_GITHUB_OAUTH_ALLOWED_ORGS              = var.github_oauth_allowed_orgs
     FLASK_APP                                       = "cabotage.server.wsgi"
+    CABOTAGE_CLUSTER_INTERNAL_CIDRS                  = join(",", var.cluster_internal_cidrs)
   }
   cabotage_app_config_hash = sha256(jsonencode(local.cabotage_app_config_data))
 }

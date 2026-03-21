@@ -9,7 +9,7 @@ echo "Waiting for RustFS to be ready..."
 $KUBECTL rollout status statefulset/rustfs -n "$NAMESPACE" --timeout=300s
 
 # Clean up any leftover pods from previous runs
-$KUBECTL delete pod -n "$NAMESPACE" -l run=rustfs-rc --ignore-not-found > /dev/null 2>&1
+$KUBECTL delete pod -n "$NAMESPACE" -l app=rustfs-admin --ignore-not-found > /dev/null 2>&1
 
 # --- Helper: run rc command in-cluster with unique pod name ---
 run_rc() {
@@ -17,6 +17,9 @@ run_rc() {
   $KUBECTL run "$pod_name" -n "$NAMESPACE" --rm -i --restart=Never \
     --image=rustfs/rc:latest \
     --overrides='{
+      "metadata": {
+        "labels": {"app": "rustfs-admin"}
+      },
       "spec": {
         "containers": [{
           "name": "rc",
@@ -86,6 +89,9 @@ for service in resident-loki resident-mimir cabotage-registry; do
   $KUBECTL run "$pod_name" -n "$NAMESPACE" --rm -i --restart=Never \
     --image=rustfs/rc:latest \
     --overrides='{
+      "metadata": {
+        "labels": {"app": "rustfs-admin"}
+      },
       "spec": {
         "containers": [{
           "name": "rc",

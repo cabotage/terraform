@@ -1,0 +1,54 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-consul
+  namespace: cabotage
+spec:
+  podSelector:
+    matchLabels:
+      app: consul
+  ingress:
+    # Consul TLS API from cabotage-app, vault, enrollment-operator, and tenant pods (envconsul)
+    - from:
+        - podSelector:
+            matchLabels:
+              app: cabotage-app
+        - podSelector:
+            matchLabels:
+              app: vault
+        - podSelector:
+            matchLabels:
+              app: enrollment-operator
+        - namespaceSelector:
+            matchLabels:
+              resident-namespace.cabotage.io: "true"
+      ports:
+        - port: 8443
+          protocol: TCP
+    # Consul HTTP API from vault (sidecar uses localhost but traffic is pod-local)
+    - from:
+        - podSelector:
+            matchLabels:
+              app: vault
+      ports:
+        - port: 8500
+          protocol: TCP
+    # Consul gossip and server RPC — consul agents run in consul and vault pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app: consul
+        - podSelector:
+            matchLabels:
+              app: vault
+      ports:
+        - port: 8300
+          protocol: TCP
+        - port: 8301
+          protocol: TCP
+        - port: 8301
+          protocol: UDP
+        - port: 8302
+          protocol: TCP
+        - port: 8302
+          protocol: UDP

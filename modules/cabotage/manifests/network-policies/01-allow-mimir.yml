@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-mimir
+  namespace: cabotage
+spec:
+  podSelector:
+    matchLabels:
+      app: resident-mimir
+  ingress:
+    # Metrics write from alloy, metrics read from cabotage-app
+    - from:
+        - podSelector:
+            matchLabels:
+              app: resident-alloy
+        - podSelector:
+            matchLabels:
+              app: cabotage-app
+      ports:
+        - port: 8080
+          protocol: TCP
+    # Mimir internal: gRPC + memberlist
+    - from:
+        - podSelector:
+            matchLabels:
+              app: resident-mimir
+      ports:
+        - port: 9095
+          protocol: TCP
+        - port: 7946
+          protocol: TCP

@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-registry
+  namespace: cabotage
+spec:
+  podSelector:
+    matchLabels:
+      app: registry
+  ingress:
+    # External pull/push via traefik
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+%{ if traefik_host_network ~}
+        # Traefik uses hostNetwork — traffic arrives from node IPs
+        - ipBlock:
+            cidr: ${node_cidr}
+%{ endif ~}
+      ports:
+        - port: 5000
+          protocol: TCP

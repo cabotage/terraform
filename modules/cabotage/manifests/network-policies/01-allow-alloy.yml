@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-alloy
+  namespace: cabotage
+spec:
+  podSelector:
+    matchLabels:
+      app: resident-alloy
+  ingress:
+    # Health/metrics endpoint — only from alloy itself (self-scrape)
+    - from:
+        - podSelector:
+            matchLabels:
+              app: resident-alloy
+      ports:
+        - port: 12345
+          protocol: TCP

@@ -45,6 +45,24 @@ variable "traefik_host_network" {
   default     = false
 }
 
+variable "node_cidr" {
+  description = "CIDR for cluster nodes — used in network policies to allow hostNetwork traffic (e.g. traefik with hostNetwork)"
+  type        = string
+  default     = ""
+}
+
+variable "cluster_internal_cidrs" {
+  description = "CIDRs to block in tenant egress (pod, service, and node ranges). Tenants can reach the internet but not these ranges. Defaults to RFC1918 + CGNAT + link-local."
+  type        = list(string)
+  default = [
+    "10.0.0.0/8",
+    "100.64.0.0/10",
+    "169.254.0.0/16",
+    "172.16.0.0/12",
+    "192.168.0.0/16",
+  ]
+}
+
 # --- cert-manager ---
 
 variable "cert_manager_chart_version" {

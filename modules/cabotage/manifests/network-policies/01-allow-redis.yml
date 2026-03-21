@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-redis
+  namespace: redis
+spec:
+  podSelector:
+    matchLabels:
+      app: cabotage
+  ingress:
+    # cabotage-app (web, worker, worker-beat) connects to redis
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cabotage
+          podSelector:
+            matchLabels:
+              app: cabotage-app
+      ports:
+        - port: 6379
+          protocol: TCP
+    # Redis exporter scrape from alloy
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cabotage
+          podSelector:
+            matchLabels:
+              app: resident-alloy
+      ports:
+        - port: 9121
+          protocol: TCP
