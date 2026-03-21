@@ -308,6 +308,12 @@ variable "s3_storage" {
 
 # --- Resident Monitoring ---
 
+variable "enable_fargate_logging" {
+  description = "Deploy a dedicated Alloy instance to collect logs from Fargate pods (labeled fargate-pod.cabotage.io=true) via the Kubernetes API"
+  type        = bool
+  default     = false
+}
+
 variable "loki_backend_replicas" {
   description = "Number of replicas for resident-loki-backend"
   type        = number

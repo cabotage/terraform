@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resident-alloy-fargate
+  namespace: cabotage
+  labels:
+    app: resident-alloy-fargate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: resident-alloy-fargate
+  template:
+    metadata:
+      labels:
+        app: resident-alloy-fargate
+        ca-admission.cabotage.io: "true"
+    spec:
+      serviceAccountName: resident-alloy
+      containers:
+      - name: alloy
+        image: grafana/alloy:v1.6.1
+        args:
+        - run
+        - /etc/alloy/config.alloy
+        - --storage.path=/tmp/alloy
+        - --server.http.listen-addr=0.0.0.0:12345
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+        ports:
+        - containerPort: 12345
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - name: config
+          mountPath: /etc/alloy
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: config
+        configMap:
+          name: resident-alloy-fargate-config
+      - name: tmp
+        emptyDir:
+          medium: "Memory"
+          sizeLimit: "128Mi"

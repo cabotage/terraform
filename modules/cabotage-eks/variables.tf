@@ -78,6 +78,24 @@ variable "node_group_disk_size" {
   default     = 20
 }
 
+variable "enable_fargate" {
+  description = "Enable Fargate support: creates a pod execution role, IRSA role for cabotage to manage Fargate profiles, and a 'fargate' RuntimeClass"
+  type        = bool
+  default     = false
+}
+
+variable "cabotage_namespace" {
+  description = "Kubernetes namespace where the cabotage app runs (for IRSA binding)"
+  type        = string
+  default     = "cabotage"
+}
+
+variable "cabotage_service_account" {
+  description = "Service account name for the cabotage app (for IRSA binding)"
+  type        = string
+  default     = "cabotage-app"
+}
+
 variable "gp3_as_default_storage_class" {
   description = "Set the gp3 StorageClass as the cluster default"
   type        = bool

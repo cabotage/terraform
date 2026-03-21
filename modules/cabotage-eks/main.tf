@@ -286,6 +286,111 @@ resource "helm_release" "node_local_dns" {
   depends_on = [module.eks]
 }
 
+# --- Fargate ---
+
+data "aws_caller_identity" "current" {}
+
+resource "aws_iam_role" "fargate_pod_execution" {
+  count = var.enable_fargate ? 1 : 0
+
+  name = "${var.cluster_name}-fargate-pod-execution"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "eks-fargate-pods.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+        Condition = {
+          ArnLike = {
+            "aws:SourceArn" = "arn:aws:eks:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:fargateprofile/${var.cluster_name}/*"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "fargate_pod_execution" {
+  count = var.enable_fargate ? 1 : 0
+
+  role       = aws_iam_role.fargate_pod_execution[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy"
+}
+
+module "fargate_manager_irsa" {
+  count   = var.enable_fargate ? 1 : 0
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts"
+  version = "~> 6.0"
+
+  name = "${var.cluster_name}-fargate-manager"
+
+  oidc_providers = {
+    main = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["${var.cabotage_namespace}:${var.cabotage_service_account}"]
+    }
+  }
+
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy" "fargate_manager" {
+  count = var.enable_fargate ? 1 : 0
+
+  name = "fargate-profile-management"
+  role = module.fargate_manager_irsa[0].name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "eks:CreateFargateProfile",
+          "eks:DeleteFargateProfile",
+          "eks:DescribeFargateProfile",
+          "eks:ListFargateProfiles",
+        ]
+        Resource = "arn:aws:eks:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:fargateprofile/${var.cluster_name}/*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = "iam:PassRole"
+        Resource = aws_iam_role.fargate_pod_execution[0].arn
+        Condition = {
+          StringEquals = {
+            "iam:PassedToService" = "eks-fargate-pods.amazonaws.com"
+          }
+        }
+      },
+    ]
+  })
+}
+
+resource "kubernetes_runtime_class_v1" "fargate" {
+  count = var.enable_fargate ? 1 : 0
+
+  metadata {
+    name = "fargate"
+  }
+
+  handler = "fargate"
+
+  overhead {
+    pod_fixed = {
+      memory = "256Mi"
+    }
+  }
+
+  depends_on = [module.eks]
+}
+
 # --- Ingress Hairpin Routing ---
 
 resource "kubernetes_namespace_v1" "ingress_controller" {

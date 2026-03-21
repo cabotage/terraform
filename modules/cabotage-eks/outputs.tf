@@ -46,6 +46,16 @@ output "s3_storage" {
   } : null
 }
 
+output "fargate_pod_execution_role_arn" {
+  description = "ARN of the Fargate pod execution role (empty if disabled)"
+  value       = var.enable_fargate ? aws_iam_role.fargate_pod_execution[0].arn : ""
+}
+
+output "fargate_manager_irsa_role_arn" {
+  description = "IRSA role ARN for cabotage to manage Fargate profiles (empty if disabled)"
+  value       = var.enable_fargate ? module.fargate_manager_irsa[0].arn : ""
+}
+
 output "vpc_id" {
   description = "ID of the VPC"
   value       = module.vpc.vpc_id

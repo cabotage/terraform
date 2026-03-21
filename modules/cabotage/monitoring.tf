@@ -51,6 +51,31 @@ resource "kubectl_manifest" "alloy_daemonset" {
   ]
 }
 
+# --- Alloy (Fargate) ---
+
+resource "kubectl_manifest" "alloy_fargate_configmap" {
+  count = var.enable_fargate_logging ? 1 : 0
+
+  yaml_body = file("${path.module}/manifests/resident-monitoring/alloy/04-configmap-fargate.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
+resource "kubectl_manifest" "alloy_fargate_deployment" {
+  count = var.enable_fargate_logging ? 1 : 0
+
+  yaml_body = file("${path.module}/manifests/resident-monitoring/alloy/05-deployment-fargate.yml")
+
+  wait_for_rollout = false
+
+  depends_on = [
+    kubectl_manifest.alloy_clusterrolebinding,
+    kubectl_manifest.alloy_fargate_configmap,
+    kubectl_manifest.loki_statefulset_write,
+    kubectl_manifest.loki_statefulset_standalone,
+  ]
+}
+
 # --- Loki ---
 
 resource "kubectl_manifest" "loki_certificate" {
