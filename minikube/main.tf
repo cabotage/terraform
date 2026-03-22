@@ -85,4 +85,5 @@ module "cabotage" {
   registry_verify           = "/var/run/secrets/cabotage.io/ca.crt"
   vault_dev_auto_unseal     = true
   security_confirmable      = false
+  enable_gvisor             = true
 }

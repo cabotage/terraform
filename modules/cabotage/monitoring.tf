@@ -31,7 +31,9 @@ resource "kubectl_manifest" "alloy_clusterrolebinding" {
 }
 
 resource "kubectl_manifest" "alloy_configmap" {
-  yaml_body = file("${path.module}/manifests/resident-monitoring/alloy/02-configmap.yml")
+  yaml_body = templatefile("${path.module}/manifests/resident-monitoring/alloy/02-configmap.yml.tftpl", {
+    enable_gvisor = var.enable_gvisor
+  })
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
@@ -48,6 +50,28 @@ resource "kubectl_manifest" "alloy_daemonset" {
     kubectl_manifest.loki_statefulset_standalone,
     kubectl_manifest.mimir_statefulset_write,
     kubectl_manifest.mimir_statefulset_standalone,
+  ]
+}
+
+# --- gVisor Metrics ---
+
+resource "kubectl_manifest" "gvisor_metrics_serviceaccount" {
+  count = var.enable_gvisor ? 1 : 0
+
+  yaml_body = file("${path.module}/manifests/resident-monitoring/gvisor-metrics/00-serviceaccount.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
+resource "kubectl_manifest" "gvisor_metrics_daemonset" {
+  count = var.enable_gvisor ? 1 : 0
+
+  yaml_body = file("${path.module}/manifests/resident-monitoring/gvisor-metrics/01-daemonset.yml")
+
+  wait_for_rollout = false
+
+  depends_on = [
+    kubectl_manifest.gvisor_metrics_serviceaccount,
   ]
 }
 
