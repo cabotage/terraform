@@ -14,6 +14,7 @@ rules:
       - "cabotage.io"
     resources:
       - cabotageenrollments
+      - cabotagetailscaleoperatorconfigs
   - verbs:
       - get
       - list
