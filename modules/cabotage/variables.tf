@@ -394,19 +394,6 @@ variable "tailscale_proxy_image_tag" {
   default     = "1.97.71-dirty0"
 }
 
-variable "tailscale_operator_oauth_client_id" {
-  description = "OAuth client ID for the Tailscale operator (platform tailnet)"
-  type        = string
-  default     = ""
-}
-
-variable "tailscale_operator_oauth_client_secret" {
-  description = "OAuth client secret for the Tailscale operator (platform tailnet)"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
 variable "tailscale_tag_prefix" {
   description = "Prefix for Tailscale ACL tags (e.g. cabotage → tag:cabotage-operator, tag:cabotage)"
   type        = string
