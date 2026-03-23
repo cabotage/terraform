@@ -8,12 +8,39 @@
 
 # --- Tailscale Operator (Helm) ---
 
+# Create the tailscale namespace before the Secret and Helm release.
+resource "kubernetes_namespace_v1" "tailscale" {
+  count = var.enable_tailscale ? 1 : 0
+  metadata { name = "tailscale" }
+}
+
+# Pre-create the OAuth Secret from files in secrets_dir.
+# Uses a null_resource + kubectl so the secret value never enters terraform state.
+resource "null_resource" "tailscale_operator_oauth" {
+  count = var.enable_tailscale ? 1 : 0
+
+  triggers = {
+    namespace = "tailscale"
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      kubectl create secret generic operator-oauth \
+        --namespace=tailscale \
+        --from-file=client_id=${local.secrets_dir}/tailscale-oauth-client-id \
+        --from-file=client_secret=${local.secrets_dir}/tailscale-oauth-client-secret \
+        --dry-run=client -o yaml | kubectl apply -f -
+    EOT
+  }
+
+  depends_on = [kubernetes_namespace_v1.tailscale]
+}
+
 resource "helm_release" "tailscale_operator" {
   count = var.enable_tailscale ? 1 : 0
 
-  name             = "tailscale-operator"
-  namespace        = "tailscale"
-  create_namespace = true
+  name      = "tailscale-operator"
+  namespace = "tailscale"
   repository = "https://pkgs.tailscale.com/helmcharts"
   chart      = "tailscale-operator"
   version    = var.tailscale_operator_chart_version
@@ -33,10 +60,6 @@ resource "helm_release" "tailscale_operator" {
       }
       defaultTags = "tag:${var.tailscale_tag_prefix}-operator"
     }
-    oauth = {
-      clientId     = var.tailscale_operator_oauth_client_id
-      clientSecret = var.tailscale_operator_oauth_client_secret
-    }
   })]
 
   # Strip the ProxyGroup CRD from the chart so Helm doesn't overwrite
@@ -51,6 +74,7 @@ resource "helm_release" "tailscale_operator" {
     kubectl_manifest.tailscale_tailnet_crd,
     kubectl_manifest.tailscale_proxygrouppolicy_crd,
     kubectl_manifest.tailscale_proxygroup_crd,
+    null_resource.tailscale_operator_oauth,
   ]
 }
 
