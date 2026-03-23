@@ -11,8 +11,11 @@ metadata:
   name: tailscale-operator-supplement
 rules:
   - apiGroups: [tailscale.com]
-    resources: [tailnets, tailnets/status]
-    verbs: [get, list, watch, update, create, patch, delete]
+    resources: [tailnets]
+    verbs: [get, list, watch]
+  - apiGroups: [tailscale.com]
+    resources: [tailnets/status]
+    verbs: [get, list, watch, update, patch]
   - apiGroups: [tailscale.com]
     resources: [proxygrouppolicies, proxygrouppolicies/status]
-    verbs: [get, list, watch, update, create, patch, delete]
+    verbs: [get, list, watch, update, patch]

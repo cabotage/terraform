@@ -21,7 +21,7 @@ spec:
       serviceAccountName: cabotage-tailscale-operator-manager-account
       containers:
         - name: tailscale-operator-manager
-          image: ghcr.io/cabotage/containers/tailscale-operator-manager:1.0.0
+          image: ghcr.io/cabotage/containers/tailscale-operator-manager:1.0.3
           imagePullPolicy: Always
           args:
             - "--verbose"
@@ -40,3 +40,6 @@ spec:
               cpu: "50m"
           securityContext:
             readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
