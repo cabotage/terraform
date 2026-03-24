@@ -230,6 +230,7 @@ resource "kubectl_manifest" "cabotage_app_deployment_web" {
   yaml_body = templatefile("${path.module}/manifests/cabotage-app/04-deployment-web.yml.tftpl", {
     image       = var.cabotage_app_image
     config_hash = local.cabotage_app_config_hash
+    use_s3      = local.use_s3
   })
 
   wait_for_rollout = false
@@ -247,6 +248,7 @@ resource "kubectl_manifest" "cabotage_app_deployment_worker" {
   yaml_body = templatefile("${path.module}/manifests/cabotage-app/04-deployment-worker.yml.tftpl", {
     image       = var.cabotage_app_image
     config_hash = local.cabotage_app_config_hash
+    use_s3      = local.use_s3
   })
 
   wait_for_rollout = false
@@ -264,6 +266,7 @@ resource "kubectl_manifest" "cabotage_app_deployment_worker_beat" {
   yaml_body = templatefile("${path.module}/manifests/cabotage-app/04-deployment-worker-beat.yml.tftpl", {
     image       = var.cabotage_app_image
     config_hash = local.cabotage_app_config_hash
+    use_s3      = local.use_s3
   })
 
   wait_for_rollout = false
