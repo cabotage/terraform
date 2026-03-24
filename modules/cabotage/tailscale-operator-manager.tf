@@ -24,12 +24,15 @@ resource "null_resource" "tailscale_operator_oauth" {
   }
 
   provisioner "local-exec" {
+    environment = {
+      KUBE_CONTEXT = var.kube_context
+    }
     command = <<-EOT
-      kubectl create secret generic operator-oauth \
+      kubectl --context $KUBE_CONTEXT create secret generic operator-oauth \
         --namespace=tailscale \
-        --from-file=client_id=${local.secrets_dir}/tailscale-oauth-client-id \
-        --from-file=client_secret=${local.secrets_dir}/tailscale-oauth-client-secret \
-        --dry-run=client -o yaml | kubectl apply -f -
+        --from-literal=client_id="$(tr -d '\n' < ${local.secrets_dir}/tailscale-oauth-client-id)" \
+        --from-literal=client_secret="$(tr -d '\n' < ${local.secrets_dir}/tailscale-oauth-client-secret)" \
+        --dry-run=client -o yaml | kubectl --context $KUBE_CONTEXT apply -f -
     EOT
   }
 
@@ -51,6 +54,7 @@ resource "helm_release" "tailscale_operator" {
         repository = var.tailscale_operator_image
         tag        = var.tailscale_operator_image_tag
       }
+      hostname    = var.tailscale_operator_hostname
       defaultTags = ["tag:${var.tailscale_tag_prefix}-operator"]
     }
     proxyConfig = {
