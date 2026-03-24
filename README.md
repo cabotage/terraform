@@ -63,12 +63,17 @@ module "cabotage" {
 
   enable_tailscale                       = true
   tailscale_tag_prefix                   = "cabotage"
+  tailscale_operator_hostname            = "my-operator"
   tailscale_operator_oauth_client_id     = var.tailscale_operator_oauth_client_id
   tailscale_operator_oauth_client_secret = var.tailscale_operator_oauth_client_secret
+
+  # Optionally expose the Cabotage UI via Tailscale Funnel
+  enable_tailscale_ingress    = true
+  cabotage_tailscale_hostname = "cabotage"
 }
 ```
 
-The operator is deployed via its official Helm chart. Custom operator and proxy images can be specified with `tailscale_operator_image`, `tailscale_operator_image_tag`, `tailscale_proxy_image`, and `tailscale_proxy_image_tag`.
+The operator is deployed via its official Helm chart. `tailscale_operator_hostname` sets the machine name the operator registers as on the tailnet (defaults to `"tailscale-operator"`). The Funnel ingress for the Cabotage UI is controlled separately via `enable_tailscale_ingress` and `cabotage_tailscale_hostname`. Custom operator and proxy images can be specified with `tailscale_operator_image`, `tailscale_operator_image_tag`, `tailscale_proxy_image`, and `tailscale_proxy_image_tag`.
 
 ### Local development with Minikube
 
