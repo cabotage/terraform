@@ -46,6 +46,53 @@ output "s3_storage" {
   } : null
 }
 
+output "node_group_autoscaling_group_names" {
+  description = "Map of node group names to their autoscaling group names"
+  value       = { for name, group in module.eks.eks_managed_node_groups : name => group.node_group_autoscaling_group_names }
+}
+
+output "tailscale_subnet_router_autoscaling_group_name" {
+  description = "Name of the Tailscale subnet router autoscaling group (empty if disabled)"
+  value       = var.enable_tailscale_subnet_router ? aws_autoscaling_group.tailscale_subnet_router[0].name : ""
+}
+
+output "tailscale_subnet_router_role_arn" {
+  description = "IAM role ARN for the Tailscale subnet router (use as Subject in Tailscale trust credential)"
+  value       = var.enable_tailscale_subnet_router ? aws_iam_role.tailscale_subnet_router[0].arn : ""
+}
+
+output "tailscale_setup" {
+  description = "Tailscale configuration guide: trust credential settings and ACL snippet (null when disabled)"
+  value = var.enable_tailscale_subnet_router ? {
+    trust_credential = {
+      type       = "OpenID Connect"
+      issuer     = "AWS"
+      subject    = aws_iam_role.tailscale_subnet_router[0].arn
+      scopes     = ["Devices > Core: Write", "Devices > Routes: Write", "Keys > Auth Keys: Write"]
+    }
+    acl_snippet = <<-EOT
+      "autoApprovers": {
+        "routes": {
+          "${var.vpc_cidr}": ${jsonencode(var.tailscale_subnet_router_tags)}
+        }
+      },
+      "acls": [
+        {"action": "accept", "src": ["group:devs"], "dst": ["${var.vpc_cidr}:443"]},
+        {"action": "accept", "src": ["tag:ci"],      "dst": ["${var.vpc_cidr}:443"]}
+      ]
+    EOT
+    split_dns = {
+      domain     = "*.eks.amazonaws.com"
+      nameserver = cidrhost(var.vpc_cidr, 2)
+    }
+  } : null
+}
+
+output "vpc_cidr" {
+  description = "CIDR block of the VPC"
+  value       = var.vpc_cidr
+}
+
 output "vpc_id" {
   description = "ID of the VPC"
   value       = module.vpc.vpc_id
