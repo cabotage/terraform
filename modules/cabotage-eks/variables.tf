@@ -47,6 +47,12 @@ variable "cluster_endpoint_public_access" {
   default     = true
 }
 
+variable "cluster_endpoint_public_access_cidrs" {
+  description = "List of CIDR blocks allowed to access the EKS public API server endpoint"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
 variable "enable_prefix_delegation" {
   description = "Enable VPC CNI prefix delegation for higher pod density per node"
   type        = bool
