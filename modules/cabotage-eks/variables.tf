@@ -178,6 +178,24 @@ variable "access_entries" {
   default     = {}
 }
 
+variable "enable_vpc_flow_logs" {
+  description = "Enable VPC flow logs. Logs are sent to a CloudWatch log group."
+  type        = bool
+  default     = false
+}
+
+variable "vpc_flow_log_retention_in_days" {
+  description = "Number of days to retain VPC flow log events in CloudWatch."
+  type        = number
+  default     = 365
+}
+
+variable "vpc_flow_log_traffic_type" {
+  description = "The type of traffic to capture. Valid values: ACCEPT, REJECT, ALL."
+  type        = string
+  default     = "ALL"
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)
