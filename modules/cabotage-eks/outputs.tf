@@ -23,6 +23,11 @@ output "cluster_oidc_provider_arn" {
   value       = module.eks.oidc_provider_arn
 }
 
+output "cluster_oidc_issuer_url" {
+  description = "OIDC issuer URL for the EKS cluster"
+  value       = module.eks.cluster_oidc_issuer_url
+}
+
 output "vault_unseal_kms_key_id" {
   description = "KMS key ID for Vault auto-unseal (empty if disabled)"
   value       = var.enable_vault_auto_unseal ? aws_kms_key.vault_unseal[0].key_id : ""
@@ -49,6 +54,11 @@ output "s3_storage" {
 output "node_group_autoscaling_group_names" {
   description = "Map of node group names to their autoscaling group names"
   value       = { for name, group in module.eks.eks_managed_node_groups : name => group.node_group_autoscaling_group_names }
+}
+
+output "tailscale_operator_irsa_role_arn" {
+  description = "IRSA role ARN for the Tailscale operator (empty if disabled)"
+  value       = var.enable_cabotage_tailscale_ingress ? module.tailscale_operator_irsa[0].arn : ""
 }
 
 output "tailscale_subnet_router_autoscaling_group_name" {
