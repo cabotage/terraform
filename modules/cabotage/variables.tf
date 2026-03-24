@@ -356,6 +356,70 @@ variable "mimir_standalone" {
   default     = false
 }
 
+# --- Tailscale ---
+
+variable "enable_tailscale" {
+  description = "Deploy the tailscale operator (Helm) and operator-manager"
+  type        = bool
+  default     = false
+}
+
+variable "tailscale_operator_chart_version" {
+  description = "Helm chart version for the Tailscale operator"
+  type        = string
+  default     = "1.94.2"
+}
+
+variable "tailscale_operator_image" {
+  description = "Container image for the Tailscale operator"
+  type        = string
+  default     = "ewdurbin/ts-k8s-operator"
+}
+
+variable "tailscale_operator_image_tag" {
+  description = "Image tag for the Tailscale operator"
+  type        = string
+  default     = "1.97.71-dirty0"
+}
+
+variable "tailscale_proxy_image" {
+  description = "Container image for Tailscale proxy pods (ProxyGroup)"
+  type        = string
+  default     = "ewdurbin/ts-tailscale"
+}
+
+variable "tailscale_proxy_image_tag" {
+  description = "Image tag for Tailscale proxy pods"
+  type        = string
+  default     = "1.97.71-dirty0"
+}
+
+variable "tailscale_tag_prefix" {
+  description = "Prefix for Tailscale ACL tags (e.g. cabotage → tag:cabotage-operator, tag:cabotage)"
+  type        = string
+  default     = "cabotage"
+}
+
+variable "enable_tailscale_ingress" {
+  description = "Deploy the Tailscale Funnel ingress for the cabotage app (requires enable_tailscale)"
+  type        = bool
+  default     = false
+}
+
+variable "cabotage_tailscale_hostname" {
+  description = "Tailscale machine name for the cabotage app Funnel ingress"
+  type        = string
+  default     = "cabotage-minikube"
+}
+
+variable "tailscale_operator_hostname" {
+  description = "Tailscale machine name for the operator itself"
+  type        = string
+  default     = "tailscale-operator"
+}
+
+# --- Terraform ---
+
 variable "secrets_dir" {
   description = "Local directory to store bootstrap secrets (consul mgmt token, vault root token, unseal key)"
   type        = string

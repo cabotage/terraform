@@ -13,6 +13,7 @@ Provisions an opinionated AWS EKS cluster with VPC, node groups, EBS CSI, AWS Lo
 Deploys the full Cabotage platform onto an existing Kubernetes cluster:
 
 - **Ingress & TLS** — Traefik, cert-manager, internal PKI with offline root CA
+- **Tailscale integration** — optional Tailscale operator for Tailnet-based ingress (Funnel)
 - **Service discovery & secrets** — Consul, Vault (with KMS or dev auto-unseal)
 - **Data stores** — PostgreSQL (CNPG), Redis, RustFS (S3-compatible object storage)
 - **Application** — Cabotage web/worker/worker-beat, enrollment operator, container registry
@@ -49,6 +50,30 @@ module "cabotage" {
   vault_auto_unseal_region     = "us-east-2"
 }
 ```
+
+### Tailscale ingress
+
+The `cabotage` module can optionally deploy the [Tailscale Kubernetes operator](https://tailscale.com/kb/1236/kubernetes-operator) to expose tenant ingresses to their tailnets. It can also expose the Cabotage UI via Tailscale Funnel instead of (or alongside) a traditional load balancer.
+
+Enable it by setting `enable_tailscale = true` and providing OAuth credentials:
+
+```hcl
+module "cabotage" {
+  # ...existing config...
+
+  enable_tailscale                       = true
+  tailscale_tag_prefix                   = "cabotage"
+  tailscale_operator_hostname            = "my-operator"
+  tailscale_operator_oauth_client_id     = var.tailscale_operator_oauth_client_id
+  tailscale_operator_oauth_client_secret = var.tailscale_operator_oauth_client_secret
+
+  # Optionally expose the Cabotage UI via Tailscale Funnel
+  enable_tailscale_ingress    = true
+  cabotage_tailscale_hostname = "cabotage"
+}
+```
+
+The operator is deployed via its official Helm chart. `tailscale_operator_hostname` sets the machine name the operator registers as on the tailnet (defaults to `"tailscale-operator"`). The Funnel ingress for the Cabotage UI is controlled separately via `enable_tailscale_ingress` and `cabotage_tailscale_hostname`. Custom operator and proxy images can be specified with `tailscale_operator_image`, `tailscale_operator_image_tag`, `tailscale_proxy_image`, and `tailscale_proxy_image_tag`.
 
 ### Local development with Minikube
 

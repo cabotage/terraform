@@ -82,3 +82,5 @@ place — no `minikube tunnel` needed.
 | `vault_dev_auto_unseal` | `true` | `false` (AWS KMS) |
 | `security_confirmable` | `false` | `true` |
 | `registry_verify` | CA cert path | `"True"` (system trust) |
+| `enable_tailscale` | `true` (optional) | `false` |
+| `enable_tailscale_ingress` | `true` (optional) | `false` |

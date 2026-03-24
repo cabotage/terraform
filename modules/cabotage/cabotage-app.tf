@@ -49,6 +49,8 @@ locals {
     CABOTAGE_PROXY_FIX_NUM_PROXIES                  = tostring(var.proxy_fix_num_proxies)
     CABOTAGE_GITHUB_OAUTH_ONLY                      = var.github_oauth_only ? "True" : "False"
     CABOTAGE_GITHUB_OAUTH_ALLOWED_ORGS              = var.github_oauth_allowed_orgs
+    CABOTAGE_TAILSCALE_OPERATOR_ENABLED              = var.enable_tailscale ? "True" : "False"
+    CABOTAGE_TAILSCALE_TAG_PREFIX                    = var.tailscale_tag_prefix
     FLASK_APP                                       = "cabotage.server.wsgi"
   }
   cabotage_app_config_hash = sha256(jsonencode(local.cabotage_app_config_data))
@@ -294,6 +296,18 @@ resource "kubectl_manifest" "cabotage_app_ingress" {
     kubectl_manifest.cabotage_app_service,
     kubectl_manifest.nginx_ingress_class,
     helm_release.cert_manager,
+  ]
+}
+
+resource "kubectl_manifest" "cabotage_app_ingress_funnel" {
+  count     = var.enable_tailscale && var.enable_tailscale_ingress ? 1 : 0
+  yaml_body = templatefile("${path.module}/manifests/cabotage-app/05-ingress-funnel.yml.tftpl", {
+    hostname = var.cabotage_tailscale_hostname
+  })
+
+  depends_on = [
+    kubectl_manifest.cabotage_app_service,
+    helm_release.tailscale_operator,
   ]
 }
 
