@@ -26,6 +26,12 @@ module "vpc" {
   single_nat_gateway   = var.single_nat_gateway
   enable_dns_hostnames = true
 
+  enable_flow_log                                 = var.enable_vpc_flow_logs
+  create_flow_log_cloudwatch_log_group            = var.enable_vpc_flow_logs
+  create_flow_log_cloudwatch_iam_role             = var.enable_vpc_flow_logs
+  flow_log_cloudwatch_log_group_retention_in_days = var.vpc_flow_log_retention_in_days
+  flow_log_traffic_type                           = var.vpc_flow_log_traffic_type
+
   private_subnet_tags = {
     "kubernetes.io/role/internal-elb" = 1
   }
@@ -47,8 +53,9 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
-  endpoint_public_access  = var.cluster_endpoint_public_access
-  endpoint_private_access = true
+  endpoint_public_access       = var.cluster_endpoint_public_access
+  endpoint_private_access      = true
+  endpoint_public_access_cidrs = var.cluster_endpoint_public_access_cidrs
 
   kms_key_administrators                   = var.kms_key_administrators
   enabled_log_types                        = var.enabled_log_types

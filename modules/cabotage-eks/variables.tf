@@ -47,6 +47,12 @@ variable "cluster_endpoint_public_access" {
   default     = true
 }
 
+variable "cluster_endpoint_public_access_cidrs" {
+  description = "List of CIDR blocks allowed to access the EKS public API server endpoint"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
 variable "enable_prefix_delegation" {
   description = "Enable VPC CNI prefix delegation for higher pod density per node"
   type        = bool
@@ -176,6 +182,60 @@ variable "access_entries" {
   description = "Map of access entries to add to the EKS cluster."
   type        = any
   default     = {}
+}
+
+variable "enable_vpc_flow_logs" {
+  description = "Enable VPC flow logs. Logs are sent to a CloudWatch log group."
+  type        = bool
+  default     = false
+}
+
+variable "vpc_flow_log_retention_in_days" {
+  description = "Number of days to retain VPC flow log events in CloudWatch."
+  type        = number
+  default     = 365
+}
+
+variable "vpc_flow_log_traffic_type" {
+  description = "The type of traffic to capture. Valid values: ACCEPT, REJECT, ALL."
+  type        = string
+  default     = "ALL"
+}
+
+variable "enable_tailscale_subnet_router" {
+  description = "Deploy an EC2-based Tailscale subnet router that advertises VPC routes to your tailnet"
+  type        = bool
+  default     = false
+}
+
+variable "tailscale_workload_identity_client_id" {
+  description = "Tailscale OIDC client ID for workload identity federation (from Tailscale admin Trust Credentials)"
+  type        = string
+  default     = ""
+}
+
+variable "tailscale_workload_identity_audience" {
+  description = "Tailscale OIDC audience for workload identity federation"
+  type        = string
+  default     = ""
+}
+
+variable "tailscale_subnet_router_tags" {
+  description = "Tailscale ACL tags to apply to the subnet router node"
+  type        = list(string)
+  default     = ["tag:subnet-router"]
+}
+
+variable "tailscale_subnet_router_instance_type" {
+  description = "EC2 instance type for the Tailscale subnet router"
+  type        = string
+  default     = "t4g.nano"
+}
+
+variable "tailscale_subnet_router_hostname" {
+  description = "Tailscale hostname prefix for the subnet router nodes (instance ID is appended automatically)"
+  type        = string
+  default     = ""
 }
 
 variable "tags" {
