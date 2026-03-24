@@ -300,8 +300,10 @@ resource "kubectl_manifest" "cabotage_app_ingress" {
 }
 
 resource "kubectl_manifest" "cabotage_app_ingress_funnel" {
-  count     = var.enable_tailscale ? 1 : 0
-  yaml_body = file("${path.module}/manifests/cabotage-app/05-ingress-funnel.yml")
+  count     = var.enable_tailscale && var.enable_tailscale_ingress ? 1 : 0
+  yaml_body = templatefile("${path.module}/manifests/cabotage-app/05-ingress-funnel.yml.tftpl", {
+    hostname = var.cabotage_tailscale_hostname
+  })
 
   depends_on = [
     kubectl_manifest.cabotage_app_service,

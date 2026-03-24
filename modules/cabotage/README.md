@@ -157,7 +157,10 @@ The module also uses the `kubernetes`, `helm`, `random`, and `null` providers (v
 | `mimir_write_replicas` | Mimir write replicas | `number` | `1` |
 | **Tailscale** | | | |
 | `enable_tailscale` | Deploy the Tailscale operator | `bool` | `false` |
+| `enable_tailscale_ingress` | Deploy the Tailscale Funnel ingress for the cabotage app (requires `enable_tailscale`) | `bool` | `false` |
 | `tailscale_tag_prefix` | ACL tag prefix for operator-managed nodes | `string` | `"cabotage"` |
+| `tailscale_operator_hostname` | Tailscale machine name for the operator | `string` | `"tailscale-operator"` |
+| `cabotage_tailscale_hostname` | Tailscale machine name for the cabotage app Funnel ingress | `string` | `"cabotage-minikube"` |
 | `tailscale_operator_oauth_client_id` | OAuth client ID for the Tailscale operator | `string` | `""` |
 | `tailscale_operator_oauth_client_secret` | OAuth client secret for the Tailscale operator | `string` | `""` |
 | `tailscale_operator_image` | Container image for the Tailscale operator | `string` | `"ewdurbin/ts-k8s-operator"` |

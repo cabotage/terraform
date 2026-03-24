@@ -400,6 +400,24 @@ variable "tailscale_tag_prefix" {
   default     = "cabotage"
 }
 
+variable "enable_tailscale_ingress" {
+  description = "Deploy the Tailscale Funnel ingress for the cabotage app (requires enable_tailscale)"
+  type        = bool
+  default     = false
+}
+
+variable "cabotage_tailscale_hostname" {
+  description = "Tailscale machine name for the cabotage app Funnel ingress"
+  type        = string
+  default     = "cabotage-minikube"
+}
+
+variable "tailscale_operator_hostname" {
+  description = "Tailscale machine name for the operator itself"
+  type        = string
+  default     = "tailscale-operator"
+}
+
 # --- Terraform ---
 
 variable "secrets_dir" {
