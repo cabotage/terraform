@@ -202,6 +202,42 @@ variable "vpc_flow_log_traffic_type" {
   default     = "ALL"
 }
 
+variable "enable_tailscale_subnet_router" {
+  description = "Deploy an EC2-based Tailscale subnet router that advertises VPC routes to your tailnet"
+  type        = bool
+  default     = false
+}
+
+variable "tailscale_workload_identity_client_id" {
+  description = "Tailscale OIDC client ID for workload identity federation (from Tailscale admin Trust Credentials)"
+  type        = string
+  default     = ""
+}
+
+variable "tailscale_workload_identity_audience" {
+  description = "Tailscale OIDC audience for workload identity federation"
+  type        = string
+  default     = ""
+}
+
+variable "tailscale_subnet_router_tags" {
+  description = "Tailscale ACL tags to apply to the subnet router node"
+  type        = list(string)
+  default     = ["tag:subnet-router"]
+}
+
+variable "tailscale_subnet_router_instance_type" {
+  description = "EC2 instance type for the Tailscale subnet router"
+  type        = string
+  default     = "t4g.nano"
+}
+
+variable "tailscale_subnet_router_hostname" {
+  description = "Tailscale hostname prefix for the subnet router nodes (instance ID is appended automatically)"
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)
