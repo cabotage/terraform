@@ -1,11 +1,53 @@
-# --- Tailscale Subnet Router (EC2) ---
+# --- Tailscale Operator IRSA ---
 #
-# A lightweight EC2 instance that advertises VPC routes to a Tailscale tailnet,
-# allowing tailnet clients (dev machines, CI runners) to reach the EKS private
-# API endpoint without exposing it publicly.
-#
-# Gated behind var.enable_tailscale_subnet_router.
+# An IRSA role for the in-cluster Tailscale operator so it can call
+# sts:GetWebIdentityToken to authenticate to Tailscale via OIDC.
 
+module "tailscale_operator_irsa" {
+  count   = var.enable_cabotage_tailscale_ingress ? 1 : 0
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts"
+  version = "~> 6.0"
+
+  name = "${var.cluster_name}-tailscale-operator"
+
+  oidc_providers = {
+    main = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["${var.tailscale_operator_namespace}:${var.tailscale_operator_service_account}"]
+    }
+  }
+
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy" "tailscale_operator_sts" {
+  count = var.enable_cabotage_tailscale_ingress ? 1 : 0
+
+  name = "sts-web-identity-token-for-tailscale"
+  role = module.tailscale_operator_irsa[0].name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "AllowGetWebIdentityTokenForTailscale"
+        Effect   = "Allow"
+        Action   = "sts:GetWebIdentityToken"
+        Resource = "*"
+        Condition = {
+          "ForAnyValue:StringEquals" = {
+            "sts:IdentityTokenAudience" = var.cabotage_tailscale_workload_identity_audience
+          }
+          "NumericLessThanEquals" = {
+            "sts:DurationSeconds" = "300"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# --- Tailscale Subnet Router (EC2) ---
 
 data "aws_ami" "amazon_linux_2023_arm" {
   count       = var.enable_tailscale_subnet_router ? 1 : 0
