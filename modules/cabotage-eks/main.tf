@@ -26,6 +26,12 @@ module "vpc" {
   single_nat_gateway   = var.single_nat_gateway
   enable_dns_hostnames = true
 
+  enable_flow_log                                 = var.enable_vpc_flow_logs
+  create_flow_log_cloudwatch_log_group            = var.enable_vpc_flow_logs
+  create_flow_log_cloudwatch_iam_role             = var.enable_vpc_flow_logs
+  flow_log_cloudwatch_log_group_retention_in_days = var.vpc_flow_log_retention_in_days
+  flow_log_traffic_type                           = var.vpc_flow_log_traffic_type
+
   private_subnet_tags = {
     "kubernetes.io/role/internal-elb" = 1
   }
