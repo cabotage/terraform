@@ -1,0 +1,21 @@
+# Supplemental RBAC for the forked Tailscale operator.
+#
+# The upstream Helm chart (v1.94.2) creates a ClusterRole that doesn't
+# include Tailnet or ProxyGroupPolicy resources. This ClusterRole adds
+# the missing permissions.
+#
+# REMOVE THIS when the upstream chart version includes these resources.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tailscale-operator-supplement
+rules:
+  - apiGroups: [tailscale.com]
+    resources: [tailnets]
+    verbs: [get, list, watch]
+  - apiGroups: [tailscale.com]
+    resources: [tailnets/status]
+    verbs: [get, list, watch, update, patch]
+  - apiGroups: [tailscale.com]
+    resources: [proxygrouppolicies, proxygrouppolicies/status]
+    verbs: [get, list, watch, update, patch]

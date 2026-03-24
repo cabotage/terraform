@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: cabotage
+  name: cabotage-tailscale-operator-manager-rolebinding-namespaced
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cabotage-tailscale-operator-manager-role-namespaced
+subjects:
+  - kind: ServiceAccount
+    name: cabotage-tailscale-operator-manager-account

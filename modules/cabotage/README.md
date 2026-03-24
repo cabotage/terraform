@@ -35,6 +35,10 @@ Designed to be used alongside [`cabotage-eks`](../cabotage-eks), which provision
 - **Container registry** — Distribution-based registry with RustFS backend storage, garbage collection CronJob, and signing certificate integration with the Cabotage app.
 - **GitHub App integration** (optional) — Configures a GitHub App secret for webhook-driven builds when `github_app_id` is set. Supports OAuth login via `github_oauth_only` and `github_oauth_allowed_orgs`, with client credentials read from the secrets directory.
 
+### Tailscale (optional)
+
+- **Tailscale operator** — Deployed via the official Helm chart when `enable_tailscale = true`. Exposes tenant ingresses to their tailnets and can expose the Cabotage UI via Tailscale Funnel as an alternative to traditional load balancers.
+
 ### Monitoring
 
 - **Alloy** — DaemonSet log/metrics collector.
@@ -151,6 +155,18 @@ The module also uses the `kubernetes`, `helm`, `random`, and `null` providers (v
 | `mimir_backend_replicas` | Mimir backend replicas | `number` | `1` |
 | `mimir_read_replicas` | Mimir read replicas | `number` | `1` |
 | `mimir_write_replicas` | Mimir write replicas | `number` | `1` |
+| **Tailscale** | | | |
+| `enable_tailscale` | Deploy the Tailscale operator | `bool` | `false` |
+| `enable_tailscale_ingress` | Deploy the Tailscale Funnel ingress for the cabotage app (requires `enable_tailscale`) | `bool` | `false` |
+| `tailscale_tag_prefix` | ACL tag prefix for operator-managed nodes | `string` | `"cabotage"` |
+| `tailscale_operator_hostname` | Tailscale machine name for the operator | `string` | `"tailscale-operator"` |
+| `cabotage_tailscale_hostname` | Tailscale machine name for the cabotage app Funnel ingress | `string` | `"cabotage-minikube"` |
+| `tailscale_operator_oauth_client_id` | OAuth client ID for the Tailscale operator | `string` | `""` |
+| `tailscale_operator_oauth_client_secret` | OAuth client secret for the Tailscale operator | `string` | `""` |
+| `tailscale_operator_image` | Container image for the Tailscale operator | `string` | `"ewdurbin/ts-k8s-operator"` |
+| `tailscale_operator_image_tag` | Image tag for the Tailscale operator | `string` | `"1.97.71-dirty0"` |
+| `tailscale_proxy_image` | Container image for Tailscale proxy pods | `string` | `"ewdurbin/ts-tailscale"` |
+| `tailscale_proxy_image_tag` | Image tag for Tailscale proxy pods | `string` | `"1.97.71-dirty0"` |
 | **Other** | | | |
 | `secrets_dir` | Local directory for bootstrap secrets | `string` | `".secrets"` |
 | `ca_cert_file` | Path to root CA certificate | `string` | `"ca.crt"` |
