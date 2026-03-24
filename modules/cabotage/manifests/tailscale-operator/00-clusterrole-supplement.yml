@@ -12,7 +12,7 @@ metadata:
 rules:
   - apiGroups: [tailscale.com]
     resources: [tailnets]
-    verbs: [get, list, watch]
+    verbs: [get, list, watch, update, patch]
   - apiGroups: [tailscale.com]
     resources: [tailnets/status]
     verbs: [get, list, watch, update, patch]
