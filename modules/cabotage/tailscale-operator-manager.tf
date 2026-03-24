@@ -8,35 +8,10 @@
 
 # --- Tailscale Operator (Helm) ---
 
-# Create the tailscale namespace before the Secret and Helm release.
+# Create the tailscale namespace before the Helm release.
 resource "kubernetes_namespace_v1" "tailscale" {
   count = var.enable_tailscale ? 1 : 0
   metadata { name = "tailscale" }
-}
-
-# Pre-create the OAuth Secret from files in secrets_dir.
-# Uses a null_resource + kubectl so the secret value never enters terraform state.
-resource "null_resource" "tailscale_operator_oauth" {
-  count = var.enable_tailscale ? 1 : 0
-
-  triggers = {
-    namespace = "tailscale"
-  }
-
-  provisioner "local-exec" {
-    environment = {
-      KUBE_CONTEXT = var.kube_context
-    }
-    command = <<-EOT
-      kubectl --context $KUBE_CONTEXT create secret generic operator-oauth \
-        --namespace=tailscale \
-        --from-literal=client_id="$(tr -d '\n' < ${local.secrets_dir}/tailscale-oauth-client-id)" \
-        --from-literal=client_secret="$(tr -d '\n' < ${local.secrets_dir}/tailscale-oauth-client-secret)" \
-        --dry-run=client -o yaml | kubectl --context $KUBE_CONTEXT apply -f -
-    EOT
-  }
-
-  depends_on = [kubernetes_namespace_v1.tailscale]
 }
 
 resource "helm_release" "tailscale_operator" {
@@ -56,6 +31,15 @@ resource "helm_release" "tailscale_operator" {
       }
       hostname    = var.tailscale_operator_hostname
       defaultTags = ["tag:${var.tailscale_tag_prefix}-operator"]
+    }
+    oauth = {
+      clientId = var.tailscale_workload_identity_client_id
+      audience = var.tailscale_workload_identity_audience
+    }
+    serviceAccount = {
+      annotations = {
+        "eks.amazonaws.com/role-arn" = var.tailscale_operator_irsa_role_arn
+      }
     }
     proxyConfig = {
       image = {
@@ -78,7 +62,6 @@ resource "helm_release" "tailscale_operator" {
     kubectl_manifest.tailscale_tailnet_crd,
     kubectl_manifest.tailscale_proxygrouppolicy_crd,
     kubectl_manifest.tailscale_proxygroup_crd,
-    null_resource.tailscale_operator_oauth,
   ]
 }
 

@@ -418,6 +418,24 @@ variable "tailscale_operator_hostname" {
   default     = "tailscale-operator"
 }
 
+variable "tailscale_operator_irsa_role_arn" {
+  description = "IRSA role ARN for the Tailscale operator (required when enable_tailscale is true)"
+  type        = string
+  default     = ""
+}
+
+variable "tailscale_workload_identity_client_id" {
+  description = "Tailscale OIDC client ID for workload identity federation"
+  type        = string
+  default     = ""
+}
+
+variable "tailscale_workload_identity_audience" {
+  description = "Tailscale OIDC audience for workload identity federation"
+  type        = string
+  default     = ""
+}
+
 # --- Terraform ---
 
 variable "secrets_dir" {

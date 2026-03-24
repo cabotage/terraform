@@ -220,6 +220,36 @@ variable "tailscale_workload_identity_audience" {
   default     = ""
 }
 
+variable "enable_cabotage_tailscale_ingress" {
+  description = "Enable IRSA for the Tailscale operator to authenticate via OIDC (for cabotage tailscale ingress)"
+  type        = bool
+  default     = false
+}
+
+variable "cabotage_tailscale_workload_identity_client_id" {
+  description = "Tailscale OIDC client ID for the cabotage operator's workload identity (separate from subnet router)"
+  type        = string
+  default     = ""
+}
+
+variable "cabotage_tailscale_workload_identity_audience" {
+  description = "Tailscale OIDC audience for the cabotage operator's workload identity (separate from subnet router)"
+  type        = string
+  default     = ""
+}
+
+variable "tailscale_operator_namespace" {
+  description = "Kubernetes namespace where the Tailscale operator runs"
+  type        = string
+  default     = "tailscale"
+}
+
+variable "tailscale_operator_service_account" {
+  description = "Kubernetes service account name for the Tailscale operator"
+  type        = string
+  default     = "operator"
+}
+
 variable "tailscale_subnet_router_tags" {
   description = "Tailscale ACL tags to apply to the subnet router node"
   type        = list(string)
