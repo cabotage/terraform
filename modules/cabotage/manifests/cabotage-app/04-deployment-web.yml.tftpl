@@ -125,6 +125,7 @@ spec:
                 secretKeyRef:
                   name: cabotage-app-secrets
                   key: redis-uri
+%{ if !use_s3 ~}
             - name: CABOTAGE_MINIO_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
@@ -135,6 +136,7 @@ spec:
                 secretKeyRef:
                   name: rustfs-cabotage-registry
                   key: secret-key
+%{ endif ~}
             - name: CABOTAGE_SECRET_KEY
               valueFrom:
                 secretKeyRef:
