@@ -32,9 +32,10 @@ module "vpc" {
   flow_log_cloudwatch_log_group_retention_in_days = var.vpc_flow_log_retention_in_days
   flow_log_traffic_type                           = var.vpc_flow_log_traffic_type
 
-  private_subnet_tags = {
-    "kubernetes.io/role/internal-elb" = 1
-  }
+  private_subnet_tags = merge(
+    { "kubernetes.io/role/internal-elb" = 1 },
+    var.enable_karpenter ? { "karpenter.sh/discovery" = var.cluster_name } : {}
+  )
 
   public_subnet_tags = {
     "kubernetes.io/role/elb" = 1
@@ -81,7 +82,7 @@ module "eks" {
   eks_managed_node_groups = {
     for name, config in var.node_groups : name => merge({
       disk_size = var.node_group_disk_size
-      }, config, {
+      }, var.node_group_release_version != "" ? { ami_release_version = var.node_group_release_version } : {}, config, {
       cloudinit_pre_nodeadm = length(var.ingress_hairpin_domains) > 0 ? [
         {
           content_type = "text/x-shellscript"
@@ -94,6 +95,10 @@ module "eks" {
       ] : []
     })
   }
+
+  node_security_group_tags = var.enable_karpenter ? {
+    "karpenter.sh/discovery" = var.cluster_name
+  } : {}
 
   tags = local.tags
 }
