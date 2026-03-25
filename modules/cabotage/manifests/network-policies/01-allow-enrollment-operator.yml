@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-enrollment-operator
+  namespace: cabotage
+spec:
+  podSelector:
+    matchLabels:
+      app: enrollment-operator
+  ingress:
+    # Kubelet liveness probe on :8080.
+    # The kubelet source IP is not predictable, so this must allow
+    # all sources on the probe port (same pattern as ca-admission).
+    - ports:
+        - port: 8080
+          protocol: TCP
