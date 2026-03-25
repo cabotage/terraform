@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "Usage: $(basename "$0") [--update] [--all] --profile PROFILE [--cluster CLUSTER]"
+  echo
+  echo "Check for pending EKS node group AMI updates."
+  echo
+  echo "  --profile PROFILE   AWS profile to use (required)"
+  echo "  --cluster CLUSTER   EKS cluster name (auto-detected if only one exists)"
+  echo "  --all               Show all available releases, not just recommended"
+  echo "  --update            Apply the update (rolling replacement)"
+  echo "  -h, --help          Show this help"
+  exit 0
+}
+
+PROFILE=""
+CLUSTER=""
+UPDATE=false
+SHOW_ALL=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --profile) PROFILE="$2"; shift 2 ;;
+    --cluster) CLUSTER="$2"; shift 2 ;;
+    --update) UPDATE=true; shift ;;
+    --all) SHOW_ALL=true; shift ;;
+    -h|--help) usage ;;
+    *) echo "Unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+
+if [[ -z "$PROFILE" ]]; then
+  echo "Error: --profile is required" >&2
+  exit 1
+fi
+
+AWS="aws --profile $PROFILE"
+
+# Auto-detect cluster if not specified
+if [[ -z "$CLUSTER" ]]; then
+  clusters=($($AWS eks list-clusters --query 'clusters[]' --output text))
+  if [[ ${#clusters[@]} -eq 0 ]]; then
+    echo "No EKS clusters found" >&2
+    exit 1
+  elif [[ ${#clusters[@]} -gt 1 ]]; then
+    echo "Multiple clusters found, specify one with --cluster:" >&2
+    printf "  %s\n" "${clusters[@]}" >&2
+    exit 1
+  fi
+  CLUSTER="${clusters[0]}"
+fi
+
+echo "Cluster: $CLUSTER"
+
+K8S_VERSION=$($AWS eks describe-cluster --name "$CLUSTER" --query 'cluster.version' --output text)
+echo "Kubernetes version: $K8S_VERSION"
+echo
+
+nodegroups=($($AWS eks list-nodegroups --cluster-name "$CLUSTER" --query 'nodegroups[]' --output text))
+
+if [[ ${#nodegroups[@]} -eq 0 ]]; then
+  echo "No node groups found"
+  exit 0
+fi
+
+# Map amiType to SSM path segment
+ami_type_to_ssm_path() {
+  case "$1" in
+    AL2023_ARM_64_STANDARD) echo "amazon-linux-2023/arm64/standard" ;;
+    AL2023_x86_64_STANDARD) echo "amazon-linux-2023/x86_64/standard" ;;
+    AL2023_ARM_64_NVIDIA)   echo "amazon-linux-2023/arm64/nvidia" ;;
+    AL2023_x86_64_NVIDIA)   echo "amazon-linux-2023/x86_64/nvidia" ;;
+    AL2_ARM_64)             echo "amazon-linux-2/arm64" ;;
+    AL2_x86_64)             echo "amazon-linux-2/x86_64" ;;
+    *) return 1 ;;
+  esac
+}
+
+for ng in "${nodegroups[@]}"; do
+  ng_info=$($AWS eks describe-nodegroup --cluster-name "$CLUSTER" --nodegroup-name "$ng" \
+    --query 'nodegroup.{releaseVersion: releaseVersion, amiType: amiType}' --output json)
+
+  current=$(echo "$ng_info" | jq -r '.releaseVersion')
+  ami_type=$(echo "$ng_info" | jq -r '.amiType')
+
+  ssm_path=$(ami_type_to_ssm_path "$ami_type") || {
+    echo "[$ng] Unknown AMI type: $ami_type, skipping"
+    continue
+  }
+
+  ssm_base="/aws/service/eks/optimized-ami/${K8S_VERSION}/${ssm_path}"
+
+  recommended_json=$($AWS ssm get-parameter \
+    --name "${ssm_base}/recommended" \
+    --query 'Parameter.Value' --output text)
+  recommended=$(echo "$recommended_json" | jq -r '.release_version')
+  recommended_ami=$(echo "$recommended_json" | jq -r '.image_id')
+  # Extract the date portion for Karpenter alias pinning (e.g. v20260216)
+  recommended_alias=$(echo "$recommended" | grep -oE '[0-9]{8}$' | sed 's/^/v/')
+
+  if [[ "$current" == "$recommended" ]]; then
+    echo "[$ng] UP TO DATE  (${current})"
+  else
+    echo "[$ng] UPDATE AVAILABLE  ${current} -> ${recommended} (recommended)"
+    if $UPDATE; then
+      echo "  Triggering update..."
+      $AWS eks update-nodegroup-version \
+        --cluster-name "$CLUSTER" \
+        --nodegroup-name "$ng"
+      echo "  Update initiated."
+    fi
+  fi
+  echo "  Release version:  ${recommended}"
+  echo "  AMI ID:           ${recommended_ami}"
+  echo "  Karpenter alias:  al2023@${recommended_alias}"
+  echo
+  echo "  # Terraform pinning:"
+  echo "  node_group_release_version  = \"${recommended}\""
+  echo "  karpenter_ami_alias_version = \"${recommended_alias}\""
+
+  if $SHOW_ALL; then
+    # Fetch all published releases from SSM
+    all_releases=$($AWS ssm get-parameters-by-path \
+      --path "${ssm_base}/" --recursive \
+      --query 'Parameters[*].[Name,Value]' --output text \
+      | awk -F'\t' '$1 ~ /\/release_version$/ && $1 !~ /\/recommended\// {print $2}' \
+      | sort -V)
+
+    echo "  Available releases:"
+    while IFS= read -r ver; do
+      marker=""
+      [[ "$ver" == "$current" ]] && marker=" <- current"
+      [[ "$ver" == "$recommended" ]] && marker="${marker} <- recommended"
+      # Check if newer than recommended
+      if [[ "$ver" != "$recommended" ]] && [[ "$(printf '%s\n%s' "$recommended" "$ver" | sort -V | tail -1)" == "$ver" ]]; then
+        marker="${marker} <- NEWER THAN RECOMMENDED"
+      fi
+      echo "    ${ver}${marker}"
+    done <<< "$all_releases"
+    echo
+  fi
+done
