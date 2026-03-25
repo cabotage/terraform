@@ -75,10 +75,10 @@ output "tailscale_setup" {
   description = "Tailscale configuration guide: trust credential settings and ACL snippet (null when disabled)"
   value = var.enable_tailscale_subnet_router ? {
     trust_credential = {
-      type       = "OpenID Connect"
-      issuer     = "AWS"
-      subject    = aws_iam_role.tailscale_subnet_router[0].arn
-      scopes     = ["Devices > Core: Write", "Devices > Routes: Write", "Keys > Auth Keys: Write"]
+      type    = "OpenID Connect"
+      issuer  = "AWS"
+      subject = aws_iam_role.tailscale_subnet_router[0].arn
+      scopes  = ["Devices > Core: Write", "Devices > Routes: Write", "Keys > Auth Keys: Write"]
     }
     acl_snippet = <<-EOT
       "autoApprovers": {
@@ -96,6 +96,16 @@ output "tailscale_setup" {
       nameserver = cidrhost(var.vpc_cidr, 2)
     }
   } : null
+}
+
+output "karpenter_node_iam_role_arn" {
+  description = "IAM role ARN for Karpenter-launched nodes (empty if disabled)"
+  value       = var.enable_karpenter ? module.karpenter[0].node_iam_role_arn : ""
+}
+
+output "karpenter_queue_name" {
+  description = "SQS queue name for Karpenter interruption handling (empty if disabled)"
+  value       = var.enable_karpenter ? module.karpenter[0].queue_name : ""
 }
 
 output "vpc_cidr" {

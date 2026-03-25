@@ -78,6 +78,12 @@ variable "node_groups" {
   }
 }
 
+variable "node_group_release_version" {
+  description = "EKS AMI release version to pin for managed node groups (e.g. '1.35.2-20260216', empty string uses latest)"
+  type        = string
+  default     = ""
+}
+
 variable "node_group_disk_size" {
   description = "Root EBS volume size in GiB for EKS managed node groups"
   type        = number
@@ -266,6 +272,62 @@ variable "tailscale_subnet_router_hostname" {
   description = "Tailscale hostname prefix for the subnet router nodes (instance ID is appended automatically)"
   type        = string
   default     = ""
+}
+
+# --- Karpenter ---
+
+variable "enable_karpenter" {
+  description = "Deploy Karpenter for node autoscaling (standard and preview pools)"
+  type        = bool
+  default     = false
+}
+
+variable "karpenter_chart_version" {
+  description = "Helm chart version for Karpenter"
+  type        = string
+  default     = "1.10.0"
+}
+
+variable "karpenter_ami_alias_version" {
+  description = "AL2023 AMI alias version for Karpenter EC2NodeClass (e.g. 'v20240807' to pin, or 'latest' for non-production)"
+  type        = string
+  default     = "latest"
+}
+
+variable "karpenter_standard_instance_families" {
+  description = "Instance families for the standard Karpenter node pool"
+  type        = list(string)
+  default     = ["m8g"]
+}
+
+variable "karpenter_standard_instance_sizes" {
+  description = "Allowed instance sizes for the standard Karpenter node pool"
+  type        = list(string)
+  default     = ["large", "xlarge", "2xlarge", "4xlarge"]
+}
+
+variable "karpenter_standard_cpu_limit" {
+  description = "Maximum total vCPUs the standard node pool can provision"
+  type        = number
+  default     = 100
+}
+
+variable "karpenter_preview_instance_families" {
+  description = "Instance families for the preview Karpenter node pool"
+  type        = list(string)
+  default     = ["m8g"]
+}
+
+variable "karpenter_preview_instance_sizes" {
+  description = "Allowed instance sizes for the preview Karpenter node pool"
+  type        = list(string)
+  default     = ["medium", "large", "xlarge", "2xlarge"]
+}
+
+variable "karpenter_preview_cpu_limit" {
+  description = "Maximum total vCPUs the preview node pool can provision"
+  type        = number
+  default     = 50
 }
 
 variable "tags" {
