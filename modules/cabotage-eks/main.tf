@@ -98,6 +98,18 @@ module "eks" {
   tags = local.tags
 }
 
+resource "aws_security_group_rule" "node_ingress_from_fargate" {
+  count = var.enable_fargate ? 1 : 0
+
+  description              = "Allow all traffic from Fargate pods (EKS-managed cluster SG)"
+  type                     = "ingress"
+  protocol                 = "-1"
+  from_port                = 0
+  to_port                  = 0
+  security_group_id        = module.eks.node_security_group_id
+  source_security_group_id = module.eks.cluster_primary_security_group_id
+}
+
 # --- Vault KMS Auto-Unseal ---
 
 resource "aws_kms_key" "vault_unseal" {
@@ -262,6 +274,19 @@ resource "helm_release" "node_local_dns" {
   version    = var.node_local_dns_chart_version
 
   values = [yamlencode({
+    affinity = {
+      nodeAffinity = {
+        requiredDuringSchedulingIgnoredDuringExecution = {
+          nodeSelectorTerms = [{
+            matchExpressions = [{
+              key      = "eks.amazonaws.com/compute-type"
+              operator = "NotIn"
+              values   = ["fargate"]
+            }]
+          }]
+        }
+      }
+    }
     config = {
       localDns = "169.254.20.10"
       bindIp   = true
@@ -289,6 +314,70 @@ resource "helm_release" "node_local_dns" {
       ]) : ""
     }
   })]
+
+  depends_on = [module.eks]
+}
+
+# --- Fargate ---
+
+data "aws_caller_identity" "current" {}
+
+resource "aws_iam_role" "fargate_pod_execution" {
+  count = var.enable_fargate ? 1 : 0
+
+  name = "${var.cluster_name}-fargate-pod-execution"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "eks-fargate-pods.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+        Condition = {
+          ArnLike = {
+            "aws:SourceArn" = "arn:aws:eks:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:fargateprofile/${var.cluster_name}/*"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "fargate_pod_execution" {
+  count = var.enable_fargate ? 1 : 0
+
+  role       = aws_iam_role.fargate_pod_execution[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy"
+}
+
+resource "aws_eks_fargate_profile" "workloads" {
+  count = var.enable_fargate ? 1 : 0
+
+  cluster_name           = module.eks.cluster_name
+  fargate_profile_name   = "${var.cluster_name}-workloads"
+  pod_execution_role_arn = aws_iam_role.fargate_pod_execution[0].arn
+  subnet_ids             = module.vpc.private_subnets
+
+  selector {
+    namespace = var.fargate_namespace
+  }
+
+  tags = local.tags
+}
+
+resource "kubernetes_runtime_class_v1" "fargate" {
+  count = var.enable_fargate ? 1 : 0
+
+  metadata {
+    name = "fargate"
+  }
+
+  handler = "fargate"
 
   depends_on = [module.eks]
 }

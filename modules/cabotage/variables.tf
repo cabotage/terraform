@@ -324,7 +324,27 @@ variable "s3_storage" {
   default = null
 }
 
+# --- Fargate ---
+
+variable "fargate_enabled" {
+  description = "Enable Fargate for preview deployments"
+  type        = bool
+  default     = false
+}
+
+variable "fargate_preview_namespace" {
+  description = "Kubernetes namespace where Fargate preview workloads run"
+  type        = string
+  default     = "preview"
+}
+
 # --- Resident Monitoring ---
+
+variable "enable_fargate_logging" {
+  description = "Deploy a dedicated Alloy instance to collect logs from Fargate pods (labeled fargate-pod.cabotage.io=true) via the Kubernetes API"
+  type        = bool
+  default     = false
+}
 
 variable "loki_backend_replicas" {
   description = "Number of replicas for resident-loki-backend"

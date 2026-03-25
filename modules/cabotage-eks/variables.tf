@@ -84,6 +84,18 @@ variable "node_group_disk_size" {
   default     = 20
 }
 
+variable "enable_fargate" {
+  description = "Enable Fargate support: creates a pod execution role, Fargate profile, and 'fargate' RuntimeClass"
+  type        = bool
+  default     = false
+}
+
+variable "fargate_namespace" {
+  description = "Kubernetes namespace whose pods will be scheduled on Fargate"
+  type        = string
+  default     = "cabotage-workloads"
+}
+
 variable "gp3_as_default_storage_class" {
   description = "Set the gp3 StorageClass as the cluster default"
   type        = bool

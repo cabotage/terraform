@@ -51,6 +51,11 @@ output "s3_storage" {
   } : null
 }
 
+output "fargate_pod_execution_role_arn" {
+  description = "ARN of the Fargate pod execution role (empty if disabled)"
+  value       = var.enable_fargate ? aws_iam_role.fargate_pod_execution[0].arn : ""
+}
+
 output "node_group_autoscaling_group_names" {
   description = "Map of node group names to their autoscaling group names"
   value       = { for name, group in module.eks.eks_managed_node_groups : name => group.node_group_autoscaling_group_names }

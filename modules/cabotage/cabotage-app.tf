@@ -39,8 +39,9 @@ locals {
     CABOTAGE_SECURITY_TWO_FACTOR_LOGIN_VALIDITY     = var.security_two_factor_login_validity
     CABOTAGE_SHELLZ_ENABLED                         = "True"
     CABOTAGE_SIDECAR_IMAGE                          = "cabotage/sidecar:4"
-    CABOTAGE_TAILSCALE_OPERATOR_ENABLED              = var.enable_tailscale ? "True" : "False"
-    CABOTAGE_TAILSCALE_TAG_PREFIX                    = var.tailscale_tag_prefix
+    CABOTAGE_FARGATE_PREVIEW_NAMESPACE              = var.fargate_enabled ? var.fargate_preview_namespace : "None"
+    CABOTAGE_TAILSCALE_OPERATOR_ENABLED             = var.enable_tailscale ? "True" : "False"
+    CABOTAGE_TAILSCALE_TAG_PREFIX                   = var.tailscale_tag_prefix
     CABOTAGE_VAULT_LEASE_PATH                       = "/var/run/secrets/vault"
     CABOTAGE_VAULT_PREFIX                           = "cabotage-secrets"
     CABOTAGE_VAULT_SIGNING_KEY                      = "registry"
