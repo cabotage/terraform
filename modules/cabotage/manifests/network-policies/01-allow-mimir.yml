@@ -19,12 +19,14 @@ spec:
       ports:
         - port: 8080
           protocol: TCP
-    # Mimir internal: gRPC + memberlist
+    # Mimir internal: HTTP + gRPC + memberlist
     - from:
         - podSelector:
             matchLabels:
               app: resident-mimir
       ports:
+        - port: 8080
+          protocol: TCP
         - port: 9095
           protocol: TCP
         - port: 7946

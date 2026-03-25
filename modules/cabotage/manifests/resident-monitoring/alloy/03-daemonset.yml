@@ -22,6 +22,9 @@ spec:
       - effect: NoSchedule
         key: node-role.kubernetes.io/control-plane
         operator: Exists
+      - effect: NoSchedule
+        key: cabotage.dev/node-pool
+        operator: Exists
       securityContext:
         runAsUser: 0
         runAsGroup: 0

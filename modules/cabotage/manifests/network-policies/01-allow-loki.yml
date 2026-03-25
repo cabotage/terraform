@@ -19,12 +19,14 @@ spec:
       ports:
         - port: 3100
           protocol: TCP
-    # Loki internal: gRPC + memberlist
+    # Loki internal: HTTP + gRPC + memberlist
     - from:
         - podSelector:
             matchLabels:
               app: resident-loki
       ports:
+        - port: 3100
+          protocol: TCP
         - port: 9095
           protocol: TCP
         - port: 7946
