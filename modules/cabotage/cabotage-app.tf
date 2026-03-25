@@ -18,6 +18,7 @@ locals {
     CABOTAGE_EXT_SERVER_NAME                        = var.cabotage_app_hostname
     CABOTAGE_GITHUB_OAUTH_ALLOWED_ORGS              = var.github_oauth_allowed_orgs
     CABOTAGE_GITHUB_OAUTH_ONLY                      = var.github_oauth_only ? "True" : "False"
+    CABOTAGE_GVISOR                                 = var.enable_gvisor ? "True" : "False"
     CABOTAGE_INGRESS_DOMAIN                         = var.cabotage_ingress_domain
     CABOTAGE_KUBERNETES_ENABLED                     = "True"
     CABOTAGE_LOKI_URL                               = "https://resident-loki-read.cabotage.svc.cluster.local:3100"

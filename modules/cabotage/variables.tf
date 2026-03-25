@@ -63,6 +63,12 @@ variable "cluster_internal_cidrs" {
   ]
 }
 
+variable "enable_gvisor" {
+  description = "Enable gVisor runtime and metrics collection. Deploys gvisor-metrics DaemonSet and configures Alloy to scrape runsc metrics."
+  type        = bool
+  default     = false
+}
+
 # --- cert-manager ---
 
 variable "cert_manager_chart_version" {

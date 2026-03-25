@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: gvisor-metrics
+  namespace: cabotage
+  labels:
+    app: gvisor-metrics
+spec:
+  selector:
+    matchLabels:
+      app: gvisor-metrics
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: gvisor-metrics
+    spec:
+      serviceAccountName: gvisor-metrics
+      hostNetwork: true
+      hostPID: true
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Exists
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+      containers:
+      - name: metric-server
+        image: busybox:1.37
+        command:
+        - /usr/bin/runsc
+        - --root=/run/containerd/runsc/k8s.io
+        - --metric-server=0.0.0.0:1337
+        - metric-server
+        securityContext:
+          privileged: true
+        ports:
+        - containerPort: 1337
+          hostPort: 1337
+          name: metrics
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: metrics
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: metrics
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        volumeMounts:
+        - name: runsc-bin
+          mountPath: /usr/bin/runsc
+          readOnly: true
+        - name: runsc-root
+          mountPath: /run/containerd/runsc/k8s.io
+      volumes:
+      - name: runsc-bin
+        hostPath:
+          path: /usr/bin/runsc
+          type: File
+      - name: runsc-root
+        hostPath:
+          path: /run/containerd/runsc/k8s.io
+          type: Directory
