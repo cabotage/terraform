@@ -73,6 +73,17 @@ resource "kubectl_manifest" "karpenter_node_class" {
           deleteOnTermination = true
         }
       }]
+      userData = yamlencode({
+        apiVersion = "node.eks.aws/v1alpha1"
+        kind       = "NodeConfig"
+        spec = {
+          kubelet = {
+            config = {
+              serializeImagePulls = false
+            }
+          }
+        }
+      })
       tags = merge(local.tags, {
         "karpenter.sh/discovery" = var.cluster_name
       })
