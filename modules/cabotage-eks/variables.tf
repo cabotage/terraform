@@ -342,6 +342,80 @@ variable "karpenter_preview_cpu_limit" {
   default     = 50
 }
 
+# --- Pre-warm (overprovisioning) ---
+
+variable "karpenter_standard_prewarm_enabled" {
+  description = "Enable capacity reservation (pre-warm) for the standard node pool"
+  type        = bool
+  default     = false
+}
+
+variable "karpenter_standard_prewarm_replicas" {
+  description = "Number of placeholder pods for the standard node pool"
+  type        = number
+  default     = 6
+}
+
+variable "karpenter_standard_prewarm_cpu_requests" {
+  description = "CPU request per placeholder pod for the standard node pool"
+  type        = string
+  default     = "500m"
+}
+
+variable "karpenter_standard_prewarm_cpu_limits" {
+  description = "CPU limit per placeholder pod for the standard node pool"
+  type        = string
+  default     = "1000m"
+}
+
+variable "karpenter_standard_prewarm_memory_requests" {
+  description = "Memory request per placeholder pod for the standard node pool"
+  type        = string
+  default     = "1024Mi"
+}
+
+variable "karpenter_standard_prewarm_memory_limits" {
+  description = "Memory limit per placeholder pod for the standard node pool"
+  type        = string
+  default     = "1536Mi"
+}
+
+variable "karpenter_preview_prewarm_enabled" {
+  description = "Enable capacity reservation (pre-warm) for the preview node pool"
+  type        = bool
+  default     = false
+}
+
+variable "karpenter_preview_prewarm_replicas" {
+  description = "Number of placeholder pods for the preview node pool"
+  type        = number
+  default     = 6
+}
+
+variable "karpenter_preview_prewarm_cpu_requests" {
+  description = "CPU request per placeholder pod for the preview node pool"
+  type        = string
+  default     = "500m"
+}
+
+variable "karpenter_preview_prewarm_cpu_limits" {
+  description = "CPU limit per placeholder pod for the preview node pool"
+  type        = string
+  default     = "1000m"
+}
+
+variable "karpenter_preview_prewarm_memory_requests" {
+  description = "Memory request per placeholder pod for the preview node pool"
+  type        = string
+  default     = "1024Mi"
+}
+
+variable "karpenter_preview_prewarm_memory_limits" {
+  description = "Memory limit per placeholder pod for the preview node pool"
+  type        = string
+  default     = "1536Mi"
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)

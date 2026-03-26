@@ -214,3 +214,203 @@ resource "kubectl_manifest" "karpenter_node_pool_preview" {
 
   depends_on = [helm_release.karpenter]
 }
+
+# --- Pre-warm (overprovisioning) ---
+
+locals {
+  prewarm_enabled = var.enable_karpenter && (var.karpenter_standard_prewarm_enabled || var.karpenter_preview_prewarm_enabled)
+}
+
+resource "kubectl_manifest" "prewarm_namespace" {
+  count = local.prewarm_enabled ? 1 : 0
+
+  yaml_body = yamlencode({
+    apiVersion = "v1"
+    kind       = "Namespace"
+    metadata = {
+      name   = "overprovisioning"
+      labels = local.tags
+    }
+  })
+
+  depends_on = [helm_release.karpenter]
+}
+
+resource "kubectl_manifest" "prewarm_priority_class" {
+  count = local.prewarm_enabled ? 1 : 0
+
+  yaml_body = yamlencode({
+    apiVersion = "scheduling.k8s.io/v1"
+    kind       = "PriorityClass"
+    metadata = {
+      name = "placeholder"
+    }
+    value         = -1000
+    globalDefault = false
+    description   = "Negative priority for placeholder pods to enable overprovisioning."
+  })
+
+  depends_on = [helm_release.karpenter]
+}
+
+resource "kubectl_manifest" "prewarm_standard" {
+  count = var.enable_karpenter && var.karpenter_standard_prewarm_enabled ? 1 : 0
+
+  yaml_body = yamlencode({
+    apiVersion = "apps/v1"
+    kind       = "Deployment"
+    metadata = {
+      name      = "capacity-reservation-standard"
+      namespace = "overprovisioning"
+    }
+    spec = {
+      replicas = var.karpenter_standard_prewarm_replicas
+      selector = {
+        matchLabels = {
+          "app.kubernetes.io/name"     = "capacity-placeholder"
+          "app.kubernetes.io/instance" = "standard"
+        }
+      }
+      template = {
+        metadata = {
+          labels = {
+            "app.kubernetes.io/name"     = "capacity-placeholder"
+            "app.kubernetes.io/instance" = "standard"
+          }
+          annotations = {
+            "kubernetes.io/description" = "Capacity reservation for standard node pool"
+          }
+        }
+        spec = {
+          priorityClassName = "placeholder"
+          nodeSelector = {
+            "cabotage.dev/node-pool" = "standard"
+          }
+          tolerations = [{
+            key      = "cabotage.dev/node-pool"
+            value    = "standard"
+            operator = "Equal"
+            effect   = "NoSchedule"
+          }]
+          affinity = {
+            podAntiAffinity = {
+              preferredDuringSchedulingIgnoredDuringExecution = [{
+                weight = 100
+                podAffinityTerm = {
+                  labelSelector = {
+                    matchLabels = {
+                      "app.kubernetes.io/name"     = "capacity-placeholder"
+                      "app.kubernetes.io/instance" = "standard"
+                    }
+                  }
+                  topologyKey = "topology.kubernetes.io/hostname"
+                }
+              }]
+            }
+          }
+          containers = [{
+            name  = "pause"
+            image = "registry.k8s.io/pause:3.6"
+            resources = {
+              requests = {
+                cpu    = var.karpenter_standard_prewarm_cpu_requests
+                memory = var.karpenter_standard_prewarm_memory_requests
+              }
+              limits = {
+                cpu    = var.karpenter_standard_prewarm_cpu_limits
+                memory = var.karpenter_standard_prewarm_memory_limits
+              }
+            }
+          }]
+        }
+      }
+    }
+  })
+
+  depends_on = [
+    kubectl_manifest.prewarm_namespace,
+    kubectl_manifest.prewarm_priority_class,
+    kubectl_manifest.karpenter_node_pool_standard,
+  ]
+}
+
+resource "kubectl_manifest" "prewarm_preview" {
+  count = var.enable_karpenter && var.karpenter_preview_prewarm_enabled ? 1 : 0
+
+  yaml_body = yamlencode({
+    apiVersion = "apps/v1"
+    kind       = "Deployment"
+    metadata = {
+      name      = "capacity-reservation-preview"
+      namespace = "overprovisioning"
+    }
+    spec = {
+      replicas = var.karpenter_preview_prewarm_replicas
+      selector = {
+        matchLabels = {
+          "app.kubernetes.io/name"     = "capacity-placeholder"
+          "app.kubernetes.io/instance" = "preview"
+        }
+      }
+      template = {
+        metadata = {
+          labels = {
+            "app.kubernetes.io/name"     = "capacity-placeholder"
+            "app.kubernetes.io/instance" = "preview"
+          }
+          annotations = {
+            "kubernetes.io/description" = "Capacity reservation for preview node pool"
+          }
+        }
+        spec = {
+          priorityClassName = "placeholder"
+          nodeSelector = {
+            "cabotage.dev/node-pool" = "preview"
+          }
+          tolerations = [{
+            key      = "cabotage.dev/node-pool"
+            value    = "preview"
+            operator = "Equal"
+            effect   = "NoSchedule"
+          }]
+          affinity = {
+            podAntiAffinity = {
+              preferredDuringSchedulingIgnoredDuringExecution = [{
+                weight = 100
+                podAffinityTerm = {
+                  labelSelector = {
+                    matchLabels = {
+                      "app.kubernetes.io/name"     = "capacity-placeholder"
+                      "app.kubernetes.io/instance" = "preview"
+                    }
+                  }
+                  topologyKey = "topology.kubernetes.io/hostname"
+                }
+              }]
+            }
+          }
+          containers = [{
+            name  = "pause"
+            image = "registry.k8s.io/pause:3.6"
+            resources = {
+              requests = {
+                cpu    = var.karpenter_preview_prewarm_cpu_requests
+                memory = var.karpenter_preview_prewarm_memory_requests
+              }
+              limits = {
+                cpu    = var.karpenter_preview_prewarm_cpu_limits
+                memory = var.karpenter_preview_prewarm_memory_limits
+              }
+            }
+          }]
+        }
+      }
+    }
+  })
+
+  depends_on = [
+    kubectl_manifest.prewarm_namespace,
+    kubectl_manifest.prewarm_priority_class,
+    kubectl_manifest.karpenter_node_pool_preview,
+  ]
+}
