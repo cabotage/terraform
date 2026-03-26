@@ -64,6 +64,15 @@ resource "kubectl_manifest" "karpenter_node_class" {
           "karpenter.sh/discovery" = var.cluster_name
         }
       }]
+      blockDeviceMappings = [{
+        deviceName = "/dev/xvda"
+        ebs = {
+          volumeType          = "gp3"
+          volumeSize          = var.karpenter_ebs_volume_size
+          throughput          = var.karpenter_ebs_throughput
+          deleteOnTermination = true
+        }
+      }]
       tags = merge(local.tags, {
         "karpenter.sh/discovery" = var.cluster_name
       })

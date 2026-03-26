@@ -294,6 +294,18 @@ variable "karpenter_ami_alias_version" {
   default     = "latest"
 }
 
+variable "karpenter_ebs_volume_size" {
+  description = "Root volume size for Karpenter nodes (e.g. '32Gi')."
+  type        = string
+  default     = "32Gi"
+}
+
+variable "karpenter_ebs_throughput" {
+  description = "EBS throughput (MB/s) for Karpenter node root volumes."
+  type        = number
+  default     = 125
+}
+
 variable "karpenter_standard_instance_families" {
   description = "Instance families for the standard Karpenter node pool"
   type        = list(string)
