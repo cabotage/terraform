@@ -262,6 +262,12 @@ variable "tailscale_subnet_router_tags" {
   default     = ["tag:subnet-router"]
 }
 
+variable "tailscale_subnet_router_ami_id" {
+  description = "AMI ID for the Tailscale subnet router instances (empty string uses latest AL2023 ARM)"
+  type        = string
+  default     = ""
+}
+
 variable "tailscale_subnet_router_instance_type" {
   description = "EC2 instance type for the Tailscale subnet router"
   type        = string

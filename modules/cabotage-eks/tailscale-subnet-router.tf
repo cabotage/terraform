@@ -50,7 +50,7 @@ resource "aws_iam_role_policy" "tailscale_operator_sts" {
 # --- Tailscale Subnet Router (EC2) ---
 
 data "aws_ami" "amazon_linux_2023_arm" {
-  count       = var.enable_tailscale_subnet_router ? 1 : 0
+  count       = var.enable_tailscale_subnet_router && var.tailscale_subnet_router_ami_id == "" ? 1 : 0
   most_recent = true
   owners      = ["amazon"]
 
@@ -182,7 +182,7 @@ resource "aws_launch_template" "tailscale_subnet_router" {
   count = var.enable_tailscale_subnet_router ? 1 : 0
 
   name_prefix   = "${var.cluster_name}-ts-sr-"
-  image_id      = data.aws_ami.amazon_linux_2023_arm[0].id
+  image_id      = var.tailscale_subnet_router_ami_id != "" ? var.tailscale_subnet_router_ami_id : data.aws_ami.amazon_linux_2023_arm[0].id
   instance_type = var.tailscale_subnet_router_instance_type
 
   iam_instance_profile {
