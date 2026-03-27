@@ -7,7 +7,7 @@
 
 locals {
   cabotage_app_config_data = {
-    CABOTAGE_CLUSTER_INTERNAL_CIDRS                  = join(",", var.cluster_internal_cidrs)
+    CABOTAGE_CLUSTER_INTERNAL_CIDRS                 = join(",", var.cluster_internal_cidrs)
     CABOTAGE_CONSUL_HOST                            = "consul.cabotage.svc.cluster.local"
     CABOTAGE_CONSUL_PORT                            = "8443"
     CABOTAGE_CONSUL_PREFIX                          = "cabotage"
@@ -24,7 +24,8 @@ locals {
     CABOTAGE_LOKI_VERIFY                            = "/var/run/secrets/cabotage.io/ca.crt"
     CABOTAGE_MIMIR_URL                              = "https://resident-mimir-read.cabotage.svc.cluster.local:8080"
     CABOTAGE_MIMIR_VERIFY                           = "/var/run/secrets/cabotage.io/ca.crt"
-    CABOTAGE_NETWORK_POLICIES_ENABLED                = "True"
+    CABOTAGE_NETWORK_POLICIES_ENABLED               = "True"
+    CABOTAGE_OMNIBUS_BUILDS                         = "True"
     CABOTAGE_PROXY_FIX_NUM_PROXIES                  = tostring(var.proxy_fix_num_proxies)
     CABOTAGE_REGISTRY                               = "registry.${var.cabotage_ingress_domain}"
     CABOTAGE_REGISTRY_BUILD                         = "registry.${var.cabotage_ingress_domain}"
@@ -39,8 +40,8 @@ locals {
     CABOTAGE_SECURITY_TWO_FACTOR_LOGIN_VALIDITY     = var.security_two_factor_login_validity
     CABOTAGE_SHELLZ_ENABLED                         = "True"
     CABOTAGE_SIDECAR_IMAGE                          = "cabotage/sidecar:4"
-    CABOTAGE_TAILSCALE_OPERATOR_ENABLED              = var.enable_tailscale ? "True" : "False"
-    CABOTAGE_TAILSCALE_TAG_PREFIX                    = var.tailscale_tag_prefix
+    CABOTAGE_TAILSCALE_OPERATOR_ENABLED             = var.enable_tailscale ? "True" : "False"
+    CABOTAGE_TAILSCALE_TAG_PREFIX                   = var.tailscale_tag_prefix
     CABOTAGE_VAULT_LEASE_PATH                       = "/var/run/secrets/vault"
     CABOTAGE_VAULT_PREFIX                           = "cabotage-secrets"
     CABOTAGE_VAULT_SIGNING_KEY                      = "registry"
@@ -300,7 +301,7 @@ resource "kubectl_manifest" "cabotage_app_ingress" {
 }
 
 resource "kubectl_manifest" "cabotage_app_ingress_funnel" {
-  count     = var.enable_tailscale && var.enable_tailscale_ingress ? 1 : 0
+  count = var.enable_tailscale && var.enable_tailscale_ingress ? 1 : 0
   yaml_body = templatefile("${path.module}/manifests/cabotage-app/05-ingress-funnel.yml.tftpl", {
     hostname = var.cabotage_tailscale_hostname
   })

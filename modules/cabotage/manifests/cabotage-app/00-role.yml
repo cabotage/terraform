@@ -66,11 +66,13 @@ rules:
       - get
       - list
       - create
+      - update
       - patch
       - delete
     apiGroups:
       - batch
     resources:
+      - cronjobs
       - jobs
       - jobs/status
   - verbs:

@@ -17,8 +17,8 @@ resource "kubernetes_namespace_v1" "tailscale" {
 resource "helm_release" "tailscale_operator" {
   count = var.enable_tailscale ? 1 : 0
 
-  name      = "tailscale-operator"
-  namespace = "tailscale"
+  name       = "tailscale-operator"
+  namespace  = "tailscale"
   repository = "https://pkgs.tailscale.com/helmcharts"
   chart      = "tailscale-operator"
   version    = var.tailscale_operator_chart_version
@@ -35,7 +35,7 @@ resource "helm_release" "tailscale_operator" {
     oauth = var.tailscale_oauth_client_secret != "" ? {
       clientId     = var.tailscale_oauth_client_id
       clientSecret = var.tailscale_oauth_client_secret
-    } : {
+      } : {
       clientId = var.tailscale_workload_identity_client_id
       audience = var.tailscale_workload_identity_audience
     }
