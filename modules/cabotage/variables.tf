@@ -111,6 +111,24 @@ variable "cabotage_app_image" {
   default     = "ghcr.io/cabotage/cabotage-app:latest"
 }
 
+variable "enable_karpenter" {
+  description = "Whether Karpenter is enabled — configures node pool tolerations for tenant workloads"
+  type        = bool
+  default     = false
+}
+
+variable "karpenter_standard_pool_name" {
+  description = "Name of the Karpenter node pool for non-ephemeral workloads"
+  type        = string
+  default     = "standard"
+}
+
+variable "karpenter_preview_pool_name" {
+  description = "Name of the Karpenter node pool for ephemeral workloads"
+  type        = string
+  default     = "preview"
+}
+
 variable "cabotage_app_hostname" {
   description = "Public hostname for the cabotage web app ingress"
   type        = string

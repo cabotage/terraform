@@ -6,7 +6,7 @@
 # Configure script patches DB/Redis/S3 URIs and runs DB migrations.
 
 locals {
-  cabotage_app_config_data = {
+  cabotage_app_config_data = merge({
     CABOTAGE_CLUSTER_INTERNAL_CIDRS                 = join(",", var.cluster_internal_cidrs)
     CABOTAGE_CONSUL_HOST                            = "consul.cabotage.svc.cluster.local"
     CABOTAGE_CONSUL_PORT                            = "8443"
@@ -50,7 +50,10 @@ locals {
     CABOTAGE_VAULT_URL                              = "https://vault.cabotage.svc.cluster.local"
     CABOTAGE_VAULT_VERIFY                           = "/var/run/secrets/cabotage.io/ca.crt"
     FLASK_APP                                       = "cabotage.server.wsgi"
-  }
+    }, var.enable_karpenter ? {
+    CABOTAGE_PREVIEW_POOL  = var.karpenter_preview_pool_name
+    CABOTAGE_STANDARD_POOL = var.karpenter_standard_pool_name
+  } : {})
   cabotage_app_config_hash = sha256(jsonencode(local.cabotage_app_config_data))
 }
 
