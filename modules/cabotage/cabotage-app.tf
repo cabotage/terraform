@@ -39,7 +39,7 @@ locals {
     CABOTAGE_SECURITY_TWO_FACTOR_ALWAYS_VALIDATE    = var.security_two_factor_always_validate ? "True" : "False"
     CABOTAGE_SECURITY_TWO_FACTOR_LOGIN_VALIDITY     = var.security_two_factor_login_validity
     CABOTAGE_SHELLZ_ENABLED                         = "True"
-    CABOTAGE_SIDECAR_IMAGE                          = "cabotage/sidecar:4"
+    CABOTAGE_SIDECAR_IMAGE                          = "ghcr.io/cabotage/containers/sidecar-rs:1.0"
     CABOTAGE_TAILSCALE_OPERATOR_ENABLED             = var.enable_tailscale ? "True" : "False"
     CABOTAGE_TAILSCALE_TAG_PREFIX                   = var.tailscale_tag_prefix
     CABOTAGE_VAULT_LEASE_PATH                       = "/var/run/secrets/vault"

@@ -21,7 +21,7 @@ spec:
       serviceAccountName: enrollment-operator
       initContainers:
         - name: cabotage-sidecar
-          image: cabotage/sidecar:4.1
+          image: ghcr.io/cabotage/containers/sidecar-rs:1.0
           restartPolicy: Always
           args:
             - "kube-login-and-maintain"
