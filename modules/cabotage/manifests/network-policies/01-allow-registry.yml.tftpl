@@ -21,3 +21,12 @@ spec:
       ports:
         - port: 5000
           protocol: TCP
+    # Build jobs pushing images to the registry (from tenant namespaces)
+    - from:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              build-job.cabotage.io: "true"
+      ports:
+        - port: 5000
+          protocol: TCP

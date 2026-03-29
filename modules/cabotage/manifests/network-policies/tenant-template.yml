@@ -126,6 +126,17 @@ spec:
       ports:
         - port: 8443
           protocol: TCP
+    # Registry — build jobs push images
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cabotage
+          podSelector:
+            matchLabels:
+              app: registry
+      ports:
+        - port: 5000
+          protocol: TCP
     # Intra-namespace (pods talking to each other)
     - to:
         - podSelector: {}
