@@ -146,7 +146,7 @@ resource "kubectl_manifest" "karpenter_node_pool_standard" {
       }
       disruption = {
         consolidationPolicy = "WhenEmptyOrUnderutilized"
-        consolidateAfter    = "1m"
+        consolidateAfter    = "5m"
       }
     }
   })
@@ -207,7 +207,7 @@ resource "kubectl_manifest" "karpenter_node_pool_preview" {
       }
       disruption = {
         consolidationPolicy = "WhenEmptyOrUnderutilized"
-        consolidateAfter    = "30s"
+        consolidateAfter    = "5m"
       }
     }
   })
