@@ -100,7 +100,10 @@ resource "kubectl_manifest" "netpol_default_deny_builds" {
 }
 
 resource "kubectl_manifest" "netpol_allow_builds_egress" {
-  yaml_body = file("${path.module}/manifests/network-policies/01-allow-builds-egress.yml")
+  yaml_body = templatefile("${path.module}/manifests/network-policies/01-allow-builds-egress.yml.tftpl", {
+    traefik_host_network = var.traefik_host_network
+    node_cidr            = var.node_cidr
+  })
 
   depends_on = [kubernetes_namespace_v1.cabotage_tenant_builds]
 }

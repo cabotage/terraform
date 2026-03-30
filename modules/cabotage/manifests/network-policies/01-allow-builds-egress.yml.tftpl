@@ -26,6 +26,12 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: traefik
+%{ if traefik_host_network && node_cidr != "" ~}
+        # Traefik uses hostNetwork — after DNAT the destination is a
+        # node IP, not a pod IP in the traefik namespace
+        - ipBlock:
+            cidr: ${node_cidr}
+%{ endif ~}
       ports:
         - port: 443
           protocol: TCP
