@@ -139,6 +139,19 @@ resource "null_resource" "sign_intermediate_cas" {
   ]
 }
 
+# --- Cabotage CA in tenant-builds namespace ---
+
+resource "kubernetes_config_map_v1" "builds_cabotage_ca" {
+  metadata {
+    name      = "cabotage-ca"
+    namespace = kubernetes_namespace_v1.cabotage_tenant_builds.metadata[0].name
+  }
+
+  data = {
+    "ca.crt" = data.local_file.root_ca_cert.content
+  }
+}
+
 # --- ClusterIssuers ---
 
 resource "kubectl_manifest" "certificate_approver_ca_issuer" {

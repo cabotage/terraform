@@ -91,6 +91,20 @@ resource "kubectl_manifest" "netpol_allow_loki" {
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
+# --- cabotage-tenant-builds namespace ---
+
+resource "kubectl_manifest" "netpol_default_deny_builds" {
+  yaml_body = file("${path.module}/manifests/network-policies/00-default-deny-builds.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage_tenant_builds]
+}
+
+resource "kubectl_manifest" "netpol_allow_builds_egress" {
+  yaml_body = file("${path.module}/manifests/network-policies/01-allow-builds-egress.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage_tenant_builds]
+}
+
 # --- tailscale namespace ---
 
 resource "kubectl_manifest" "netpol_default_deny_tailscale" {

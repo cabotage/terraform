@@ -7,6 +7,12 @@ resource "kubernetes_namespace_v1" "cabotage" {
   }
 }
 
+resource "kubernetes_namespace_v1" "cabotage_tenant_builds" {
+  metadata {
+    name = "cabotage-tenant-builds"
+  }
+}
+
 # --- Destroy-time Cleanup ---
 # Dependency chain (create order):
 #   namespace + CRD → namespace_cleanup → operator_deployment → enrollments
