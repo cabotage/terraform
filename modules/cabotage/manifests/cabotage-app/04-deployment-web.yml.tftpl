@@ -187,6 +187,18 @@ spec:
                   name: cabotage-github-app
                   key: client-secret
                   optional: true
+            - name: CABOTAGE_DOCKERHUB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: cabotage-dockerhub
+                  key: username
+                  optional: true
+            - name: CABOTAGE_DOCKERHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cabotage-dockerhub
+                  key: token
+                  optional: true
           volumeMounts:
             - name: vault-secrets
               mountPath: /var/run/secrets/vault

@@ -225,6 +225,37 @@ resource "null_resource" "cabotage_github_app_secret" {
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
+# --- DockerHub Credentials Secret ---
+
+moved {
+  from = null_resource.cabotage_dockerhub_secret[0]
+  to   = null_resource.cabotage_dockerhub_secret
+}
+
+resource "null_resource" "cabotage_dockerhub_secret" {
+  triggers = {
+    secret_name = "cabotage-dockerhub"
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      if [ ! -f "${local.secrets_dir}/dockerhub-username" ] || [ ! -f "${local.secrets_dir}/dockerhub-token" ]; then
+        echo "DockerHub secret files not found in ${local.secrets_dir}, skipping."
+        exit 0
+      fi
+      USERNAME=$(cat "${local.secrets_dir}/dockerhub-username" | tr -d '[:space:]')
+      TOKEN=$(cat "${local.secrets_dir}/dockerhub-token" | tr -d '[:space:]')
+      kubectl --context ${var.kube_context} create secret generic cabotage-dockerhub \
+        --namespace ${kubernetes_namespace_v1.cabotage.metadata[0].name} \
+        --from-literal=username="$USERNAME" \
+        --from-literal=token="$TOKEN" \
+        --dry-run=client -o yaml | kubectl --context ${var.kube_context} apply -f -
+    EOT
+  }
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
 # --- Deployments ---
 
 resource "kubectl_manifest" "cabotage_app_deployment_web" {
