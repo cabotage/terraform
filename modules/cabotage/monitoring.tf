@@ -52,6 +52,21 @@ resource "kubectl_manifest" "alloy_daemonset" {
   ]
 }
 
+resource "null_resource" "alloy_configmap_rollout" {
+  lifecycle {
+    replace_triggered_by = [kubectl_manifest.alloy_configmap]
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      kubectl --context ${var.kube_context} rollout restart -n cabotage daemonset/resident-alloy
+      kubectl --context ${var.kube_context} rollout status -n cabotage daemonset/resident-alloy --timeout=300s
+    EOT
+  }
+
+  depends_on = [kubectl_manifest.alloy_daemonset]
+}
+
 # --- Loki ---
 
 resource "kubectl_manifest" "loki_certificate" {
@@ -386,6 +401,48 @@ resource "kubectl_manifest" "mimir_statefulset_standalone" {
     null_resource.ca_admission_webhook_ready,
     null_resource.rustfs_create_buckets,
   ]
+}
+
+resource "null_resource" "mimir_configmap_rollout_standalone" {
+  count = var.mimir_standalone ? 1 : 0
+
+  lifecycle {
+    replace_triggered_by = [
+      kubectl_manifest.mimir_configmap,
+      kubectl_manifest.mimir_configmap_rules,
+      kubectl_manifest.mimir_configmap_alertmanager,
+    ]
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      kubectl --context ${var.kube_context} rollout restart -n cabotage statefulset/resident-mimir-standalone
+      kubectl --context ${var.kube_context} rollout status -n cabotage statefulset/resident-mimir-standalone --timeout=300s
+    EOT
+  }
+
+  depends_on = [kubectl_manifest.mimir_statefulset_standalone]
+}
+
+resource "null_resource" "mimir_configmap_rollout_backend" {
+  count = var.mimir_standalone ? 0 : 1
+
+  lifecycle {
+    replace_triggered_by = [
+      kubectl_manifest.mimir_configmap,
+      kubectl_manifest.mimir_configmap_rules,
+      kubectl_manifest.mimir_configmap_alertmanager,
+    ]
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      kubectl --context ${var.kube_context} rollout restart -n cabotage statefulset/resident-mimir-backend
+      kubectl --context ${var.kube_context} rollout status -n cabotage statefulset/resident-mimir-backend --timeout=300s
+    EOT
+  }
+
+  depends_on = [kubectl_manifest.mimir_statefulset_backend]
 }
 
 resource "kubectl_manifest" "mimir_service_backend" {

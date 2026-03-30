@@ -16,6 +16,39 @@ data:
           - record: traefik:router_request_duration_seconds_bucket:rate5m
             expr: sum by (le, service) (rate(traefik_router_request_duration_seconds_bucket[5m]))
 
+          - record: traefik:router_request_duration_seconds:p99_1m
+            expr: histogram_quantile(0.99, traefik:router_request_duration_seconds_bucket:rate1m)
+
+          - alert: TraefikHighLatency
+            expr: |
+              (
+                traefik:router_request_duration_seconds:p99_1m > 5
+              ) and on (service) (
+                traefik:router_requests:rate1m > 0.1
+              )
+            for: 2m
+            keep_firing_for: 30s
+            labels:
+              severity: warning
+            annotations:
+              summary: "High p99 latency on {{ $labels.service }}"
+              description: "Router {{ $labels.service }} has a p99 latency of {{ $value | humanizeDuration }} over the last minute."
+
+          - alert: TraefikVeryHighLatency
+            expr: |
+              (
+                traefik:router_request_duration_seconds:p99_1m > 15
+              ) and on (service) (
+                traefik:router_requests:rate1m > 0.1
+              )
+            for: 1m
+            keep_firing_for: 30s
+            labels:
+              severity: critical
+            annotations:
+              summary: "Very high p99 latency on {{ $labels.service }}"
+              description: "Router {{ $labels.service }} has a p99 latency of {{ $value | humanizeDuration }} over the last minute."
+
       - name: traefik_error_rates
         interval: 10s
         rules:
@@ -127,7 +160,7 @@ data:
               max by (namespace, deployment, label_organization, label_project, label_application, label_process) (
                 (
                   max_over_time(
-                    kube_pod_container_status_waiting_reason{reason!~"CrashLoopBackOff|ContainerCreating"}[10m]
+                    kube_pod_container_status_waiting_reason{reason!~"CrashLoopBackOff|ContainerCreating|PodInitializing"}[10m]
                   ) >= 1
                 )
                 * on (namespace, pod) group_left(deployment, label_organization, label_project, label_application, label_process)
@@ -153,3 +186,38 @@ data:
             annotations:
               summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has pods in a failed state"
               description: "A pod in deployment {{ $labels.deployment }} is in Failed or Unknown phase."
+
+          - alert: ResidentDeploymentHighRestartRate
+            expr: |
+              max by (namespace, deployment, label_organization, label_project, label_application, label_process) (
+                rate(kube_pod_container_status_restarts_total[15m])
+                * on (namespace, pod) group_left(deployment, label_organization, label_project, label_application, label_process)
+                cabotage:resident_deployment_pod
+              ) > 0.0022
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has a high container restart rate"
+              description: "A container in deployment {{ $labels.deployment }} is restarting frequently without entering CrashLoopBackOff."
+
+          - alert: ResidentDeploymentReplicasUnavailable
+            expr: |
+              (
+                kube_deployment_spec_replicas
+                * on (namespace, deployment) group_left(label_organization, label_project, label_application, label_process)
+                kube_deployment_labels{label_resident_deployment_cabotage_io="true"}
+              )
+              -
+              (
+                kube_deployment_status_replicas_available
+                * on (namespace, deployment) group_left()
+                kube_deployment_labels{label_resident_deployment_cabotage_io="true"}
+              )
+              > 0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has unavailable replicas"
+              description: "Deployment {{ $labels.deployment }} has {{ $value }} fewer available replicas than desired."
