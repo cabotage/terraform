@@ -256,6 +256,30 @@ resource "null_resource" "cabotage_dockerhub_secret" {
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
+# --- Alertmanager Webhook Secret ---
+
+resource "random_password" "alertmanager_webhook_secret" {
+  length  = 48
+  special = false
+}
+
+resource "kubernetes_secret_v1" "alertmanager_webhook" {
+  metadata {
+    name      = "cabotage-alertmanager-webhook"
+    namespace = "cabotage"
+  }
+
+  data = {
+    secret = random_password.alertmanager_webhook_secret.result
+  }
+
+  lifecycle {
+    ignore_changes = [data]
+  }
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
 # --- Deployments ---
 
 resource "kubectl_manifest" "cabotage_app_deployment_web" {

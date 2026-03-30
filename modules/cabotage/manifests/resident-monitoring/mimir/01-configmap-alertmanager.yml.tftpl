@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: resident-mimir-alertmanager-config
+  namespace: cabotage
+data:
+  alertmanager.yml: |
+    route:
+      receiver: cabotage
+      group_by: [alertname, deployment, service]
+      group_wait: 5s
+      group_interval: 15s
+      repeat_interval: 15m
+    receivers:
+    - name: cabotage
+      webhook_configs:
+      - url: https://cabotage-app.cabotage.svc.cluster.local/alertmanager/webhooks
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: ${alertmanager_webhook_secret}
+          tls_config:
+            ca_file: /var/run/secrets/cabotage.io/ca.crt
+        send_resolved: true

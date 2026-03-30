@@ -199,6 +199,12 @@ spec:
                   name: cabotage-dockerhub
                   key: token
                   optional: true
+            - name: CABOTAGE_ALERTMANAGER_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cabotage-alertmanager-webhook
+                  key: secret
+                  optional: true
           volumeMounts:
             - name: vault-secrets
               mountPath: /var/run/secrets/vault

@@ -208,21 +208,6 @@ resource "kubectl_manifest" "loki_pdb" {
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
-# --- Alert Echo ---
-
-resource "kubectl_manifest" "alert_echo_deployment" {
-  yaml_body = file("${path.module}/manifests/resident-monitoring/alert-echo/00-deployment.yml")
-
-  wait_for_rollout = false
-
-  depends_on = [kubernetes_namespace_v1.cabotage]
-}
-
-resource "kubectl_manifest" "alert_echo_service" {
-  yaml_body = file("${path.module}/manifests/resident-monitoring/alert-echo/01-service.yml")
-
-  depends_on = [kubernetes_namespace_v1.cabotage]
-}
 
 # --- Kube State Metrics ---
 
@@ -317,7 +302,9 @@ resource "kubectl_manifest" "mimir_configmap_rules" {
 }
 
 resource "kubectl_manifest" "mimir_configmap_alertmanager" {
-  yaml_body = file("${path.module}/manifests/resident-monitoring/mimir/01-configmap-alertmanager.yml")
+  yaml_body = templatefile("${path.module}/manifests/resident-monitoring/mimir/01-configmap-alertmanager.yml.tftpl", {
+    alertmanager_webhook_secret = random_password.alertmanager_webhook_secret.result
+  })
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
