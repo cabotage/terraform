@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-kube-state-metrics
+  namespace: cabotage
+spec:
+  podSelector:
+    matchLabels:
+      app: resident-kube-state-metrics
+  ingress:
+    # Alloy scrapes metrics
+    - from:
+        - podSelector:
+            matchLabels:
+              app: resident-alloy
+      ports:
+        - port: 8080
+          protocol: TCP
+        - port: 8081
+          protocol: TCP

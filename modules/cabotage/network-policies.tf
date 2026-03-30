@@ -85,6 +85,18 @@ resource "kubectl_manifest" "netpol_allow_mimir" {
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
+resource "kubectl_manifest" "netpol_allow_kube_state_metrics" {
+  yaml_body = file("${path.module}/manifests/network-policies/01-allow-kube-state-metrics.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
+resource "kubectl_manifest" "netpol_allow_alert_echo" {
+  yaml_body = file("${path.module}/manifests/network-policies/01-allow-alert-echo.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
 resource "kubectl_manifest" "netpol_allow_loki" {
   yaml_body = file("${path.module}/manifests/network-policies/01-allow-loki.yml")
 

@@ -193,6 +193,22 @@ resource "kubectl_manifest" "loki_pdb" {
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
+# --- Alert Echo ---
+
+resource "kubectl_manifest" "alert_echo_deployment" {
+  yaml_body = file("${path.module}/manifests/resident-monitoring/alert-echo/00-deployment.yml")
+
+  wait_for_rollout = false
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
+resource "kubectl_manifest" "alert_echo_service" {
+  yaml_body = file("${path.module}/manifests/resident-monitoring/alert-echo/01-service.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
 # --- Kube State Metrics ---
 
 resource "kubectl_manifest" "ksm_certificate" {
@@ -365,6 +381,7 @@ resource "kubectl_manifest" "mimir_statefulset_standalone" {
     kubectl_manifest.mimir_serviceaccount,
     kubectl_manifest.mimir_configmap,
     kubectl_manifest.mimir_configmap_rules,
+    kubectl_manifest.mimir_configmap_alertmanager,
     kubectl_manifest.mimir_certificate,
     null_resource.ca_admission_webhook_ready,
     null_resource.rustfs_create_buckets,

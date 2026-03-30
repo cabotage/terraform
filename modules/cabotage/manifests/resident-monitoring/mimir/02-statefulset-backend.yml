@@ -45,7 +45,7 @@ spec:
         args:
         - -config.file=/etc/mimir/mimir.yml
         - -config.expand-env=true
-        - -target=backend
+        - -target=backend,alertmanager
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true

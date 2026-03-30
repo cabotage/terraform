@@ -7,7 +7,7 @@ data:
   alertmanager.yml: |
     route:
       receiver: alert-echo
-      group_by: [alertname, deployment]
+      group_by: [alertname, deployment, service]
       group_wait: 5s
       group_interval: 15s
       repeat_interval: 15m
