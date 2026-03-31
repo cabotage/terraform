@@ -48,3 +48,13 @@ spec:
           protocol: TCP
         - port: 8443
           protocol: TCP
+    # Mimir alertmanager sends alert webhooks
+    - from:
+        - podSelector:
+            matchLabels:
+              app: resident-mimir
+      ports:
+        - port: 443
+          protocol: TCP
+        - port: 8443
+          protocol: TCP
