@@ -83,6 +83,18 @@ module "eks" {
     for name, config in var.node_groups : name => merge({
       disk_size                                                       = var.node_group_disk_size
       }, var.node_group_release_version != "" ? { ami_release_version = var.node_group_release_version, use_latest_ami_release_version = false } : {}, config, {
+      labels = merge(
+        lookup(config, "labels", {}),
+        lookup(config, "gvisor_enabled", false) ? { "sandbox.gvisor.dev/runtime" = "true" } : {}
+      )
+      taints = concat(
+        lookup(config, "taints", []),
+        lookup(config, "gvisor_enabled", false) ? [{
+          key    = "sandbox.gvisor.dev/runtime"
+          value  = "true"
+          effect = "NO_SCHEDULE"
+        }] : []
+      )
       cloudinit_pre_nodeadm = length(var.ingress_hairpin_domains) > 0 ? [
         {
           content_type = "text/x-shellscript"

@@ -427,3 +427,23 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+# --- gVisor ---
+
+variable "enable_gvisor" {
+  description = "Enable gVisor (runsc) as a RuntimeClass. Node groups with gvisor_enabled = true get an installer DaemonSet, label, and taint."
+  type        = bool
+  default     = false
+}
+
+variable "gvisor_runsc_image" {
+  description = "Container image containing the runsc and containerd-shim-runsc-v1 binaries (e.g. an ECR image built with gvisor-build-image.sh)"
+  type        = string
+  default     = ""
+}
+
+variable "gvisor_installer_namespace" {
+  description = "Namespace for the gVisor installer DaemonSet"
+  type        = string
+  default     = "kube-system"
+}
