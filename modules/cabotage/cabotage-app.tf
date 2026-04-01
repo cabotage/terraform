@@ -24,6 +24,8 @@ locals {
     CABOTAGE_LOKI_VERIFY                            = "/var/run/secrets/cabotage.io/ca.crt"
     CABOTAGE_MIMIR_URL                              = "https://resident-mimir-read.cabotage.svc.cluster.local:8080"
     CABOTAGE_MIMIR_VERIFY                           = "/var/run/secrets/cabotage.io/ca.crt"
+    CABOTAGE_ALERTMANAGER_URL                       = "https://resident-mimir-read.cabotage.svc.cluster.local:8080/alertmanager"
+    CABOTAGE_ALERTMANAGER_VERIFY                    = "/var/run/secrets/cabotage.io/ca.crt"
     CABOTAGE_NETWORK_POLICIES_ENABLED               = "True"
     CABOTAGE_OMNIBUS_BUILDS                         = "True"
     CABOTAGE_PROXY_FIX_NUM_PROXIES                  = tostring(var.proxy_fix_num_proxies)

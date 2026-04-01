@@ -21,3 +21,7 @@ path "cabotage-secrets/automation/*" {
 path "cabotage-secrets/buildtime/*" {
   capabilities = ["create", "read", "update", "delete", "list"]
 }
+
+path "cabotage-secrets/integrations/*" {
+  capabilities = ["create", "read", "update", "delete", "list"]
+}
