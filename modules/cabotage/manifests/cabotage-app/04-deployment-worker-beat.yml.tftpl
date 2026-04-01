@@ -24,7 +24,7 @@ spec:
       serviceAccountName: cabotage-app
       initContainers:
         - name: cabotage-sidecar
-          image: ghcr.io/cabotage/containers/sidecar-rs:1.0
+          image: ghcr.io/cabotage/containers/sidecar-rs:1.1a1
           imagePullPolicy: IfNotPresent
           restartPolicy: Always
           env:
