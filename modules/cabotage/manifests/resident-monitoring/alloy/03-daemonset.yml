@@ -65,10 +65,10 @@ spec:
         resources:
           requests:
             cpu: 100m
-            memory: 256Mi
+            memory: 768Mi
           limits:
-            cpu: 500m
-            memory: 512Mi
+            cpu: 300m
+            memory: 1024Mi
         volumeMounts:
         - name: config
           mountPath: /etc/alloy
