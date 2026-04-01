@@ -98,7 +98,7 @@ spec:
           command: ["gunicorn"]
           args:
             - "-c"
-            - "gunicorn.conf"
+            - "gunicorn.conf.py"
             - "-b"
             - "unix:/var/run/cabotage/cabotage.sock"
             - "-w"

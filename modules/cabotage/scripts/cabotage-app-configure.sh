@@ -12,7 +12,7 @@ if [ -z "$DB_USERNAME" ] || [ -z "$DB_PASSWORD" ]; then
   echo "Failed: postgres secret cabotage-app not found or missing username/password in namespace postgres"
   exit 1
 fi
-DB_URI="postgresql://${DB_USERNAME}:${DB_PASSWORD}@cabotage-rw.postgres.svc.cluster.local:5432/app?sslmode=verify-full&sslrootcert=/var/run/secrets/cabotage.io/ca.crt"
+DB_URI="postgresql+psycopg://${DB_USERNAME}:${DB_PASSWORD}@cabotage-rw.postgres.svc.cluster.local:5432/app?sslmode=verify-full&sslrootcert=/var/run/secrets/cabotage.io/ca.crt"
 
 # --- Build Redis URI ---
 echo "Fetching redis credentials..."
