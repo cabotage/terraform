@@ -24,7 +24,7 @@ locals {
     CABOTAGE_LOKI_VERIFY                            = "/var/run/secrets/cabotage.io/ca.crt"
     CABOTAGE_MIMIR_URL                              = "https://resident-mimir-read.cabotage.svc.cluster.local:8080"
     CABOTAGE_MIMIR_VERIFY                           = "/var/run/secrets/cabotage.io/ca.crt"
-    CABOTAGE_ALERTMANAGER_URL                       = "https://resident-mimir-read.cabotage.svc.cluster.local:8080/alertmanager"
+    CABOTAGE_ALERTMANAGER_URL                       = "https://resident-mimir-backend.cabotage.svc.cluster.local:8080/alertmanager"
     CABOTAGE_ALERTMANAGER_VERIFY                    = "/var/run/secrets/cabotage.io/ca.crt"
     CABOTAGE_NETWORK_POLICIES_ENABLED               = "True"
     CABOTAGE_OMNIBUS_BUILDS                         = "True"
@@ -251,6 +251,69 @@ resource "null_resource" "cabotage_dockerhub_secret" {
         --namespace ${kubernetes_namespace_v1.cabotage.metadata[0].name} \
         --from-literal=username="$USERNAME" \
         --from-literal=token="$TOKEN" \
+        --dry-run=client -o yaml | kubectl --context ${var.kube_context} apply -f -
+    EOT
+  }
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
+# --- Notifications Slack Secret ---
+
+resource "null_resource" "cabotage_notifications_slack_secret" {
+  triggers = {
+    namespace = kubernetes_namespace_v1.cabotage.metadata[0].name
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      ARGS=""
+      if [ -f "${local.secrets_dir}/slack-client-id" ]; then
+        ARGS="$ARGS --from-literal=client-id=$(cat "${local.secrets_dir}/slack-client-id" | tr -d '[:space:]')"
+      fi
+      if [ -f "${local.secrets_dir}/slack-client-secret" ]; then
+        ARGS="$ARGS --from-literal=client-secret=$(cat "${local.secrets_dir}/slack-client-secret" | tr -d '[:space:]')"
+      fi
+      if [ -z "$ARGS" ]; then
+        echo "Slack notification secret files not found in ${local.secrets_dir}, skipping."
+        exit 0
+      fi
+      kubectl --context ${var.kube_context} create secret generic cabotage-notifications-slack \
+        --namespace ${kubernetes_namespace_v1.cabotage.metadata[0].name} \
+        $ARGS \
+        --dry-run=client -o yaml | kubectl --context ${var.kube_context} apply -f -
+    EOT
+  }
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
+# --- Notifications Discord Secret ---
+
+resource "null_resource" "cabotage_notifications_discord_secret" {
+  triggers = {
+    namespace = kubernetes_namespace_v1.cabotage.metadata[0].name
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      ARGS=""
+      if [ -f "${local.secrets_dir}/discord-client-id" ]; then
+        ARGS="$ARGS --from-literal=client-id=$(cat "${local.secrets_dir}/discord-client-id" | tr -d '[:space:]')"
+      fi
+      if [ -f "${local.secrets_dir}/discord-client-secret" ]; then
+        ARGS="$ARGS --from-literal=client-secret=$(cat "${local.secrets_dir}/discord-client-secret" | tr -d '[:space:]')"
+      fi
+      if [ -f "${local.secrets_dir}/discord-bot-token" ]; then
+        ARGS="$ARGS --from-literal=bot-token=$(cat "${local.secrets_dir}/discord-bot-token" | tr -d '[:space:]')"
+      fi
+      if [ -z "$ARGS" ]; then
+        echo "Discord notification secret files not found in ${local.secrets_dir}, skipping."
+        exit 0
+      fi
+      kubectl --context ${var.kube_context} create secret generic cabotage-notifications-discord \
+        --namespace ${kubernetes_namespace_v1.cabotage.metadata[0].name} \
+        $ARGS \
         --dry-run=client -o yaml | kubectl --context ${var.kube_context} apply -f -
     EOT
   }

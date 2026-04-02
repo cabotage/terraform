@@ -168,6 +168,36 @@ spec:
                   name: cabotage-alertmanager-webhook
                   key: secret
                   optional: true
+            - name: CABOTAGE_SLACK_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cabotage-notifications-slack
+                  key: client-id
+                  optional: true
+            - name: CABOTAGE_SLACK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cabotage-notifications-slack
+                  key: client-secret
+                  optional: true
+            - name: CABOTAGE_DISCORD_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cabotage-notifications-discord
+                  key: client-id
+                  optional: true
+            - name: CABOTAGE_DISCORD_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cabotage-notifications-discord
+                  key: client-secret
+                  optional: true
+            - name: CABOTAGE_DISCORD_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cabotage-notifications-discord
+                  key: bot-token
+                  optional: true
           volumeMounts:
             - name: vault-secrets
               mountPath: /var/run/secrets/vault
