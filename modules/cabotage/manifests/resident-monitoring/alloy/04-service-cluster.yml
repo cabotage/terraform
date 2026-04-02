@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: resident-alloy-cluster
+  namespace: cabotage
+  labels:
+    app: resident-alloy
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: resident-alloy
+  ports:
+  - name: http
+    port: 12345
+    targetPort: http
+    protocol: TCP

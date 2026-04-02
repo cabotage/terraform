@@ -36,6 +36,8 @@ spec:
         - /etc/alloy/config.alloy
         - --storage.path=/tmp/alloy
         - --server.http.listen-addr=0.0.0.0:12345
+        - --cluster.enabled
+        - --cluster.join-addresses=resident-alloy-cluster.cabotage.svc.cluster.local:12345
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true

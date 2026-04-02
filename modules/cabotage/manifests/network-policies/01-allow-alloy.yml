@@ -9,6 +9,7 @@ spec:
       app: resident-alloy
   ingress:
     # Health/metrics endpoint — only from alloy itself (self-scrape)
+    # Cluster gossip for target sharding
     - from:
         - podSelector:
             matchLabels:
@@ -16,3 +17,5 @@ spec:
       ports:
         - port: 12345
           protocol: TCP
+        - port: 12345
+          protocol: UDP

@@ -189,6 +189,10 @@ data:
         ca_file = "/var/run/secrets/cabotage.io/ca.crt"
       }
 
+      clustering {
+        enabled = true
+      }
+
       forward_to = [prometheus.relabel.kube_state_metrics.receiver]
     }
 

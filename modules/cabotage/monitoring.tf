@@ -36,6 +36,12 @@ resource "kubectl_manifest" "alloy_configmap" {
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
+resource "kubectl_manifest" "alloy_cluster_service" {
+  yaml_body = file("${path.module}/manifests/resident-monitoring/alloy/04-service-cluster.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
 resource "kubectl_manifest" "alloy_daemonset" {
   yaml_body = file("${path.module}/manifests/resident-monitoring/alloy/03-daemonset.yml")
 
@@ -44,6 +50,7 @@ resource "kubectl_manifest" "alloy_daemonset" {
   depends_on = [
     kubectl_manifest.alloy_clusterrolebinding,
     kubectl_manifest.alloy_configmap,
+    kubectl_manifest.alloy_cluster_service,
     kubectl_manifest.loki_statefulset_write,
     kubectl_manifest.loki_statefulset_standalone,
     kubectl_manifest.mimir_statefulset_write,
@@ -430,6 +437,46 @@ resource "null_resource" "mimir_configmap_rollout_backend" {
   }
 
   depends_on = [kubectl_manifest.mimir_statefulset_backend]
+}
+
+resource "null_resource" "mimir_configmap_rollout_write" {
+  count = var.mimir_standalone ? 0 : 1
+
+  lifecycle {
+    replace_triggered_by = [
+      kubectl_manifest.mimir_configmap,
+      kubectl_manifest.mimir_configmap_rules,
+    ]
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      kubectl --context ${var.kube_context} rollout restart -n cabotage statefulset/resident-mimir-write
+      kubectl --context ${var.kube_context} rollout status -n cabotage statefulset/resident-mimir-write --timeout=300s
+    EOT
+  }
+
+  depends_on = [kubectl_manifest.mimir_statefulset_write]
+}
+
+resource "null_resource" "mimir_configmap_rollout_read" {
+  count = var.mimir_standalone ? 0 : 1
+
+  lifecycle {
+    replace_triggered_by = [
+      kubectl_manifest.mimir_configmap,
+      kubectl_manifest.mimir_configmap_rules,
+    ]
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      kubectl --context ${var.kube_context} rollout restart -n cabotage statefulset/resident-mimir-read
+      kubectl --context ${var.kube_context} rollout status -n cabotage statefulset/resident-mimir-read --timeout=300s
+    EOT
+  }
+
+  depends_on = [kubectl_manifest.mimir_statefulset_read]
 }
 
 resource "kubectl_manifest" "mimir_service_backend" {
