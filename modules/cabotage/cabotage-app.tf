@@ -352,6 +352,7 @@ resource "kubectl_manifest" "cabotage_app_deployment_web" {
     image       = var.cabotage_app_image
     config_hash = local.cabotage_app_config_hash
     use_s3      = local.use_s3
+    replicas    = var.cabotage_app_web_replicas
   })
 
   wait_for_rollout = false
@@ -370,6 +371,7 @@ resource "kubectl_manifest" "cabotage_app_deployment_worker" {
     image       = var.cabotage_app_image
     config_hash = local.cabotage_app_config_hash
     use_s3      = local.use_s3
+    replicas    = var.cabotage_app_worker_replicas
   })
 
   wait_for_rollout = false

@@ -134,6 +134,18 @@ variable "cabotage_app_hostname" {
   type        = string
 }
 
+variable "cabotage_app_web_replicas" {
+  description = "Number of replicas for the cabotage web deployment"
+  type        = number
+  default     = 1
+}
+
+variable "cabotage_app_worker_replicas" {
+  description = "Number of replicas for the cabotage worker deployment"
+  type        = number
+  default     = 1
+}
+
 variable "github_app_id" {
   description = "GitHub App ID for cabotage"
   type        = string
