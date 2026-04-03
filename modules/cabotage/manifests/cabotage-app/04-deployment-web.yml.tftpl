@@ -52,13 +52,21 @@ spec:
             - "--pod-ip=$(POD_IP)"
             - "--service-names=cabotage-app"
             - "--additional-dns-names=localhost"
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test -f /var/run/secrets/vault/vault-token && test -f /var/run/secrets/vault/consul-token && test -f /var/run/secrets/vault/combined.pem
+            periodSeconds: 1
+            failureThreshold: 30
           volumeMounts:
             - name: vault-secrets
               mountPath: /var/run/secrets/vault
-      containers:
         - name: cabotage-sidecar-tls
           image: ghcr.io/cabotage/containers/sidecar-rs:1.1a1
           imagePullPolicy: IfNotPresent
+          restartPolicy: Always
           command: ["/usr/bin/ghostunnel"]
           args:
             - "server"
@@ -241,14 +249,6 @@ spec:
                   name: cabotage-sentry
                   key: dsn
                   optional: true
-          startupProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - test -f /var/run/secrets/vault/vault-token && test -f /var/run/secrets/vault/consul-token && test -f /var/run/secrets/vault/combined.pem
-            periodSeconds: 1
-            failureThreshold: 30
           volumeMounts:
             - name: vault-secrets
               mountPath: /var/run/secrets/vault
