@@ -52,6 +52,7 @@ locals {
     CABOTAGE_VAULT_URL                              = "https://vault.cabotage.svc.cluster.local"
     CABOTAGE_VAULT_VERIFY                           = "/var/run/secrets/cabotage.io/ca.crt"
     FLASK_APP                                       = "cabotage.server.wsgi"
+    SENTRY_ENVIRONMENT                              = var.sentry_environment
     }, var.enable_karpenter ? {
     CABOTAGE_PREVIEW_POOL  = var.karpenter_preview_pool_name
     CABOTAGE_STANDARD_POOL = var.karpenter_standard_pool_name
@@ -261,6 +262,25 @@ resource "null_resource" "cabotage_notifications_discord_secret" {
 
   provisioner "local-exec" {
     command = "sh ${path.module}/scripts/create-discord-secret.sh"
+    environment = merge(local.secrets_manager_env, {
+      SECRETS_DIR  = local.secrets_dir
+      NAMESPACE    = kubernetes_namespace_v1.cabotage.metadata[0].name
+      KUBE_CONTEXT = var.kube_context
+    })
+  }
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
+# --- Sentry Secret ---
+
+resource "null_resource" "cabotage_sentry_secret" {
+  triggers = {
+    namespace = kubernetes_namespace_v1.cabotage.metadata[0].name
+  }
+
+  provisioner "local-exec" {
+    command = "sh ${path.module}/scripts/create-sentry-secret.sh"
     environment = merge(local.secrets_manager_env, {
       SECRETS_DIR  = local.secrets_dir
       NAMESPACE    = kubernetes_namespace_v1.cabotage.metadata[0].name

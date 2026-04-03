@@ -134,6 +134,12 @@ variable "cabotage_app_hostname" {
   type        = string
 }
 
+variable "sentry_environment" {
+  description = "Sentry environment name (e.g. staging, production)"
+  type        = string
+  default     = ""
+}
+
 variable "cabotage_app_web_replicas" {
   description = "Number of replicas for the cabotage web deployment"
   type        = number

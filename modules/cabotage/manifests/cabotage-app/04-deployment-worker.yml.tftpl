@@ -198,6 +198,12 @@ spec:
                   name: cabotage-notifications-discord
                   key: bot-token
                   optional: true
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: cabotage-sentry
+                  key: dsn
+                  optional: true
           volumeMounts:
             - name: vault-secrets
               mountPath: /var/run/secrets/vault
