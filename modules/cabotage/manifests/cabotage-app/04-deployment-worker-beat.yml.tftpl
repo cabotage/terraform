@@ -203,6 +203,14 @@ spec:
                   name: cabotage-sentry
                   key: dsn
                   optional: true
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test -f /var/run/secrets/vault/vault-token && test -f /var/run/secrets/vault/consul-token
+            periodSeconds: 1
+            failureThreshold: 30
           volumeMounts:
             - name: vault-secrets
               mountPath: /var/run/secrets/vault
