@@ -69,11 +69,9 @@ if [ "$is_init" = "false" ]; then
     VAULT_ROOT_TOKEN=$(printf '%s' "$INIT_JSON" | jq -r '.root_token')
     RECOVERY_KEY=$(printf '%s' "$INIT_JSON" | jq -r '.recovery_keys_b64[0]')
 
-    mkdir -p "$SECRETS_DIR"
-    printf '%s' "$VAULT_ROOT_TOKEN" > "$SECRETS_DIR/vault-bootstrap-token"
-    printf '%s' "$RECOVERY_KEY" > "$SECRETS_DIR/vault-recovery-key"
-    chmod 600 "$SECRETS_DIR/vault-bootstrap-token" "$SECRETS_DIR/vault-recovery-key"
-    echo "Vault initialized with auto-unseal. Credentials saved to $SECRETS_DIR/"
+    secret_write "vault-bootstrap-token" "$VAULT_ROOT_TOKEN"
+    secret_write "vault-recovery-key" "$RECOVERY_KEY"
+    echo "Vault initialized with auto-unseal. Credentials stored."
   else
     echo "Initializing Vault (1 key share, 1 threshold)..."
     INIT_JSON=$($KUBECTL exec vault-0 -n "$NAMESPACE" -c vault -- sh -c "
@@ -85,25 +83,22 @@ if [ "$is_init" = "false" ]; then
     VAULT_ROOT_TOKEN=$(printf '%s' "$INIT_JSON" | jq -r '.root_token')
     UNSEAL_KEY=$(printf '%s' "$INIT_JSON" | jq -r '.unseal_keys_b64[0]')
 
-    mkdir -p "$SECRETS_DIR"
-    printf '%s' "$VAULT_ROOT_TOKEN" > "$SECRETS_DIR/vault-bootstrap-token"
-    printf '%s' "$UNSEAL_KEY" > "$SECRETS_DIR/vault-unseal-key"
-    chmod 600 "$SECRETS_DIR/vault-bootstrap-token" "$SECRETS_DIR/vault-unseal-key"
-    echo "Vault initialized. Credentials saved to $SECRETS_DIR/"
+    secret_write "vault-bootstrap-token" "$VAULT_ROOT_TOKEN"
+    secret_write "vault-unseal-key" "$UNSEAL_KEY"
+    echo "Vault initialized. Credentials stored."
   fi
 elif [ "$VAULT_AUTO_UNSEAL" = "true" ]; then
   # Auto-unseal: only need the root token
-  if [ -f "$SECRETS_DIR/vault-bootstrap-token" ]; then
-    VAULT_ROOT_TOKEN=$(cat "$SECRETS_DIR/vault-bootstrap-token")
+  if secret_exists "vault-bootstrap-token"; then
+    VAULT_ROOT_TOKEN=$(secret_read "vault-bootstrap-token")
     echo "Vault already initialized (auto-unseal), using existing root token."
   else
     echo "Vault already initialized but root token missing." >&2
-    echo "  Missing: $SECRETS_DIR/vault-bootstrap-token" >&2
     exit 1
   fi
-elif [ -f "$SECRETS_DIR/vault-bootstrap-token" ] && [ -f "$SECRETS_DIR/vault-unseal-key" ]; then
-  VAULT_ROOT_TOKEN=$(cat "$SECRETS_DIR/vault-bootstrap-token")
-  UNSEAL_KEY=$(cat "$SECRETS_DIR/vault-unseal-key")
+elif secret_exists "vault-bootstrap-token" && secret_exists "vault-unseal-key"; then
+  VAULT_ROOT_TOKEN=$(secret_read "vault-bootstrap-token")
+  UNSEAL_KEY=$(secret_read "vault-unseal-key")
   echo "Vault already initialized, using existing credentials. Verifying unseal key..."
   # Try to unseal vault-0 to verify the key works (if it's already unsealed, this is a no-op check)
   unseal_test=$($KUBECTL exec vault-0 -n "$NAMESPACE" -c vault -- sh -c "
@@ -113,18 +108,18 @@ elif [ -f "$SECRETS_DIR/vault-bootstrap-token" ] && [ -f "$SECRETS_DIR/vault-uns
   " 2>/dev/null) || true
   if printf '%s' "$unseal_test" | grep -q "invalid unseal key\|invalid barrier\|Unseal Key is not"; then
     echo "ERROR: Saved unseal key does NOT match this vault instance (stale from destroyed cluster?)." >&2
-    echo "This vault was initialized by another process. The saved credentials at $SECRETS_DIR/ are stale." >&2
-    echo "If this is a fresh cluster, delete $SECRETS_DIR/vault-bootstrap-token and vault-unseal-key, then re-run." >&2
+    echo "This vault was initialized by another process. The saved credentials are stale." >&2
+    echo "Delete vault-bootstrap-token and vault-unseal-key from the secrets backend, then re-run." >&2
     exit 1
   fi
   echo "Credentials verified OK."
 else
-  echo "Vault already initialized but local credentials missing or incomplete." >&2
-  echo "Need both vault-bootstrap-token and vault-unseal-key in $SECRETS_DIR/" >&2
-  if [ ! -f "$SECRETS_DIR/vault-unseal-key" ]; then
+  echo "Vault already initialized but credentials missing or incomplete." >&2
+  echo "Need both vault-bootstrap-token and vault-unseal-key." >&2
+  if ! secret_exists "vault-unseal-key"; then
     echo "  Missing: vault-unseal-key" >&2
   fi
-  if [ ! -f "$SECRETS_DIR/vault-bootstrap-token" ]; then
+  if ! secret_exists "vault-bootstrap-token"; then
     echo "  Missing: vault-bootstrap-token" >&2
   fi
   exit 1
@@ -234,7 +229,7 @@ echo "Mounting cabotage-consul secrets engine..."
 vault_cmd "vault secrets enable -path=cabotage-consul consul" > /dev/null 2>&1 || echo "  Already mounted."
 
 echo "Configuring Consul secrets backend..."
-CONSUL_MGMT_TOKEN=$(cat "$SECRETS_DIR/consul-bootstrap-token")
+CONSUL_MGMT_TOKEN=$(secret_read "consul-bootstrap-token")
 
 echo "  Creating Consul management token for Vault..."
 consul_response=$($KUBECTL exec consul-0 -n "$NAMESPACE" -c consul -- sh -c "
@@ -287,8 +282,13 @@ basicConstraints = critical, CA:TRUE, pathlen:0
 keyUsage = critical, digitalSignature, keyCertSign, cRLSign
 EXTEOF
 
+  secret_read_to_file "ca.key" "$TMPDIR/ca.key" || {
+    echo "ERROR: Could not read CA key." >&2
+    exit 1
+  }
+
   openssl x509 -req -in "$TMPDIR/vault-intermediate.csr" \
-    -CA "$CA_CERT_FILE" -CAkey "$SECRETS_DIR/ca.key" -CAcreateserial \
+    -CA "$CA_CERT_FILE" -CAkey "$TMPDIR/ca.key" -CAcreateserial \
     -out "$TMPDIR/vault-intermediate.crt" -days 1825 \
     -extfile "$TMPDIR/ext.cnf" 2>/dev/null
 

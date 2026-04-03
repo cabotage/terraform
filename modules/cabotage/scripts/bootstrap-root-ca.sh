@@ -8,14 +8,13 @@ set -e
 
 CA_CERT_FILE="${CA_CERT_FILE:-$SECRETS_DIR/ca.crt}"
 
-if [ ! -f "$CA_CERT_FILE" ] || [ ! -f "$SECRETS_DIR/ca.key" ]; then
+if [ ! -f "$CA_CERT_FILE" ] || ! secret_exists "ca.key"; then
   echo "Generating root CA..."
-  mkdir -p "$SECRETS_DIR"
-  openssl ecparam -genkey -name prime256v1 -noout -out "$SECRETS_DIR/ca.key" 2>/dev/null
+  TMPDIR=$(mktemp -d)
+  trap "rm -rf '$TMPDIR'" EXIT
+  openssl ecparam -genkey -name prime256v1 -noout -out "$TMPDIR/ca.key" 2>/dev/null
   CLUSTER_SHORT=$(printf '%s' "$CLUSTER_ID" | sed 's|.*/||')
-  OPENSSL_CNF=$(mktemp)
-  trap "rm -f '$OPENSSL_CNF'" EXIT
-  cat > "$OPENSSL_CNF" <<EOF
+  cat > "$TMPDIR/openssl.cnf" <<EOF
 [req]
 distinguished_name = dn
 prompt = no
@@ -26,11 +25,11 @@ CN = ${CLUSTER_SHORT} Cabotage Root CA
 basicConstraints = critical,CA:TRUE
 keyUsage = critical,keyCertSign,cRLSign
 EOF
-  openssl req -new -x509 -key "$SECRETS_DIR/ca.key" -out "$CA_CERT_FILE" \
-    -days 3650 -config "$OPENSSL_CNF"
-  rm -f "$OPENSSL_CNF"
-  chmod 600 "$SECRETS_DIR/ca.key"
-  echo "Root CA key saved to $SECRETS_DIR/ca.key"
+  openssl req -new -x509 -key "$TMPDIR/ca.key" -out "$CA_CERT_FILE" \
+    -days 3650 -config "$TMPDIR/openssl.cnf"
+  secret_write_from_file "ca.key" "$TMPDIR/ca.key"
+  rm -rf "$TMPDIR"
+  echo "Root CA key stored."
   echo "Root CA cert saved to $CA_CERT_FILE"
 else
   echo "Using existing root CA."

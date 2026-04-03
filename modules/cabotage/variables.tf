@@ -500,9 +500,27 @@ variable "tailscale_oauth_client_secret" {
 # --- Terraform ---
 
 variable "secrets_dir" {
-  description = "Local directory to store bootstrap secrets (consul mgmt token, vault root token, unseal key)"
+  description = "Local directory to store bootstrap secrets (consul mgmt token, vault root token, unseal key). Used when secrets_manager_prefix is empty."
   type        = string
   default     = ".secrets"
+}
+
+variable "secrets_manager_prefix" {
+  description = "AWS Secrets Manager prefix (e.g. 'cabotage/prod-cluster'). When non-empty, secrets are stored in SM instead of secrets_dir."
+  type        = string
+  default     = ""
+}
+
+variable "secrets_manager_region" {
+  description = "AWS region for Secrets Manager API calls. Required when secrets_manager_prefix is set."
+  type        = string
+  default     = ""
+}
+
+variable "secrets_manager_profile" {
+  description = "AWS CLI profile for Secrets Manager API calls. Should match the profile used by the AWS Terraform provider."
+  type        = string
+  default     = ""
 }
 
 variable "ca_cert_file" {

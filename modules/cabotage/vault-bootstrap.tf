@@ -18,7 +18,7 @@ resource "null_resource" "vault_bootstrap" {
 
   provisioner "local-exec" {
     command = "sh ${path.module}/scripts/vault-bootstrap.sh"
-    environment = {
+    environment = merge(local.secrets_manager_env, {
       SECRETS_DIR           = local.secrets_dir
       CA_CERT_FILE          = local.ca_cert_file
       NAMESPACE             = kubernetes_namespace_v1.cabotage.metadata[0].name
@@ -26,7 +26,7 @@ resource "null_resource" "vault_bootstrap" {
       KUBE_CONTEXT          = var.kube_context
       VAULT_AUTO_UNSEAL     = var.vault_auto_unseal_kms_key_id != "" ? "true" : "false"
       VAULT_DEV_AUTO_UNSEAL = var.vault_dev_auto_unseal ? "true" : "false"
-    }
+    })
   }
 
   depends_on = [

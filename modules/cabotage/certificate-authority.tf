@@ -11,6 +11,14 @@ locals {
   # Namespace local file paths by workspace so multiple envs can coexist
   secrets_dir  = "${var.secrets_dir}/${terraform.workspace}"
   ca_cert_file = "${trimsuffix(var.ca_cert_file, ".crt")}.${terraform.workspace}.crt"
+
+  # Secrets Manager configuration passed to all local-exec scripts
+  use_secrets_manager    = var.secrets_manager_prefix != ""
+  secrets_manager_env = {
+    SECRETS_MANAGER_PREFIX  = var.secrets_manager_prefix
+    SECRETS_MANAGER_REGION  = var.secrets_manager_region
+    SECRETS_MANAGER_PROFILE = var.secrets_manager_profile
+  }
 }
 
 # --- Root CA (local) ---
@@ -22,12 +30,12 @@ resource "null_resource" "root_ca" {
 
   provisioner "local-exec" {
     command = "sh ${path.module}/scripts/bootstrap-root-ca.sh"
-    environment = {
+    environment = merge(local.secrets_manager_env, {
       SECRETS_DIR  = local.secrets_dir
       CA_CERT_FILE = local.ca_cert_file
       CLUSTER_ID   = var.cluster_identifier
       KUBE_CONTEXT = var.kube_context
-    }
+    })
   }
 
   depends_on = [kubernetes_namespace_v1.cabotage]
@@ -124,12 +132,12 @@ resource "null_resource" "sign_intermediate_cas" {
 
   provisioner "local-exec" {
     command = "sh ${path.module}/scripts/sign-intermediate-cas.sh"
-    environment = {
+    environment = merge(local.secrets_manager_env, {
       SECRETS_DIR  = local.secrets_dir
       CA_CERT_FILE = local.ca_cert_file
       CLUSTER_ID   = var.cluster_identifier
       KUBE_CONTEXT = var.kube_context
-    }
+    })
   }
 
   depends_on = [

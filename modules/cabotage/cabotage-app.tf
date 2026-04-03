@@ -159,6 +159,7 @@ resource "null_resource" "cabotage_app_configmap_rollout" {
     kubectl_manifest.cabotage_app_deployment_web,
     kubectl_manifest.cabotage_app_deployment_worker,
     kubectl_manifest.cabotage_app_deployment_worker_beat,
+    null_resource.cabotage_app_configure,
   ]
 }
 
@@ -171,13 +172,13 @@ resource "null_resource" "cabotage_app_bootstrap" {
 
   provisioner "local-exec" {
     command = "sh ${path.module}/scripts/cabotage-app-bootstrap.sh"
-    environment = {
+    environment = merge(local.secrets_manager_env, {
       SECRETS_DIR        = local.secrets_dir
       NAMESPACE          = kubernetes_namespace_v1.cabotage.metadata[0].name
       VAULT_POLICY_FILE  = "${path.module}/scripts/cabotage-app-policies/vault-policy.hcl"
       CONSUL_POLICY_FILE = "${path.module}/scripts/cabotage-app-policies/consul-policy.hcl"
       KUBE_CONTEXT       = var.kube_context
-    }
+    })
   }
 
   depends_on = [
@@ -196,32 +197,13 @@ resource "null_resource" "cabotage_github_app_secret" {
   }
 
   provisioner "local-exec" {
-    command = <<-EOT
-      if [ ! -f "${local.secrets_dir}/github-app-private-key.pem" ] || [ ! -f "${local.secrets_dir}/github-webhook-secret" ]; then
-        echo "GitHub App secret files not found in ${local.secrets_dir}, skipping."
-        exit 0
-      fi
-      PRIVATE_KEY_B64=$(base64 < "${local.secrets_dir}/github-app-private-key.pem" | tr -d '\n')
-      WEBHOOK_SECRET=$(cat "${local.secrets_dir}/github-webhook-secret" | tr -d '[:space:]')
-      CLIENT_ID_ARG=""
-      if [ -f "${local.secrets_dir}/github-app-client-id" ]; then
-        CLIENT_ID=$(cat "${local.secrets_dir}/github-app-client-id" | tr -d '[:space:]')
-        CLIENT_ID_ARG="--from-literal=client-id=$CLIENT_ID"
-      fi
-      CLIENT_SECRET_ARG=""
-      if [ -f "${local.secrets_dir}/github-app-client-secret" ]; then
-        CLIENT_SECRET=$(cat "${local.secrets_dir}/github-app-client-secret" | tr -d '[:space:]')
-        CLIENT_SECRET_ARG="--from-literal=client-secret=$CLIENT_SECRET"
-      fi
-      kubectl --context ${var.kube_context} create secret generic cabotage-github-app \
-        --namespace ${kubernetes_namespace_v1.cabotage.metadata[0].name} \
-        --from-literal=app-id="${var.github_app_id}" \
-        --from-literal=private-key="$PRIVATE_KEY_B64" \
-        --from-literal=webhook-secret="$WEBHOOK_SECRET" \
-        $CLIENT_ID_ARG \
-        $CLIENT_SECRET_ARG \
-        --dry-run=client -o yaml | kubectl --context ${var.kube_context} apply -f -
-    EOT
+    command = "sh ${path.module}/scripts/create-github-app-secret.sh"
+    environment = merge(local.secrets_manager_env, {
+      SECRETS_DIR  = local.secrets_dir
+      NAMESPACE    = kubernetes_namespace_v1.cabotage.metadata[0].name
+      KUBE_CONTEXT = var.kube_context
+      GITHUB_APP_ID = var.github_app_id
+    })
   }
 
   depends_on = [kubernetes_namespace_v1.cabotage]
@@ -240,19 +222,12 @@ resource "null_resource" "cabotage_dockerhub_secret" {
   }
 
   provisioner "local-exec" {
-    command = <<-EOT
-      if [ ! -f "${local.secrets_dir}/dockerhub-username" ] || [ ! -f "${local.secrets_dir}/dockerhub-token" ]; then
-        echo "DockerHub secret files not found in ${local.secrets_dir}, skipping."
-        exit 0
-      fi
-      USERNAME=$(cat "${local.secrets_dir}/dockerhub-username" | tr -d '[:space:]')
-      TOKEN=$(cat "${local.secrets_dir}/dockerhub-token" | tr -d '[:space:]')
-      kubectl --context ${var.kube_context} create secret generic cabotage-dockerhub \
-        --namespace ${kubernetes_namespace_v1.cabotage.metadata[0].name} \
-        --from-literal=username="$USERNAME" \
-        --from-literal=token="$TOKEN" \
-        --dry-run=client -o yaml | kubectl --context ${var.kube_context} apply -f -
-    EOT
+    command = "sh ${path.module}/scripts/create-dockerhub-secret.sh"
+    environment = merge(local.secrets_manager_env, {
+      SECRETS_DIR  = local.secrets_dir
+      NAMESPACE    = kubernetes_namespace_v1.cabotage.metadata[0].name
+      KUBE_CONTEXT = var.kube_context
+    })
   }
 
   depends_on = [kubernetes_namespace_v1.cabotage]
@@ -266,23 +241,12 @@ resource "null_resource" "cabotage_notifications_slack_secret" {
   }
 
   provisioner "local-exec" {
-    command = <<-EOT
-      ARGS=""
-      if [ -f "${local.secrets_dir}/slack-client-id" ]; then
-        ARGS="$ARGS --from-literal=client-id=$(cat "${local.secrets_dir}/slack-client-id" | tr -d '[:space:]')"
-      fi
-      if [ -f "${local.secrets_dir}/slack-client-secret" ]; then
-        ARGS="$ARGS --from-literal=client-secret=$(cat "${local.secrets_dir}/slack-client-secret" | tr -d '[:space:]')"
-      fi
-      if [ -z "$ARGS" ]; then
-        echo "Slack notification secret files not found in ${local.secrets_dir}, skipping."
-        exit 0
-      fi
-      kubectl --context ${var.kube_context} create secret generic cabotage-notifications-slack \
-        --namespace ${kubernetes_namespace_v1.cabotage.metadata[0].name} \
-        $ARGS \
-        --dry-run=client -o yaml | kubectl --context ${var.kube_context} apply -f -
-    EOT
+    command = "sh ${path.module}/scripts/create-slack-secret.sh"
+    environment = merge(local.secrets_manager_env, {
+      SECRETS_DIR  = local.secrets_dir
+      NAMESPACE    = kubernetes_namespace_v1.cabotage.metadata[0].name
+      KUBE_CONTEXT = var.kube_context
+    })
   }
 
   depends_on = [kubernetes_namespace_v1.cabotage]
@@ -296,26 +260,12 @@ resource "null_resource" "cabotage_notifications_discord_secret" {
   }
 
   provisioner "local-exec" {
-    command = <<-EOT
-      ARGS=""
-      if [ -f "${local.secrets_dir}/discord-client-id" ]; then
-        ARGS="$ARGS --from-literal=client-id=$(cat "${local.secrets_dir}/discord-client-id" | tr -d '[:space:]')"
-      fi
-      if [ -f "${local.secrets_dir}/discord-client-secret" ]; then
-        ARGS="$ARGS --from-literal=client-secret=$(cat "${local.secrets_dir}/discord-client-secret" | tr -d '[:space:]')"
-      fi
-      if [ -f "${local.secrets_dir}/discord-bot-token" ]; then
-        ARGS="$ARGS --from-literal=bot-token=$(cat "${local.secrets_dir}/discord-bot-token" | tr -d '[:space:]')"
-      fi
-      if [ -z "$ARGS" ]; then
-        echo "Discord notification secret files not found in ${local.secrets_dir}, skipping."
-        exit 0
-      fi
-      kubectl --context ${var.kube_context} create secret generic cabotage-notifications-discord \
-        --namespace ${kubernetes_namespace_v1.cabotage.metadata[0].name} \
-        $ARGS \
-        --dry-run=client -o yaml | kubectl --context ${var.kube_context} apply -f -
-    EOT
+    command = "sh ${path.module}/scripts/create-discord-secret.sh"
+    environment = merge(local.secrets_manager_env, {
+      SECRETS_DIR  = local.secrets_dir
+      NAMESPACE    = kubernetes_namespace_v1.cabotage.metadata[0].name
+      KUBE_CONTEXT = var.kube_context
+    })
   }
 
   depends_on = [kubernetes_namespace_v1.cabotage]

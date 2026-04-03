@@ -63,9 +63,15 @@ for ca_name in certificate-approver-ca operators-ca; do
   $KUBECTL get certificaterequest "$CR_NAME" -n cert-manager \
     -o jsonpath='{.spec.request}' | base64 -d > "$TMPDIR/int.csr"
 
+  # Fetch CA key to tmpdir for signing
+  secret_read_to_file "ca.key" "$TMPDIR/ca.key" || {
+    echo "ERROR: Could not read CA key." >&2
+    exit 1
+  }
+
   # Sign with root CA
   openssl x509 -req -in "$TMPDIR/int.csr" \
-    -CA "$CA_CERT_FILE" -CAkey "$SECRETS_DIR/ca.key" -CAcreateserial \
+    -CA "$CA_CERT_FILE" -CAkey "$TMPDIR/ca.key" -CAcreateserial \
     -out "$TMPDIR/int.crt" -days 1825 -extfile "$TMPDIR/ext.cnf" 2>/dev/null
 
   # Build chain (intermediate + root)

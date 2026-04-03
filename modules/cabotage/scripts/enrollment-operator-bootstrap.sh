@@ -6,7 +6,7 @@ NAMESPACE="${NAMESPACE:-cabotage}"
 
 VAULT_FQDN="vault-0.vault.${NAMESPACE}.svc.cluster.local"
 
-VAULT_ROOT_TOKEN=$(cat "$SECRETS_DIR/vault-bootstrap-token")
+VAULT_ROOT_TOKEN=$(secret_read "vault-bootstrap-token")
 
 vault_cmd() {
   $KUBECTL exec vault-0 -n "$NAMESPACE" -c vault -- sh -c "

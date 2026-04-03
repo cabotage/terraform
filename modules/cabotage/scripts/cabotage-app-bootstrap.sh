@@ -6,7 +6,7 @@ NAMESPACE="${NAMESPACE:-cabotage}"
 
 VAULT_FQDN="vault-0.vault.${NAMESPACE}.svc.cluster.local"
 
-VAULT_ROOT_TOKEN=$(cat "$SECRETS_DIR/vault-bootstrap-token")
+VAULT_ROOT_TOKEN=$(secret_read "vault-bootstrap-token")
 
 vault_cmd() {
   $KUBECTL exec vault-0 -n "$NAMESPACE" -c vault -- sh -c "
@@ -37,7 +37,7 @@ vault_cmd "vault write auth/kubernetes/role/cabotage-cabotage-app \
 
 # --- Create Consul Policy & Role ---
 echo "Creating Consul policy and role for cabotage-app..."
-CONSUL_MGMT_TOKEN=$(cat "$SECRETS_DIR/consul-bootstrap-token")
+CONSUL_MGMT_TOKEN=$(secret_read "consul-bootstrap-token")
 CONSUL_POLICY=$(cat "$CONSUL_POLICY_FILE")
 
 # Create or update consul policy via Vault's consul backend

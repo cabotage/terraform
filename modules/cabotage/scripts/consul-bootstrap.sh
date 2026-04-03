@@ -39,32 +39,27 @@ MGMT_TOKEN=""
 # Try bootstrap first
 response=$(curl -sf -X PUT http://localhost:${CONSUL_LOCAL_PORT}/v1/acl/bootstrap 2>&1) && {
   MGMT_TOKEN=$(printf '%s' "$response" | jq -r '.SecretID')
-  mkdir -p "$SECRETS_DIR"
-  printf '%s' "$MGMT_TOKEN" > "$SECRETS_DIR/consul-bootstrap-token"
-  chmod 600 "$SECRETS_DIR/consul-bootstrap-token"
-  echo "Management token saved to $SECRETS_DIR/consul-bootstrap-token"
+  secret_write "consul-bootstrap-token" "$MGMT_TOKEN"
+  echo "Management token stored."
 }
 
 # If bootstrap didn't give us a token, try loading from file
 if [ -z "$MGMT_TOKEN" ] || [ "$MGMT_TOKEN" = "null" ]; then
-  if [ -f "$SECRETS_DIR/consul-bootstrap-token" ]; then
-    MGMT_TOKEN=$(cat "$SECRETS_DIR/consul-bootstrap-token")
-    echo "Bootstrap already done, loaded token from file. Verifying..."
+  if secret_exists "consul-bootstrap-token"; then
+    MGMT_TOKEN=$(secret_read "consul-bootstrap-token")
+    echo "Bootstrap already done, loaded existing token. Verifying..."
     # Verify the saved token actually works on this cluster
     if ! curl -sf -H "X-Consul-Token: $MGMT_TOKEN" http://localhost:${CONSUL_LOCAL_PORT}/v1/acl/token/self > /dev/null 2>&1; then
-      echo "Saved token is STALE (wrong cluster?). Removing and re-bootstrapping..."
-      rm -f "$SECRETS_DIR/consul-bootstrap-token"
+      echo "Saved token is STALE (wrong cluster?). Re-bootstrapping..."
       MGMT_TOKEN=""
       response=$(curl -sf -X PUT http://localhost:${CONSUL_LOCAL_PORT}/v1/acl/bootstrap 2>&1) || {
-        echo "ACL bootstrap failed and stale token was removed. Cannot proceed."
+        echo "ACL bootstrap failed and stale token was found. Cannot proceed."
         echo "If Consul was already bootstrapped on this cluster, the token is lost."
         exit 1
       }
       MGMT_TOKEN=$(printf '%s' "$response" | jq -r '.SecretID')
-      mkdir -p "$SECRETS_DIR"
-      printf '%s' "$MGMT_TOKEN" > "$SECRETS_DIR/consul-bootstrap-token"
-      chmod 600 "$SECRETS_DIR/consul-bootstrap-token"
-      echo "Re-bootstrapped. New management token saved."
+      secret_write "consul-bootstrap-token" "$MGMT_TOKEN"
+      echo "Re-bootstrapped. New management token stored."
     else
       echo "Token verified OK."
     fi
