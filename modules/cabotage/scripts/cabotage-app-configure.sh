@@ -5,11 +5,17 @@ NAMESPACE="${NAMESPACE:-cabotage}"
 . "$(dirname "$0")/_lib.sh"
 
 # --- Build DB URI ---
+echo "Waiting for postgres cluster to be ready..."
+wait_for 300 5 $KUBECTL get -n postgres secret cabotage-app || {
+  echo "ERROR: Timed out waiting for postgres secret cabotage-app" >&2
+  exit 1
+}
+
 echo "Fetching postgres credentials..."
 DB_USERNAME=$($KUBECTL get -n postgres secret cabotage-app -o jsonpath='{.data.username}' | base64 -d)
 DB_PASSWORD=$($KUBECTL get -n postgres secret cabotage-app -o jsonpath='{.data.password}' | base64 -d)
 if [ -z "$DB_USERNAME" ] || [ -z "$DB_PASSWORD" ]; then
-  echo "Failed: postgres secret cabotage-app not found or missing username/password in namespace postgres"
+  echo "Failed: postgres secret cabotage-app missing username/password in namespace postgres"
   exit 1
 fi
 DB_URI="postgresql+psycopg://${DB_USERNAME}:${DB_PASSWORD}@cabotage-rw.postgres.svc.cluster.local:5432/app?sslmode=verify-full&sslrootcert=/var/run/secrets/cabotage.io/ca.crt"

@@ -27,3 +27,22 @@ spec:
       ports:
         - port: 8201
           protocol: TCP
+    # Consul gossip and server RPC — consul sidecar in vault pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app: consul
+        - podSelector:
+            matchLabels:
+              app: vault
+      ports:
+        - port: 8300
+          protocol: TCP
+        - port: 8301
+          protocol: TCP
+        - port: 8301
+          protocol: UDP
+        - port: 8302
+          protocol: TCP
+        - port: 8302
+          protocol: UDP

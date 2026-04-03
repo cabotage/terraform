@@ -25,6 +25,12 @@ resource "kubectl_manifest" "netpol_default_deny_redis" {
 
 # --- cabotage namespace: allow policies ---
 
+resource "kubectl_manifest" "netpol_allow_acme_solver" {
+  yaml_body = file("${path.module}/manifests/network-policies/01-allow-acme-solver.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
 resource "kubectl_manifest" "netpol_allow_cabotage_app_web" {
   yaml_body = templatefile("${path.module}/manifests/network-policies/01-allow-cabotage-app-web.yml.tftpl", {
     traefik_host_network = var.traefik_host_network
@@ -151,6 +157,12 @@ resource "kubectl_manifest" "netpol_allow_tailscale_operator_manager" {
 
 resource "kubectl_manifest" "netpol_allow_postgres" {
   yaml_body = file("${path.module}/manifests/network-policies/01-allow-postgres.yml")
+
+  depends_on = [kubernetes_namespace_v1.postgres]
+}
+
+resource "kubectl_manifest" "netpol_allow_cnpg_webhook" {
+  yaml_body = file("${path.module}/manifests/network-policies/01-allow-cnpg-webhook.yml")
 
   depends_on = [kubernetes_namespace_v1.postgres]
 }

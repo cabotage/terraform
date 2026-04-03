@@ -66,6 +66,35 @@ resource "kubectl_manifest" "postgres_certificate" {
   ]
 }
 
+# --- Wait for CNPG webhook to be ready ---
+
+resource "null_resource" "cnpg_webhook_ready" {
+  triggers = {
+    cnpg_id = helm_release.cnpg.id
+  }
+
+  provisioner "local-exec" {
+    environment = {
+      KUBE_CONTEXT = var.kube_context
+    }
+    command = <<-EOT
+      echo "Waiting for CNPG webhook to be ready..."
+      for i in $(seq 1 60); do
+        if kubectl --context $KUBE_CONTEXT get endpoints cnpg-webhook-service -n postgres -o jsonpath='{.subsets[0].addresses[0].ip}' 2>/dev/null | grep -q .; then
+          echo "CNPG webhook is ready."
+          exit 0
+        fi
+        echo "  Attempt $i/60, retrying in 5s..."
+        sleep 5
+      done
+      echo "ERROR: CNPG webhook not ready after 300s"
+      exit 1
+    EOT
+  }
+
+  depends_on = [helm_release.cnpg]
+}
+
 # --- CNPG Cluster ---
 
 resource "kubectl_manifest" "postgres_cluster" {
@@ -74,7 +103,7 @@ resource "kubectl_manifest" "postgres_cluster" {
   wait_for_rollout = false
 
   depends_on = [
-    helm_release.cnpg,
+    null_resource.cnpg_webhook_ready,
     kubectl_manifest.postgres_certificate,
     null_resource.postgres_ca_secret,
   ]
