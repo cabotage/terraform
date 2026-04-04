@@ -18,7 +18,7 @@ variable "proxy_protocol_cidrs" {
 variable "traefik_chart_version" {
   description = "Helm chart version for Traefik"
   type        = string
-  default     = "39.0.5"
+  default     = "39.0.7"
 }
 
 variable "traefik_replicas" {
@@ -68,13 +68,13 @@ variable "cluster_internal_cidrs" {
 variable "cert_manager_chart_version" {
   description = "Helm chart version for cert-manager"
   type        = string
-  default     = "v1.12.15"
+  default     = "v1.20.1"
 }
 
 variable "cert_manager_csi_driver_chart_version" {
   description = "Helm chart version for cert-manager CSI driver"
   type        = string
-  default     = "v0.10.2"
+  default     = "v0.13.0"
 }
 
 variable "enable_pebble_letsencrypt" {
@@ -277,7 +277,7 @@ variable "rustfs_log_size" {
 variable "cnpg_chart_version" {
   description = "Helm chart version for CloudNativePG operator"
   type        = string
-  default     = "0.27.1"
+  default     = "0.28.0"
 }
 
 # --- Redis ---
@@ -285,7 +285,7 @@ variable "cnpg_chart_version" {
 variable "redis_operator_chart_version" {
   description = "Helm chart version for Redis operator"
   type        = string
-  default     = "0.19.0"
+  default     = "0.23.0"
 }
 
 variable "security_confirmable" {
