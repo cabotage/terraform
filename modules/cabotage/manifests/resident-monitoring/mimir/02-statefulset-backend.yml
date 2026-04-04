@@ -103,7 +103,7 @@ spec:
         - name: data
           mountPath: /data
         - name: rules
-          mountPath: /etc/mimir/rules/anonymous
+          mountPath: /etc/mimir/rules/cabotage-infra
           readOnly: true
         - name: alertmanager-config
           mountPath: /etc/mimir/alertmanager

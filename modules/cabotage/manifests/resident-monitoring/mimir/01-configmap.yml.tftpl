@@ -5,7 +5,7 @@ metadata:
   namespace: cabotage
 data:
   mimir.yml: |
-    multitenancy_enabled: false
+    multitenancy_enabled: true
     server:
       http_listen_port: 8080
       grpc_listen_port: 9095
@@ -65,8 +65,11 @@ data:
       backend: local
       local:
         directory: /etc/mimir/rules
+    tenant_federation:
+      enabled: true
     limits:
       max_global_series_per_user: 0
+      compactor_blocks_retention_period: 2160h
       compactor_block_upload_enabled: true
       ingestion_rate: 500000
       ingestion_burst_size: 5000000

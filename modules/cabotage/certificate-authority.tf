@@ -13,7 +13,7 @@ locals {
   ca_cert_file = "${trimsuffix(var.ca_cert_file, ".crt")}.${terraform.workspace}.crt"
 
   # Secrets Manager configuration passed to all local-exec scripts
-  use_secrets_manager    = var.secrets_manager_prefix != ""
+  use_secrets_manager = var.secrets_manager_prefix != ""
   secrets_manager_env = {
     SECRETS_MANAGER_PREFIX  = var.secrets_manager_prefix
     SECRETS_MANAGER_REGION  = var.secrets_manager_region

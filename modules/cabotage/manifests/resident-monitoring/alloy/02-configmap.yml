@@ -40,6 +40,31 @@ data:
         action = "labelmap"
         regex = "__meta_kubernetes_pod_label_(app|organization|project|application|process|environment|release|deployment)"
       }
+
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_cabotage_io_organization"]
+        target_label  = "cabotage_io_organization"
+      }
+
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_cabotage_io_project"]
+        target_label  = "cabotage_io_project"
+      }
+
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_cabotage_io_application"]
+        target_label  = "cabotage_io_application"
+      }
+
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_cabotage_io_environment"]
+        target_label  = "cabotage_io_environment"
+      }
+
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_cabotage_io_infra"]
+        target_label  = "cabotage_io_infra"
+      }
     }
 
     // --- Metrics: scrape cAdvisor from kubelets for pod CPU/memory/network ---
@@ -96,6 +121,9 @@ data:
     prometheus.remote_write "default" {
       endpoint {
         url = "https://resident-mimir-write.cabotage.svc.cluster.local:8080/api/v1/push"
+        headers = {
+          "X-Scope-OrgID" = "cabotage-infra",
+        }
         tls_config {
           ca_file = "/var/run/secrets/cabotage.io/ca.crt"
         }
@@ -268,6 +296,11 @@ data:
         }
       }
 
+      // Traefik is shared infra
+      stage.tenant {
+        value = "cabotage-infra"
+      }
+
       forward_to = [loki.write.default.receiver]
     }
 
@@ -293,6 +326,19 @@ data:
           namespace      = "namespace",
           pod_name       = "pod_name",
           container_name = "pod_container_name",
+        }
+      }
+
+      // Default tenant: cabotage-infra (for infra pods)
+      stage.tenant {
+        value = "cabotage-infra"
+      }
+
+      // Override for tenant pods: use namespace as tenant (encodes org+env)
+      stage.match {
+        selector = "{cabotage_io_organization=~\".+\"}"
+        stage.tenant {
+          label = "namespace"
         }
       }
 

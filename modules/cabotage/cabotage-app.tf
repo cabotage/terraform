@@ -200,9 +200,9 @@ resource "null_resource" "cabotage_github_app_secret" {
   provisioner "local-exec" {
     command = "sh ${path.module}/scripts/create-github-app-secret.sh"
     environment = merge(local.secrets_manager_env, {
-      SECRETS_DIR  = local.secrets_dir
-      NAMESPACE    = kubernetes_namespace_v1.cabotage.metadata[0].name
-      KUBE_CONTEXT = var.kube_context
+      SECRETS_DIR   = local.secrets_dir
+      NAMESPACE     = kubernetes_namespace_v1.cabotage.metadata[0].name
+      KUBE_CONTEXT  = var.kube_context
       GITHUB_APP_ID = var.github_app_id
     })
   }

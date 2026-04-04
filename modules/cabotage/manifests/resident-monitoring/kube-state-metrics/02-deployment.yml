@@ -29,7 +29,7 @@ spec:
         image: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.14.0
         args:
         - --resources=pods,replicasets,deployments,statefulsets,daemonsets,jobs
-        - --metric-labels-allowlist=pods=[resident-pod.cabotage.io,app,organization,project,application,process,environment,release,deployment],deployments=[resident-deployment.cabotage.io,app,organization,project,application,process,environment]
+        - --metric-labels-allowlist=pods=[resident-pod.cabotage.io,cabotage.io/infra,cabotage.io/organization,cabotage.io/project,cabotage.io/application,cabotage.io/environment,app,organization,project,application,process,environment,release,deployment],deployments=[resident-deployment.cabotage.io,cabotage.io/infra,app,organization,project,application,process,environment]
         - --tls-config=/etc/ksm/web-config.yml
         securityContext:
           allowPrivilegeEscalation: false
