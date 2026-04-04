@@ -14,4 +14,4 @@ spec:
     serverTLSSecret: cabotage-tls
     serverCASecret: operators-ca-crt
   storage:
-    size: 1Gi
+    size: ${storage_size}

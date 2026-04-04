@@ -140,6 +140,12 @@ variable "sentry_environment" {
   default     = ""
 }
 
+variable "cabotage_postgres_storage_size" {
+  description = "Storage size for the cabotage CNPG postgres cluster"
+  type        = string
+  default     = "1Gi"
+}
+
 variable "cabotage_app_web_replicas" {
   description = "Number of replicas for the cabotage web deployment"
   type        = number
