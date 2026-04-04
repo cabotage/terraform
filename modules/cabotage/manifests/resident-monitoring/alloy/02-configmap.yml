@@ -227,7 +227,7 @@ data:
     prometheus.relabel "kube_state_metrics" {
       rule {
         source_labels = ["__name__"]
-        regex  = "kube_pod_container_status_restarts_total|kube_pod_container_status_waiting_reason|kube_pod_container_status_terminated_reason|kube_pod_status_phase|kube_pod_container_status_ready|kube_pod_labels|kube_pod_container_info|kube_pod_container_status_last_terminated_reason|kube_pod_owner|kube_replicaset_owner|kube_replicaset_status_replicas|kube_deployment_labels|kube_deployment_spec_replicas|kube_deployment_status_replicas_available"
+        regex  = "kube_pod_container_status_restarts_total|kube_pod_container_status_waiting_reason|kube_pod_container_status_terminated_reason|kube_pod_status_phase|kube_pod_container_status_ready|kube_pod_labels|kube_pod_container_info|kube_pod_container_status_last_terminated_reason|kube_pod_container_resource_requests|kube_pod_container_resource_limits|kube_pod_owner|kube_replicaset_owner|kube_replicaset_status_replicas|kube_deployment_labels|kube_deployment_spec_replicas|kube_deployment_status_replicas_available"
         action = "keep"
       }
 
