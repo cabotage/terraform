@@ -5,6 +5,7 @@ metadata:
   namespace: cabotage
   labels:
     app: resident-alloy
+    cabotage.io/infra: "true"
 spec:
   selector:
     matchLabels:
@@ -16,6 +17,7 @@ spec:
       labels:
         app: resident-alloy
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       serviceAccountName: resident-alloy
       tolerations:

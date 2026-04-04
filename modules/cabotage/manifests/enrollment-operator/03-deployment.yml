@@ -5,6 +5,7 @@ metadata:
   name: enrollment-operator
   labels:
     app: enrollment-operator
+    cabotage.io/infra: "true"
 spec:
   replicas: 1
   strategy:
@@ -17,6 +18,7 @@ spec:
       labels:
         app: enrollment-operator
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       serviceAccountName: enrollment-operator
       initContainers:

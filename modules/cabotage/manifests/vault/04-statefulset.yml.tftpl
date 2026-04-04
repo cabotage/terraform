@@ -5,6 +5,7 @@ metadata:
   name: vault
   labels:
     app: vault
+    cabotage.io/infra: "true"
 spec:
   serviceName: vault
   replicas: ${replicas}
@@ -19,6 +20,7 @@ spec:
       labels:
         app: vault
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       affinity:
         podAntiAffinity:

@@ -3,7 +3,12 @@ kind: Cluster
 metadata:
   name: cabotage
   namespace: postgres
+  labels:
+    cabotage.io/infra: "true"
 spec:
+  inheritedMetadata:
+    labels:
+      cabotage.io/infra: "true"
   instances: 2
   certificates:
     serverTLSSecret: cabotage-tls

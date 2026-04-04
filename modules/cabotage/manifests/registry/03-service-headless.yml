@@ -5,6 +5,7 @@ metadata:
   name: registry
   labels:
     app: registry
+    cabotage.io/infra: "true"
 spec:
   clusterIP: None
   ports:

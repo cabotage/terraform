@@ -6,6 +6,7 @@ metadata:
   labels:
     app: resident-mimir
     component: standalone
+    cabotage.io/infra: "true"
 spec:
   serviceName: resident-mimir-standalone
   replicas: 1
@@ -22,6 +23,7 @@ spec:
         app: resident-mimir
         component: standalone
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       serviceAccountName: resident-mimir
       securityContext:

@@ -3,6 +3,9 @@ kind: StatefulSet
 metadata:
   namespace: cabotage
   name: consul
+  labels:
+    app: consul
+    cabotage.io/infra: "true"
 spec:
   serviceName: consul
   replicas: ${replicas}
@@ -17,6 +20,7 @@ spec:
       labels:
         app: consul
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       affinity:
         podAntiAffinity:

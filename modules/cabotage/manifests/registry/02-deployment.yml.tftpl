@@ -5,6 +5,7 @@ metadata:
   namespace: cabotage
   labels:
     app: registry
+    cabotage.io/infra: "true"
 spec:
   replicas: ${replicas}
   selector:
@@ -17,6 +18,7 @@ spec:
       labels:
         app: registry
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       serviceAccountName: registry
 %{ if !use_s3 ~}

@@ -5,6 +5,7 @@ metadata:
   namespace: cabotage
   labels:
     app: resident-kube-state-metrics
+    cabotage.io/infra: "true"
 spec:
   replicas: 1
   selector:
@@ -15,6 +16,7 @@ spec:
       labels:
         app: resident-kube-state-metrics
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       serviceAccountName: resident-kube-state-metrics
       securityContext:

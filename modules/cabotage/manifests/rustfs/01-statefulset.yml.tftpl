@@ -3,6 +3,9 @@ kind: StatefulSet
 metadata:
   namespace: cabotage
   name: rustfs
+  labels:
+    app: rustfs
+    cabotage.io/infra: "true"
 spec:
   serviceName: rustfs
   replicas: ${replicas}
@@ -17,6 +20,7 @@ spec:
       labels:
         app: rustfs
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       affinity:
         podAntiAffinity:

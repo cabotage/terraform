@@ -5,6 +5,7 @@ metadata:
   name: tailscale-operator-manager
   labels:
     app: tailscale-operator-manager
+    cabotage.io/infra: "true"
 spec:
   replicas: 1
   strategy:
@@ -17,6 +18,7 @@ spec:
       labels:
         app: tailscale-operator-manager
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       serviceAccountName: cabotage-tailscale-operator-manager-account
       containers:

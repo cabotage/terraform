@@ -15,6 +15,10 @@ resource "helm_release" "traefik" {
   version    = var.traefik_chart_version
 
   values = [yamlencode({
+    commonLabels = {
+      "cabotage.io/infra" = "true"
+    }
+
     deployment = {
       replicas = var.traefik_replicas
     }

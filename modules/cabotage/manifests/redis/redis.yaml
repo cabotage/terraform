@@ -4,6 +4,8 @@ kind: Redis
 metadata:
   name: cabotage
   namespace: redis
+  labels:
+    cabotage.io/infra: "true"
 spec:
   TLS:
     secret:

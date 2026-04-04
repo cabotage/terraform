@@ -6,6 +6,7 @@ metadata:
   labels:
     app: cabotage-app
     component: worker
+    cabotage.io/infra: "true"
 spec:
   replicas: ${replicas}
   selector:
@@ -20,6 +21,7 @@ spec:
         app: cabotage-app
         component: worker
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       serviceAccountName: cabotage-app
       initContainers:

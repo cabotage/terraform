@@ -5,6 +5,7 @@ metadata:
   namespace: cabotage
   labels:
     app: resident-alloy
+    cabotage.io/infra: "true"
 spec:
   type: ClusterIP
   clusterIP: None

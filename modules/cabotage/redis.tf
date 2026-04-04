@@ -16,6 +16,11 @@ resource "helm_release" "redis_operator" {
   version          = var.redis_operator_chart_version
 
   values = [yamlencode({
+    redisOperator = {
+      podLabels = {
+        "cabotage.io/infra" = "true"
+      }
+    }
     watch_namespace = "redis"
   })]
 }

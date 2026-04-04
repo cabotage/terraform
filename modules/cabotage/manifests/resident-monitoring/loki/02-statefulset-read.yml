@@ -6,6 +6,7 @@ metadata:
   labels:
     app: resident-loki
     component: read
+    cabotage.io/infra: "true"
 spec:
   serviceName: resident-loki-read
   replicas: ${replicas}
@@ -22,6 +23,7 @@ spec:
         app: resident-loki
         component: read
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       serviceAccountName: resident-loki
       securityContext:

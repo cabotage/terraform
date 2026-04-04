@@ -10,6 +10,11 @@ resource "helm_release" "cert_manager" {
   version          = var.cert_manager_chart_version
 
   values = [yamlencode({
+    global = {
+      commonLabels = {
+        "cabotage.io/infra" = "true"
+      }
+    }
     installCRDs  = true
     featureGates = "ExperimentalCertificateSigningRequestControllers=true"
   })]
@@ -22,6 +27,12 @@ resource "helm_release" "cert_manager_csi_driver" {
   namespace  = "cert-manager"
   version    = var.cert_manager_csi_driver_chart_version
   wait       = true
+
+  values = [yamlencode({
+    commonLabels = {
+      "cabotage.io/infra" = "true"
+    }
+  })]
 
   depends_on = [helm_release.cert_manager]
 }

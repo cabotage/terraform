@@ -5,6 +5,7 @@ metadata:
   name: rustfs-console
   labels:
     app: rustfs
+    cabotage.io/infra: "true"
 spec:
   clusterIP: None
   ports:

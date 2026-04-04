@@ -25,6 +25,9 @@ resource "helm_release" "tailscale_operator" {
 
   values = [yamlencode({
     operatorConfig = {
+      podLabels = {
+        "cabotage.io/infra" = "true"
+      }
       image = {
         repository = var.tailscale_operator_image
         tag        = var.tailscale_operator_image_tag
