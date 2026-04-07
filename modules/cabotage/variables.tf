@@ -533,7 +533,7 @@ variable "vault_resources" {
 variable "vault_image" {
   description = "Container image for Vault"
   type        = string
-  default     = "hashicorp/vault:1.18.4"
+  default     = "hashicorp/vault:1.21.4"
 }
 
 variable "vault_replicas" {
