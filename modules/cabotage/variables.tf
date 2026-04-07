@@ -411,7 +411,7 @@ variable "consul_resources" {
 variable "consul_image" {
   description = "Container image for Consul"
   type        = string
-  default     = "hashicorp/consul:1.20.2"
+  default     = "hashicorp/consul:1.22.6"
 }
 
 variable "consul_replicas" {
