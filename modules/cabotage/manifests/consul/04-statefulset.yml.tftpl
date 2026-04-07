@@ -126,6 +126,13 @@ spec:
               mountPath: /etc/consul/secrets
             - name: consul-data
               mountPath: /consul/data
+          resources:
+            requests:
+              cpu: "${consul_resources.requests.cpu}"
+              memory: "${consul_resources.requests.memory}"
+            limits:
+              cpu: "${consul_resources.limits.cpu}"
+              memory: "${consul_resources.limits.memory}"
           readinessProbe:
             httpGet:
               path: /v1/status/leader
@@ -168,12 +175,12 @@ spec:
               mountPath: /etc/tls
               readOnly: true
           resources:
-            limits:
-              cpu: "10m"
-              memory: "16Mi"
             requests:
-              cpu: "5m"
-              memory: "8Mi"
+              cpu: "${cert_watcher_resources.requests.cpu}"
+              memory: "${cert_watcher_resources.requests.memory}"
+            limits:
+              cpu: "${cert_watcher_resources.limits.cpu}"
+              memory: "${cert_watcher_resources.limits.memory}"
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

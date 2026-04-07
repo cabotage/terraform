@@ -29,11 +29,13 @@ spec:
           protocol: TCP
         - port: 8000
           protocol: TCP
-    # Postgres replication between instances
+    # Postgres replication and health checks between instances
     - from:
         - podSelector:
             matchLabels:
               cnpg.io/cluster: cabotage
       ports:
         - port: 5432
+          protocol: TCP
+        - port: 8000
           protocol: TCP

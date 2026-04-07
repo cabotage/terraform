@@ -64,7 +64,10 @@ resource "kubectl_manifest" "redis_certificate" {
 # --- Redis Cluster ---
 
 resource "kubectl_manifest" "redis_cluster" {
-  yaml_body = file("${path.module}/manifests/redis/redis.yaml")
+  yaml_body = templatefile("${path.module}/manifests/redis/redis.yaml.tftpl", {
+    redis_resources          = var.redis_resources
+    redis_exporter_resources = var.redis_exporter_resources
+  })
 
   wait_for_rollout = false
 

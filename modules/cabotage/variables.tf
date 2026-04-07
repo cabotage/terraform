@@ -45,6 +45,24 @@ variable "traefik_host_network" {
   default     = false
 }
 
+variable "traefik_nlb_idle_timeout" {
+  description = "AWS NLB connection idle timeout in seconds"
+  type        = number
+  default     = 240
+}
+
+variable "traefik_responding_timeouts" {
+  description = "Traefik entrypoint responding timeouts"
+  type = object({
+    read_timeout  = string
+    write_timeout = string
+  })
+  default = {
+    read_timeout  = "60s"
+    write_timeout = "0s"
+  }
+}
+
 variable "node_cidr" {
   description = "CIDR for cluster nodes — used in network policies to allow hostNetwork traffic (e.g. traefik with hostNetwork)"
   type        = string
@@ -91,6 +109,30 @@ variable "acme_email" {
 
 # --- CA Admission ---
 
+variable "ca_admission_resources" {
+  description = "CPU/memory requests and limits for the CA admission webhook"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "25m"
+      memory = "48Mi"
+    }
+    limits = {
+      cpu    = "25m"
+      memory = "48Mi"
+    }
+  }
+}
+
 variable "ca_admission_image" {
   description = "Container image for the CA admission webhook"
   type        = string
@@ -104,6 +146,126 @@ variable "ca_admission_replicas" {
 }
 
 # --- Cabotage App ---
+
+variable "cabotage_sidecar_resources" {
+  description = "CPU/memory requests and limits for cabotage-sidecar (vault token manager) native sidecars"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "10m"
+      memory = "16Mi"
+    }
+    limits = {
+      cpu    = "10m"
+      memory = "16Mi"
+    }
+  }
+}
+
+variable "cabotage_sidecar_tls_resources" {
+  description = "CPU/memory requests and limits for cabotage-sidecar-tls (ghostunnel) native sidecar"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "10m"
+      memory = "32Mi"
+    }
+    limits = {
+      cpu    = "10m"
+      memory = "32Mi"
+    }
+  }
+}
+
+variable "cabotage_app_web_resources" {
+  description = "CPU/memory requests and limits for the cabotage web Deployment"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "250m"
+      memory = "768Mi"
+    }
+    limits = {
+      cpu    = "1"
+      memory = "1024Mi"
+    }
+  }
+}
+
+variable "cabotage_app_worker_resources" {
+  description = "CPU/memory requests and limits for the cabotage worker Deployment"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "250m"
+      memory = "1Gi"
+    }
+    limits = {
+      cpu    = "250m"
+      memory = "1Gi"
+    }
+  }
+}
+
+variable "cabotage_app_worker_beat_resources" {
+  description = "CPU/memory requests and limits for the cabotage worker-beat Deployment"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "25m"
+      memory = "256Mi"
+    }
+    limits = {
+      cpu    = "25m"
+      memory = "256Mi"
+    }
+  }
+}
 
 variable "cabotage_app_image" {
   description = "Container image for the cabotage application"
@@ -138,6 +300,44 @@ variable "sentry_environment" {
   description = "Sentry environment name (e.g. staging, production)"
   type        = string
   default     = ""
+}
+
+variable "cabotage_postgres_resources" {
+  description = "CPU/memory requests and limits for the cabotage CNPG postgres cluster"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "100m"
+      memory = "512Mi"
+    }
+    limits = {
+      cpu    = "100m"
+      memory = "512Mi"
+    }
+  }
+}
+
+variable "cabotage_postgres_parameters" {
+  description = "PostgreSQL configuration parameters for the cabotage CNPG cluster (e.g. shared_buffers, work_mem)"
+  type        = map(string)
+  default     = {
+    shared_buffers = "128MB"
+  }
+}
+
+variable "cabotage_postgres_instances" {
+  description = "Number of PostgreSQL instances in the cabotage CNPG cluster"
+  type        = number
+  default     = 2
 }
 
 variable "cabotage_postgres_storage_size" {
@@ -184,6 +384,30 @@ variable "cabotage_ingress_domain" {
 
 # --- Consul ---
 
+variable "consul_resources" {
+  description = "CPU/memory requests and limits for the Consul container"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "50m"
+      memory = "256Mi"
+    }
+    limits = {
+      cpu    = "50m"
+      memory = "256Mi"
+    }
+  }
+}
+
 variable "consul_image" {
   description = "Container image for Consul"
   type        = string
@@ -209,6 +433,102 @@ variable "consul_storage_size" {
 }
 
 # --- Vault ---
+
+variable "vault_consul_agent_resources" {
+  description = "CPU/memory requests and limits for the Consul agent sidecar in Vault pods"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "25m"
+      memory = "48Mi"
+    }
+    limits = {
+      cpu    = "25m"
+      memory = "48Mi"
+    }
+  }
+}
+
+variable "cert_watcher_resources" {
+  description = "CPU/memory requests and limits for cert-watcher sidecars (Vault and Consul)"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "5m"
+      memory = "8Mi"
+    }
+    limits = {
+      cpu    = "5m"
+      memory = "8Mi"
+    }
+  }
+}
+
+variable "vault_auto_unseal_resources" {
+  description = "CPU/memory requests and limits for the Vault auto-unseal sidecar (dev only)"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "10m"
+      memory = "32Mi"
+    }
+    limits = {
+      cpu    = "10m"
+      memory = "32Mi"
+    }
+  }
+}
+
+variable "vault_resources" {
+  description = "CPU/memory requests and limits for the Vault container"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "50m"
+      memory = "128Mi"
+    }
+    limits = {
+      cpu    = "50m"
+      memory = "128Mi"
+    }
+  }
+}
 
 variable "vault_image" {
   description = "Container image for Vault"
@@ -247,6 +567,30 @@ variable "vault_dev_auto_unseal" {
 }
 
 # --- RustFS ---
+
+variable "rustfs_resources" {
+  description = "CPU/memory requests and limits for the RustFS container"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "100m"
+      memory = "128Mi"
+    }
+    limits = {
+      cpu    = "500m"
+      memory = "512Mi"
+    }
+  }
+}
 
 variable "rustfs_image" {
   description = "Container image for RustFS"
@@ -287,6 +631,54 @@ variable "cnpg_chart_version" {
 }
 
 # --- Redis ---
+
+variable "redis_resources" {
+  description = "CPU/memory requests and limits for the Redis container"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "25m"
+      memory = "128Mi"
+    }
+    limits = {
+      cpu    = "25m"
+      memory = "128Mi"
+    }
+  }
+}
+
+variable "redis_exporter_resources" {
+  description = "CPU/memory requests and limits for the Redis Exporter sidecar"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "10m"
+      memory = "32Mi"
+    }
+    limits = {
+      cpu    = "10m"
+      memory = "32Mi"
+    }
+  }
+}
 
 variable "redis_operator_chart_version" {
   description = "Helm chart version for Redis operator"
@@ -338,6 +730,78 @@ variable "proxy_fix_num_proxies" {
   default     = 1
 }
 
+variable "registry_ghostunnel_resources" {
+  description = "CPU/memory requests and limits for the registry ghostunnel sidecar"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "25m"
+      memory = "32Mi"
+    }
+    limits = {
+      cpu    = "25m"
+      memory = "32Mi"
+    }
+  }
+}
+
+variable "registry_resources" {
+  description = "CPU/memory requests and limits for the registry container"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "50m"
+      memory = "64Mi"
+    }
+    limits = {
+      cpu    = "100m"
+      memory = "128Mi"
+    }
+  }
+}
+
+variable "enrollment_operator_resources" {
+  description = "CPU/memory requests and limits for the Enrollment Operator Deployment"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "25m"
+      memory = "128Mi"
+    }
+    limits = {
+      cpu    = "25m"
+      memory = "128Mi"
+    }
+  }
+}
+
 variable "registry_verify" {
   description = "TLS verification for registry: 'True' for system trust store, or a path to a CA cert file"
   type        = string
@@ -367,6 +831,247 @@ variable "s3_storage" {
 }
 
 # --- Resident Monitoring ---
+
+variable "alloy_resources" {
+  description = "CPU/memory requests and limits for the Alloy DaemonSet"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "50m"
+      memory = "512Mi"
+    }
+    limits = {
+      cpu    = "50m"
+      memory = "512Mi"
+    }
+  }
+}
+
+variable "kube_state_metrics_resources" {
+  description = "CPU/memory requests and limits for the Kube State Metrics Deployment"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "25m"
+      memory = "64Mi"
+    }
+    limits = {
+      cpu    = "25m"
+      memory = "64Mi"
+    }
+  }
+}
+
+variable "loki_write_resources" {
+  description = "CPU/memory requests and limits for the Loki write StatefulSet"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "10m"
+      memory = "128Mi"
+    }
+    limits = {
+      cpu    = "50m"
+      memory = "256Mi"
+    }
+  }
+}
+
+variable "loki_read_resources" {
+  description = "CPU/memory requests and limits for the Loki read StatefulSet"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "50m"
+      memory = "256Mi"
+    }
+    limits = {
+      cpu    = "50m"
+      memory = "256Mi"
+    }
+  }
+}
+
+variable "loki_backend_resources" {
+  description = "CPU/memory requests and limits for the Loki backend StatefulSet"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "50m"
+      memory = "128Mi"
+    }
+    limits = {
+      cpu    = "100m"
+      memory = "256Mi"
+    }
+  }
+}
+
+variable "loki_standalone_resources" {
+  description = "CPU/memory requests and limits for the Loki standalone StatefulSet"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "50m"
+      memory = "256Mi"
+    }
+    limits = {
+      cpu    = "50m"
+      memory = "256Mi"
+    }
+  }
+}
+
+variable "mimir_write_resources" {
+  description = "CPU/memory requests and limits for the Mimir write StatefulSet"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "100m"
+      memory = "512Mi"
+    }
+    limits = {
+      cpu    = "100m"
+      memory = "512Mi"
+    }
+  }
+}
+
+variable "mimir_read_resources" {
+  description = "CPU/memory requests and limits for the Mimir read StatefulSet"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "50m"
+      memory = "256Mi"
+    }
+    limits = {
+      cpu    = "500m"
+      memory = "256Mi"
+    }
+  }
+}
+
+variable "mimir_backend_resources" {
+  description = "CPU/memory requests and limits for the Mimir backend StatefulSet"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "50m"
+      memory = "256Mi"
+    }
+    limits = {
+      cpu    = "50m"
+      memory = "256Mi"
+    }
+  }
+}
+
+variable "mimir_standalone_resources" {
+  description = "CPU/memory requests and limits for the Mimir standalone StatefulSet"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  # standalone runs all targets; combined estimate from split components
+  default = {
+    requests = {
+      cpu    = "100m"
+      memory = "512Mi"
+    }
+    limits = {
+      cpu    = "100m"
+      memory = "512Mi"
+    }
+  }
+}
 
 variable "loki_backend_replicas" {
   description = "Number of replicas for resident-loki-backend"
@@ -417,6 +1122,30 @@ variable "mimir_standalone" {
 }
 
 # --- Tailscale ---
+
+variable "tailscale_operator_manager_resources" {
+  description = "CPU/memory requests and limits for the Tailscale Operator Manager Deployment"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "25m"
+      memory = "128Mi"
+    }
+    limits = {
+      cpu    = "25m"
+      memory = "128Mi"
+    }
+  }
+}
 
 variable "enable_tailscale" {
   description = "Deploy the tailscale operator (Helm) and operator-manager"

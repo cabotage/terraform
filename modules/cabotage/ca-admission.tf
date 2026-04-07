@@ -24,8 +24,9 @@ resource "kubectl_manifest" "ca_admission_clusterrolebinding" {
 
 resource "kubectl_manifest" "ca_admission_deployment" {
   yaml_body = templatefile("${path.module}/manifests/ca-admission/02-deployment.yml.tftpl", {
-    replicas = var.ca_admission_replicas
-    image    = var.ca_admission_image
+    replicas  = var.ca_admission_replicas
+    image     = var.ca_admission_image
+    resources = var.ca_admission_resources
   })
 
   depends_on = [

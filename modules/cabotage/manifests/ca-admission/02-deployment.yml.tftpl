@@ -49,9 +49,12 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 1
           resources:
+            requests:
+              cpu: "${resources.requests.cpu}"
+              memory: "${resources.requests.memory}"
             limits:
-              memory: "100Mi"
-              cpu: "100m"
+              cpu: "${resources.limits.cpu}"
+              memory: "${resources.limits.memory}"
           volumeMounts:
             - name: tls
               mountPath: /etc/tls

@@ -173,8 +173,10 @@ resource "kubectl_manifest" "tailscale_operator_manager_rolebinding" {
 # --- Manager Deployment ---
 
 resource "kubectl_manifest" "tailscale_operator_manager_deployment" {
-  count     = var.enable_tailscale ? 1 : 0
-  yaml_body = file("${path.module}/manifests/tailscale-operator-manager/03-deployment.yml")
+  count = var.enable_tailscale ? 1 : 0
+  yaml_body = templatefile("${path.module}/manifests/tailscale-operator-manager/03-deployment.yml.tftpl", {
+    resources = var.tailscale_operator_manager_resources
+  })
 
   depends_on = [
     kubectl_manifest.tailscale_operator_manager_clusterrolebinding,

@@ -88,7 +88,11 @@ resource "helm_release" "traefik" {
     }]
 
     additionalArguments = [
-      "--serversTransport.rootCAs=/etc/traefik/certs/ca.crt"
+      "--serversTransport.rootCAs=/etc/traefik/certs/ca.crt",
+      "--entrypoints.web.transport.respondingtimeouts.readtimeout=${var.traefik_responding_timeouts.read_timeout}",
+      "--entrypoints.web.transport.respondingtimeouts.writetimeout=${var.traefik_responding_timeouts.write_timeout}",
+      "--entrypoints.websecure.transport.respondingtimeouts.readtimeout=${var.traefik_responding_timeouts.read_timeout}",
+      "--entrypoints.websecure.transport.respondingtimeouts.writetimeout=${var.traefik_responding_timeouts.write_timeout}",
     ]
 
     hostNetwork = var.traefik_host_network ? true : null
@@ -103,9 +107,9 @@ resource "helm_release" "traefik" {
         "service.beta.kubernetes.io/aws-load-balancer-scheme"                      = "internet-facing"
         "service.beta.kubernetes.io/aws-load-balancer-type"                        = "external"
         "service.beta.kubernetes.io/aws-load-balancer-nlb-target-type"             = "ip"
-        "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout"     = "240"
+        "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout"     = tostring(var.traefik_nlb_idle_timeout)
         "service.beta.kubernetes.io/aws-load-balancer-connection-draining-enabled" = "true"
-        "service.beta.kubernetes.io/aws-load-balancer-connection-draining-timeout" = "240"
+        "service.beta.kubernetes.io/aws-load-balancer-connection-draining-timeout" = tostring(var.traefik_nlb_idle_timeout)
       }
       } : var.traefik_load_balancer ? {
       type        = "LoadBalancer"
