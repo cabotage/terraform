@@ -5,6 +5,7 @@ metadata:
   namespace: cabotage
   labels:
     app: resident-kube-state-metrics
+    cabotage.io/infra: "true"
 spec:
   ports:
   - name: https-metrics

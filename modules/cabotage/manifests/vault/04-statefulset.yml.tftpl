@@ -5,6 +5,7 @@ metadata:
   name: vault
   labels:
     app: vault
+    cabotage.io/infra: "true"
 spec:
   serviceName: vault
   replicas: ${replicas}
@@ -19,6 +20,7 @@ spec:
       labels:
         app: vault
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       affinity:
         podAntiAffinity:
@@ -136,13 +138,20 @@ spec:
               mountPath: /etc/consul/secrets
             - name: consul-data
               mountPath: /consul/data
+          resources:
+            requests:
+              cpu: "${vault_consul_agent_resources.requests.cpu}"
+              memory: "${vault_consul_agent_resources.requests.memory}"
+            limits:
+              cpu: "${vault_consul_agent_resources.limits.cpu}"
+              memory: "${vault_consul_agent_resources.limits.memory}"
         - name: vault
           image: ${vault_image}
           imagePullPolicy: IfNotPresent
           command: ["vault"]
           args:
           - "server"
-          - "-log-level=trace"
+          - "-log-level=warning"
           - "-config"
           - "/vault/config/config.json"
           - "-config"
@@ -178,12 +187,12 @@ spec:
               scheme: HTTPS
             initialDelaySeconds: 5
           resources:
-            limits:
-              cpu: "500m"
-              memory: "512Mi"
             requests:
-              cpu: "250m"
-              memory: "256Mi"
+              cpu: "${vault_resources.requests.cpu}"
+              memory: "${vault_resources.requests.memory}"
+            limits:
+              cpu: "${vault_resources.limits.cpu}"
+              memory: "${vault_resources.limits.memory}"
           volumeMounts:
             - name: tls
               mountPath: /etc/tls
@@ -225,12 +234,12 @@ spec:
               mountPath: /etc/tls
               readOnly: true
           resources:
-            limits:
-              cpu: "10m"
-              memory: "16Mi"
             requests:
-              cpu: "5m"
-              memory: "8Mi"
+              cpu: "${cert_watcher_resources.requests.cpu}"
+              memory: "${cert_watcher_resources.requests.memory}"
+            limits:
+              cpu: "${cert_watcher_resources.limits.cpu}"
+              memory: "${cert_watcher_resources.limits.memory}"
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -286,12 +295,12 @@ spec:
               mountPath: /etc/vault-unseal
               readOnly: true
           resources:
-            limits:
-              cpu: "10m"
-              memory: "32Mi"
             requests:
-              cpu: "5m"
-              memory: "16Mi"
+              cpu: "${vault_auto_unseal_resources.requests.cpu}"
+              memory: "${vault_auto_unseal_resources.requests.memory}"
+            limits:
+              cpu: "${vault_auto_unseal_resources.limits.cpu}"
+              memory: "${vault_auto_unseal_resources.limits.memory}"
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

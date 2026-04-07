@@ -5,6 +5,7 @@ metadata:
   namespace: cabotage
   labels:
     app: resident-loki
+    cabotage.io/infra: "true"
 spec:
   clusterIP: None
   publishNotReadyAddresses: true

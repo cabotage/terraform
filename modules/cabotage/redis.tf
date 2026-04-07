@@ -16,6 +16,11 @@ resource "helm_release" "redis_operator" {
   version          = var.redis_operator_chart_version
 
   values = [yamlencode({
+    redisOperator = {
+      podLabels = {
+        "cabotage.io/infra" = "true"
+      }
+    }
     watch_namespace = "redis"
   })]
 }
@@ -59,7 +64,10 @@ resource "kubectl_manifest" "redis_certificate" {
 # --- Redis Cluster ---
 
 resource "kubectl_manifest" "redis_cluster" {
-  yaml_body = file("${path.module}/manifests/redis/redis.yaml")
+  yaml_body = templatefile("${path.module}/manifests/redis/redis.yaml.tftpl", {
+    redis_resources          = var.redis_resources
+    redis_exporter_resources = var.redis_exporter_resources
+  })
 
   wait_for_rollout = false
 

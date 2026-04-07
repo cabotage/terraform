@@ -98,7 +98,12 @@ resource "null_resource" "cnpg_webhook_ready" {
 # --- CNPG Cluster ---
 
 resource "kubectl_manifest" "postgres_cluster" {
-  yaml_body = file("${path.module}/manifests/postgres/01-cluster.yml")
+  yaml_body = templatefile("${path.module}/manifests/postgres/01-cluster.yml", {
+    storage_size = var.cabotage_postgres_storage_size
+    instances    = var.cabotage_postgres_instances
+    resources    = var.cabotage_postgres_resources
+    parameters   = var.cabotage_postgres_parameters
+  })
 
   wait_for_rollout = false
 

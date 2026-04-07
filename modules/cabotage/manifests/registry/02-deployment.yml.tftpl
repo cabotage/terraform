@@ -5,6 +5,7 @@ metadata:
   namespace: cabotage
   labels:
     app: registry
+    cabotage.io/infra: "true"
 spec:
   replicas: ${replicas}
   selector:
@@ -17,6 +18,7 @@ spec:
       labels:
         app: registry
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       serviceAccountName: registry
 %{ if !use_s3 ~}
@@ -64,12 +66,12 @@ spec:
               port: 5000
             initialDelaySeconds: 10
           resources:
-            limits:
-              cpu: "100m"
-              memory: "64Mi"
             requests:
-              cpu: "50m"
-              memory: "32Mi"
+              cpu: "${ghostunnel_resources.requests.cpu}"
+              memory: "${ghostunnel_resources.requests.memory}"
+            limits:
+              cpu: "${ghostunnel_resources.limits.cpu}"
+              memory: "${ghostunnel_resources.limits.memory}"
         - name: registry
           image: registry:3.0.0
           imagePullPolicy: IfNotPresent
@@ -119,12 +121,12 @@ spec:
               readOnly: true
 %{ endif ~}
           resources:
-            limits:
-              memory: "512Mi"
-              cpu: "500m"
             requests:
-              memory: "256Mi"
-              cpu: "200m"
+              cpu: "${registry_resources.requests.cpu}"
+              memory: "${registry_resources.requests.memory}"
+            limits:
+              cpu: "${registry_resources.limits.cpu}"
+              memory: "${registry_resources.limits.memory}"
       terminationGracePeriodSeconds: 5
       volumes:
         - name: tls

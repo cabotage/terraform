@@ -3,10 +3,29 @@ kind: Cluster
 metadata:
   name: cabotage
   namespace: postgres
+  labels:
+    cabotage.io/infra: "true"
 spec:
-  instances: 2
+  inheritedMetadata:
+    labels:
+      cabotage.io/infra: "true"
+  instances: ${instances}
   certificates:
     serverTLSSecret: cabotage-tls
     serverCASecret: operators-ca-crt
+  resources:
+    requests:
+      cpu: "${resources.requests.cpu}"
+      memory: "${resources.requests.memory}"
+    limits:
+      cpu: "${resources.limits.cpu}"
+      memory: "${resources.limits.memory}"
+%{ if length(parameters) > 0 ~}
+  postgresql:
+    parameters:
+%{ for key, value in parameters ~}
+      ${key}: "${value}"
+%{ endfor ~}
+%{ endif ~}
   storage:
-    size: 1Gi
+    size: ${storage_size}

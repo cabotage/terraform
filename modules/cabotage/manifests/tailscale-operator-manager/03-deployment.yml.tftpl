@@ -5,6 +5,7 @@ metadata:
   name: tailscale-operator-manager
   labels:
     app: tailscale-operator-manager
+    cabotage.io/infra: "true"
 spec:
   replicas: 1
   strategy:
@@ -17,6 +18,7 @@ spec:
       labels:
         app: tailscale-operator-manager
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       serviceAccountName: cabotage-tailscale-operator-manager-account
       containers:
@@ -32,12 +34,12 @@ spec:
               path: /healthz
               port: 8080
           resources:
-            limits:
-              memory: "256Mi"
-              cpu: "100m"
             requests:
-              memory: "100Mi"
-              cpu: "50m"
+              cpu: "${resources.requests.cpu}"
+              memory: "${resources.requests.memory}"
+            limits:
+              cpu: "${resources.limits.cpu}"
+              memory: "${resources.limits.memory}"
           securityContext:
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false

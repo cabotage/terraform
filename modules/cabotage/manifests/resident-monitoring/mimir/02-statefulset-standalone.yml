@@ -6,6 +6,7 @@ metadata:
   labels:
     app: resident-mimir
     component: standalone
+    cabotage.io/infra: "true"
 spec:
   serviceName: resident-mimir-standalone
   replicas: 1
@@ -22,6 +23,7 @@ spec:
         app: resident-mimir
         component: standalone
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       serviceAccountName: resident-mimir
       securityContext:
@@ -77,11 +79,11 @@ spec:
           periodSeconds: 15
         resources:
           requests:
-            cpu: 250m
-            memory: 512Mi
+            cpu: "${resources.requests.cpu}"
+            memory: "${resources.requests.memory}"
           limits:
-            cpu: "1"
-            memory: 2Gi
+            cpu: "${resources.limits.cpu}"
+            memory: "${resources.limits.memory}"
         volumeMounts:
         - name: config
           mountPath: /etc/mimir
@@ -91,7 +93,7 @@ spec:
         - name: data
           mountPath: /data
         - name: rules
-          mountPath: /etc/mimir/rules/anonymous
+          mountPath: /etc/mimir/rules/cabotage-infra
           readOnly: true
         - name: alertmanager-config
           mountPath: /etc/mimir/alertmanager

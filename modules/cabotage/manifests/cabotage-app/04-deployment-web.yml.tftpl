@@ -6,6 +6,7 @@ metadata:
   labels:
     app: cabotage-app
     component: web
+    cabotage.io/infra: "true"
 spec:
   replicas: ${replicas}
   selector:
@@ -20,6 +21,7 @@ spec:
         app: cabotage-app
         component: web
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       serviceAccountName: cabotage-app
       initContainers:
@@ -60,6 +62,13 @@ spec:
                 - test -f /var/run/secrets/vault/vault-token && test -f /var/run/secrets/vault/consul-token && test -f /var/run/secrets/vault/combined.pem
             periodSeconds: 1
             failureThreshold: 30
+          resources:
+            requests:
+              cpu: "${sidecar_resources.requests.cpu}"
+              memory: "${sidecar_resources.requests.memory}"
+            limits:
+              cpu: "${sidecar_resources.limits.cpu}"
+              memory: "${sidecar_resources.limits.memory}"
           volumeMounts:
             - name: vault-secrets
               mountPath: /var/run/secrets/vault
@@ -100,6 +109,13 @@ spec:
               port: 8443
               scheme: HTTPS
             initialDelaySeconds: 5
+          resources:
+            requests:
+              cpu: "${sidecar_tls_resources.requests.cpu}"
+              memory: "${sidecar_tls_resources.requests.memory}"
+            limits:
+              cpu: "${sidecar_tls_resources.limits.cpu}"
+              memory: "${sidecar_tls_resources.limits.memory}"
       containers:
         - name: cabotage-app
           image: ${image}
@@ -256,12 +272,12 @@ spec:
             - name: cabotage-sock
               mountPath: /var/run/cabotage
           resources:
-            limits:
-              cpu: 400m
-              memory: 1200Mi
             requests:
-              cpu: 200m
-              memory: 600Mi
+              cpu: "${resources.requests.cpu}"
+              memory: "${resources.requests.memory}"
+            limits:
+              cpu: "${resources.limits.cpu}"
+              memory: "${resources.limits.memory}"
       volumes:
         - name: vault-secrets
           emptyDir:

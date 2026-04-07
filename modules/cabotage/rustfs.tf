@@ -58,6 +58,7 @@ resource "kubectl_manifest" "rustfs_statefulset" {
     rustfs_log_size     = var.rustfs_log_size
     disks_per_replica   = var.rustfs_disks_per_replica
     rustfs_volumes_arg  = local.rustfs_volumes_arg
+    resources           = var.rustfs_resources
   })
 
   wait_for_rollout = false

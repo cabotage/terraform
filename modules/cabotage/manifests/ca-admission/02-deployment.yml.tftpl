@@ -5,6 +5,7 @@ metadata:
   name: cabotage-ca-admission
   labels:
     app: cabotage-ca-admission
+    cabotage.io/infra: "true"
 spec:
   replicas: ${replicas}
   selector:
@@ -14,6 +15,7 @@ spec:
     metadata:
       labels:
         app: cabotage-ca-admission
+        cabotage.io/infra: "true"
     spec:
       securityContext:
         runAsNonRoot: true
@@ -47,9 +49,12 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 1
           resources:
+            requests:
+              cpu: "${resources.requests.cpu}"
+              memory: "${resources.requests.memory}"
             limits:
-              memory: "100Mi"
-              cpu: "100m"
+              cpu: "${resources.limits.cpu}"
+              memory: "${resources.limits.memory}"
           volumeMounts:
             - name: tls
               mountPath: /etc/tls

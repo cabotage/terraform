@@ -91,7 +91,10 @@ resource "null_resource" "enrollment_operator_bootstrap" {
 # --- Enrollment Operator Deployment ---
 
 resource "kubectl_manifest" "enrollment_operator_deployment" {
-  yaml_body = file("${path.module}/manifests/enrollment-operator/03-deployment.yml")
+  yaml_body = templatefile("${path.module}/manifests/enrollment-operator/03-deployment.yml.tftpl", {
+    resources         = var.enrollment_operator_resources
+    sidecar_resources = var.cabotage_sidecar_resources
+  })
 
   depends_on = [
     kubectl_manifest.enrollment_operator_rolebinding,

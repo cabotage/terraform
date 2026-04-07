@@ -6,6 +6,7 @@ metadata:
   labels:
     app: resident-loki
     component: write
+    cabotage.io/infra: "true"
 spec:
   serviceName: resident-loki-write
   replicas: ${replicas}
@@ -22,6 +23,7 @@ spec:
         app: resident-loki
         component: write
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       serviceAccountName: resident-loki
       securityContext:
@@ -87,11 +89,11 @@ spec:
           periodSeconds: 15
         resources:
           requests:
-            cpu: 250m
-            memory: 512Mi
+            cpu: "${resources.requests.cpu}"
+            memory: "${resources.requests.memory}"
           limits:
-            cpu: "1"
-            memory: 2Gi
+            cpu: "${resources.limits.cpu}"
+            memory: "${resources.limits.memory}"
         volumeMounts:
         - name: config
           mountPath: /etc/loki

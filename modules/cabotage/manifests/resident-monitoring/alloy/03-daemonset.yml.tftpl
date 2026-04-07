@@ -5,6 +5,7 @@ metadata:
   namespace: cabotage
   labels:
     app: resident-alloy
+    cabotage.io/infra: "true"
 spec:
   selector:
     matchLabels:
@@ -16,6 +17,7 @@ spec:
       labels:
         app: resident-alloy
         ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
     spec:
       serviceAccountName: resident-alloy
       tolerations:
@@ -66,11 +68,11 @@ spec:
           periodSeconds: 15
         resources:
           requests:
-            cpu: 100m
-            memory: 768Mi
+            cpu: "${resources.requests.cpu}"
+            memory: "${resources.requests.memory}"
           limits:
-            cpu: 300m
-            memory: 1024Mi
+            cpu: "${resources.limits.cpu}"
+            memory: "${resources.limits.memory}"
         volumeMounts:
         - name: config
           mountPath: /etc/alloy

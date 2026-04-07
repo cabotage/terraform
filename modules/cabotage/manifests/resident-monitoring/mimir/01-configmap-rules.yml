@@ -221,3 +221,63 @@ data:
             annotations:
               summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has unavailable replicas"
               description: "Deployment {{ $labels.deployment }} has {{ $value }} fewer available replicas than desired."
+
+      - name: cadvisor_enrichment
+        interval: 30s
+        rules:
+          - record: cabotage:container_cpu_usage_seconds:rate1m
+            expr: |
+              sum by (namespace, pod, container,
+                      label_cabotage_io_organization, label_cabotage_io_project, label_cabotage_io_application, label_cabotage_io_environment,
+                      label_organization, label_project, label_application, label_environment) (
+                rate(container_cpu_usage_seconds_total[1m])
+                * on (namespace, pod) group_left(
+                    label_cabotage_io_organization, label_cabotage_io_project, label_cabotage_io_application, label_cabotage_io_environment,
+                    label_organization, label_project, label_application, label_environment
+                  )
+                kube_pod_labels
+              )
+
+          - record: cabotage:container_memory_working_set_bytes
+            expr: |
+              container_memory_working_set_bytes
+              * on (namespace, pod) group_left(
+                  label_cabotage_io_organization, label_cabotage_io_project, label_cabotage_io_application, label_cabotage_io_environment,
+                  label_organization, label_project, label_application, label_environment
+                )
+              kube_pod_labels
+
+          - record: cabotage:container_network_receive_bytes:rate1m
+            expr: |
+              sum by (namespace, pod,
+                      label_cabotage_io_organization, label_cabotage_io_project, label_cabotage_io_application, label_cabotage_io_environment,
+                      label_organization, label_project, label_application, label_environment) (
+                rate(container_network_receive_bytes_total[1m])
+                * on (namespace, pod) group_left(
+                    label_cabotage_io_organization, label_cabotage_io_project, label_cabotage_io_application, label_cabotage_io_environment,
+                    label_organization, label_project, label_application, label_environment
+                  )
+                kube_pod_labels
+              )
+
+          - record: cabotage:container_network_transmit_bytes:rate1m
+            expr: |
+              sum by (namespace, pod,
+                      label_cabotage_io_organization, label_cabotage_io_project, label_cabotage_io_application, label_cabotage_io_environment,
+                      label_organization, label_project, label_application, label_environment) (
+                rate(container_network_transmit_bytes_total[1m])
+                * on (namespace, pod) group_left(
+                    label_cabotage_io_organization, label_cabotage_io_project, label_cabotage_io_application, label_cabotage_io_environment,
+                    label_organization, label_project, label_application, label_environment
+                  )
+                kube_pod_labels
+              )
+
+          - record: cabotage:container_fs_usage_bytes
+            expr: |
+              container_fs_usage_bytes
+              * on (namespace, pod) group_left(
+                  label_cabotage_io_organization, label_cabotage_io_project, label_cabotage_io_application, label_cabotage_io_environment,
+                  label_organization, label_project, label_application, label_environment
+                )
+              kube_pod_labels

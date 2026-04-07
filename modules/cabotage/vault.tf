@@ -29,12 +29,16 @@ resource "kubectl_manifest" "vault_configmap" {
 
 resource "kubectl_manifest" "vault_statefulset" {
   yaml_body = templatefile("${path.module}/manifests/vault/04-statefulset.yml.tftpl", {
-    replicas          = var.vault_replicas
-    vault_image       = var.vault_image
-    consul_image      = var.consul_image
-    consul_datacenter = var.consul_datacenter
-    consul_replicas   = var.consul_replicas
-    dev_auto_unseal   = var.vault_dev_auto_unseal
+    replicas                     = var.vault_replicas
+    vault_image                  = var.vault_image
+    consul_image                 = var.consul_image
+    consul_datacenter            = var.consul_datacenter
+    consul_replicas              = var.consul_replicas
+    dev_auto_unseal              = var.vault_dev_auto_unseal
+    vault_resources              = var.vault_resources
+    vault_consul_agent_resources = var.vault_consul_agent_resources
+    cert_watcher_resources       = var.cert_watcher_resources
+    vault_auto_unseal_resources  = var.vault_auto_unseal_resources
   })
 
   wait_for_rollout = false

@@ -60,10 +60,12 @@ resource "kubectl_manifest" "consul_scripts_configmap" {
 
 resource "kubectl_manifest" "consul_statefulset" {
   yaml_body = templatefile("${path.module}/manifests/consul/04-statefulset.yml.tftpl", {
-    replicas            = var.consul_replicas
-    consul_image        = var.consul_image
-    consul_datacenter   = var.consul_datacenter
-    consul_storage_size = var.consul_storage_size
+    replicas               = var.consul_replicas
+    consul_image           = var.consul_image
+    consul_datacenter      = var.consul_datacenter
+    consul_storage_size    = var.consul_storage_size
+    consul_resources       = var.consul_resources
+    cert_watcher_resources = var.cert_watcher_resources
   })
 
   wait_for_rollout = false

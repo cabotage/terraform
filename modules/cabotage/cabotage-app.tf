@@ -200,9 +200,9 @@ resource "null_resource" "cabotage_github_app_secret" {
   provisioner "local-exec" {
     command = "sh ${path.module}/scripts/create-github-app-secret.sh"
     environment = merge(local.secrets_manager_env, {
-      SECRETS_DIR  = local.secrets_dir
-      NAMESPACE    = kubernetes_namespace_v1.cabotage.metadata[0].name
-      KUBE_CONTEXT = var.kube_context
+      SECRETS_DIR   = local.secrets_dir
+      NAMESPACE     = kubernetes_namespace_v1.cabotage.metadata[0].name
+      KUBE_CONTEXT  = var.kube_context
       GITHUB_APP_ID = var.github_app_id
     })
   }
@@ -319,10 +319,13 @@ resource "kubernetes_secret_v1" "alertmanager_webhook" {
 
 resource "kubectl_manifest" "cabotage_app_deployment_web" {
   yaml_body = templatefile("${path.module}/manifests/cabotage-app/04-deployment-web.yml.tftpl", {
-    image       = var.cabotage_app_image
-    config_hash = local.cabotage_app_config_hash
-    use_s3      = local.use_s3
-    replicas    = var.cabotage_app_web_replicas
+    image                 = var.cabotage_app_image
+    config_hash           = local.cabotage_app_config_hash
+    use_s3                = local.use_s3
+    replicas              = var.cabotage_app_web_replicas
+    resources             = var.cabotage_app_web_resources
+    sidecar_resources     = var.cabotage_sidecar_resources
+    sidecar_tls_resources = var.cabotage_sidecar_tls_resources
   })
 
   wait_for_rollout = false
@@ -338,10 +341,12 @@ resource "kubectl_manifest" "cabotage_app_deployment_web" {
 
 resource "kubectl_manifest" "cabotage_app_deployment_worker" {
   yaml_body = templatefile("${path.module}/manifests/cabotage-app/04-deployment-worker.yml.tftpl", {
-    image       = var.cabotage_app_image
-    config_hash = local.cabotage_app_config_hash
-    use_s3      = local.use_s3
-    replicas    = var.cabotage_app_worker_replicas
+    image             = var.cabotage_app_image
+    config_hash       = local.cabotage_app_config_hash
+    use_s3            = local.use_s3
+    replicas          = var.cabotage_app_worker_replicas
+    resources         = var.cabotage_app_worker_resources
+    sidecar_resources = var.cabotage_sidecar_resources
   })
 
   wait_for_rollout = false
@@ -357,9 +362,11 @@ resource "kubectl_manifest" "cabotage_app_deployment_worker" {
 
 resource "kubectl_manifest" "cabotage_app_deployment_worker_beat" {
   yaml_body = templatefile("${path.module}/manifests/cabotage-app/04-deployment-worker-beat.yml.tftpl", {
-    image       = var.cabotage_app_image
-    config_hash = local.cabotage_app_config_hash
-    use_s3      = local.use_s3
+    image             = var.cabotage_app_image
+    config_hash       = local.cabotage_app_config_hash
+    use_s3            = local.use_s3
+    resources         = var.cabotage_app_worker_beat_resources
+    sidecar_resources = var.cabotage_sidecar_resources
   })
 
   wait_for_rollout = false

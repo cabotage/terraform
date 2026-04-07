@@ -3,6 +3,7 @@ kind: Service
 metadata:
   labels:
     app: cabotage-app
+    cabotage.io/infra: "true"
   namespace: cabotage
   name: cabotage-app
 spec:

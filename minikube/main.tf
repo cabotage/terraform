@@ -70,20 +70,20 @@ module "cabotage" {
   #   consul_storage_size      = "10Gi"
   #   vault_replicas           = 3
   #
-  rustfs_replicas           = 1
-  rustfs_disks_per_replica  = 1    # FS mode — no erasure coding
-  loki_standalone           = true # single all-in-one process
-  mimir_standalone          = true
-  consul_replicas           = 1
-  consul_storage_size       = "1Gi"
-  vault_replicas            = 1
-  traefik_replicas          = 1
-  traefik_aws_lb            = false
-  traefik_host_network      = true
-  node_cidr                 = "192.168.0.0/16"
-  cabotage_app_hostname     = "cabotage.ingress.cabotage.dev"
-  cabotage_ingress_domain   = "ingress.cabotage.dev"
-  registry_verify           = "/var/run/secrets/cabotage.io/ca.crt"
-  vault_dev_auto_unseal     = true
-  security_confirmable      = false
+  rustfs_replicas          = 1
+  rustfs_disks_per_replica = 1    # FS mode — no erasure coding
+  loki_standalone          = true # single all-in-one process
+  mimir_standalone         = true
+  consul_replicas          = 1
+  consul_storage_size      = "1Gi"
+  vault_replicas           = 1
+  traefik_replicas         = 1
+  traefik_aws_lb           = false
+  traefik_host_network     = true
+  node_cidr                = "192.168.0.0/16"
+  cabotage_app_hostname    = "cabotage.ingress.cabotage.dev"
+  cabotage_ingress_domain  = "ingress.cabotage.dev"
+  registry_verify          = "/var/run/secrets/cabotage.io/ca.crt"
+  vault_dev_auto_unseal    = true
+  security_confirmable     = false
 }

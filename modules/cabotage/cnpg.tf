@@ -12,4 +12,10 @@ resource "helm_release" "cnpg" {
   namespace        = "postgres"
   create_namespace = true
   version          = var.cnpg_chart_version
+
+  values = [yamlencode({
+    podLabels = {
+      "cabotage.io/infra" = "true"
+    }
+  })]
 }

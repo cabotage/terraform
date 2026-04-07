@@ -43,7 +43,9 @@ resource "kubectl_manifest" "alloy_cluster_service" {
 }
 
 resource "kubectl_manifest" "alloy_daemonset" {
-  yaml_body = file("${path.module}/manifests/resident-monitoring/alloy/03-daemonset.yml")
+  yaml_body = templatefile("${path.module}/manifests/resident-monitoring/alloy/03-daemonset.yml.tftpl", {
+    resources = var.alloy_resources
+  })
 
   wait_for_rollout = false
 
@@ -108,8 +110,9 @@ resource "kubectl_manifest" "loki_statefulset_backend" {
   count = var.loki_standalone ? 0 : 1
 
   yaml_body = templatefile("${path.module}/manifests/resident-monitoring/loki/02-statefulset-backend.yml", {
-    replicas = var.loki_backend_replicas
-    use_s3   = local.use_s3
+    replicas  = var.loki_backend_replicas
+    use_s3    = local.use_s3
+    resources = var.loki_backend_resources
   })
 
   wait_for_rollout = false
@@ -127,8 +130,9 @@ resource "kubectl_manifest" "loki_statefulset_read" {
   count = var.loki_standalone ? 0 : 1
 
   yaml_body = templatefile("${path.module}/manifests/resident-monitoring/loki/02-statefulset-read.yml", {
-    replicas = var.loki_read_replicas
-    use_s3   = local.use_s3
+    replicas  = var.loki_read_replicas
+    use_s3    = local.use_s3
+    resources = var.loki_read_resources
   })
 
   wait_for_rollout = false
@@ -146,8 +150,9 @@ resource "kubectl_manifest" "loki_statefulset_write" {
   count = var.loki_standalone ? 0 : 1
 
   yaml_body = templatefile("${path.module}/manifests/resident-monitoring/loki/02-statefulset-write.yml", {
-    replicas = var.loki_write_replicas
-    use_s3   = local.use_s3
+    replicas  = var.loki_write_replicas
+    use_s3    = local.use_s3
+    resources = var.loki_write_resources
   })
 
   wait_for_rollout = false
@@ -165,7 +170,8 @@ resource "kubectl_manifest" "loki_statefulset_standalone" {
   count = var.loki_standalone ? 1 : 0
 
   yaml_body = templatefile("${path.module}/manifests/resident-monitoring/loki/02-statefulset-standalone.yml", {
-    use_s3 = local.use_s3
+    use_s3    = local.use_s3
+    resources = var.loki_standalone_resources
   })
 
   wait_for_rollout = false
@@ -254,7 +260,9 @@ resource "kubectl_manifest" "ksm_configmap" {
 }
 
 resource "kubectl_manifest" "ksm_deployment" {
-  yaml_body = file("${path.module}/manifests/resident-monitoring/kube-state-metrics/02-deployment.yml")
+  yaml_body = templatefile("${path.module}/manifests/resident-monitoring/kube-state-metrics/02-deployment.yml.tftpl", {
+    resources = var.kube_state_metrics_resources
+  })
 
   wait_for_rollout = false
 
@@ -320,8 +328,9 @@ resource "kubectl_manifest" "mimir_statefulset_backend" {
   count = var.mimir_standalone ? 0 : 1
 
   yaml_body = templatefile("${path.module}/manifests/resident-monitoring/mimir/02-statefulset-backend.yml", {
-    replicas = var.mimir_backend_replicas
-    use_s3   = local.use_s3
+    replicas  = var.mimir_backend_replicas
+    use_s3    = local.use_s3
+    resources = var.mimir_backend_resources
   })
 
   wait_for_rollout = false
@@ -341,8 +350,9 @@ resource "kubectl_manifest" "mimir_statefulset_read" {
   count = var.mimir_standalone ? 0 : 1
 
   yaml_body = templatefile("${path.module}/manifests/resident-monitoring/mimir/02-statefulset-read.yml", {
-    replicas = var.mimir_read_replicas
-    use_s3   = local.use_s3
+    replicas  = var.mimir_read_replicas
+    use_s3    = local.use_s3
+    resources = var.mimir_read_resources
   })
 
   wait_for_rollout = false
@@ -361,8 +371,9 @@ resource "kubectl_manifest" "mimir_statefulset_write" {
   count = var.mimir_standalone ? 0 : 1
 
   yaml_body = templatefile("${path.module}/manifests/resident-monitoring/mimir/02-statefulset-write.yml", {
-    replicas = var.mimir_write_replicas
-    use_s3   = local.use_s3
+    replicas  = var.mimir_write_replicas
+    use_s3    = local.use_s3
+    resources = var.mimir_write_resources
   })
 
   wait_for_rollout = false
@@ -381,7 +392,8 @@ resource "kubectl_manifest" "mimir_statefulset_standalone" {
   count = var.mimir_standalone ? 1 : 0
 
   yaml_body = templatefile("${path.module}/manifests/resident-monitoring/mimir/02-statefulset-standalone.yml", {
-    use_s3 = local.use_s3
+    use_s3    = local.use_s3
+    resources = var.mimir_standalone_resources
   })
 
   wait_for_rollout = false

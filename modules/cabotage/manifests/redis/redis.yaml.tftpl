@@ -4,6 +4,8 @@ kind: Redis
 metadata:
   name: cabotage
   namespace: redis
+  labels:
+    cabotage.io/infra: "true"
 spec:
   TLS:
     secret:
@@ -16,12 +18,12 @@ spec:
       key: password
       name: cabotage-password
     resources:
-      limits:
-        cpu: 100m
-        memory: 128Mi
       requests:
-        cpu: 100m
-        memory: 128Mi
+        cpu: "${redis_resources.requests.cpu}"
+        memory: "${redis_resources.requests.memory}"
+      limits:
+        cpu: "${redis_resources.limits.cpu}"
+        memory: "${redis_resources.limits.memory}"
     updateStrategy: {}
   podSecurityContext:
     fsGroup: 1000
@@ -31,12 +33,12 @@ spec:
     imagePullPolicy: IfNotPresent
     port: 9121
     resources:
-      limits:
-        cpu: 100m
-        memory: 256Mi
       requests:
-        cpu: 100m
-        memory: 256Mi
+        cpu: "${redis_exporter_resources.requests.cpu}"
+        memory: "${redis_exporter_resources.requests.memory}"
+      limits:
+        cpu: "${redis_exporter_resources.limits.cpu}"
+        memory: "${redis_exporter_resources.limits.memory}"
   storage:
     volumeClaimTemplate:
       metadata: {}
