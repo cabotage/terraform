@@ -315,7 +315,7 @@ variable "karpenter_ebs_throughput" {
 variable "karpenter_standard_instance_families" {
   description = "Instance families for the standard Karpenter node pool"
   type        = list(string)
-  default     = ["m8g"]
+  default     = ["m8g", "c8g", "r8g"]
 }
 
 variable "karpenter_standard_instance_sizes" {
@@ -333,7 +333,7 @@ variable "karpenter_standard_cpu_limit" {
 variable "karpenter_preview_instance_families" {
   description = "Instance families for the preview Karpenter node pool"
   type        = list(string)
-  default     = ["m8g"]
+  default     = ["m8g", "c8g", "r8g"]
 }
 
 variable "karpenter_preview_instance_sizes" {
