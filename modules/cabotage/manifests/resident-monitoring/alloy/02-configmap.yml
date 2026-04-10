@@ -67,7 +67,7 @@ data:
       }
     }
 
-    // --- Metrics: scrape cAdvisor from kubelets for pod CPU/memory/network ---
+    // --- Metrics: scrape cAdvisor directly from kubelet (not via API server proxy) ---
 
     discovery.relabel "cadvisor" {
       targets = [{
@@ -76,12 +76,12 @@ data:
 
       rule {
         target_label = "__address__"
-        replacement  = "kubernetes.default.svc:443"
+        replacement  = coalesce(env("HOSTNAME"), constants.hostname) + ":10250"
       }
 
       rule {
         target_label  = "__metrics_path__"
-        replacement   = "/api/v1/nodes/" + coalesce(env("HOSTNAME"), constants.hostname) + "/proxy/metrics/cadvisor"
+        replacement   = "/metrics/cadvisor"
       }
     }
 
