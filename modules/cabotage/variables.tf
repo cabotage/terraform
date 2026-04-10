@@ -748,8 +748,8 @@ variable "registry_ghostunnel_resources" {
       memory = "32Mi"
     }
     limits = {
-      cpu    = "25m"
-      memory = "32Mi"
+      cpu    = "100m"
+      memory = "128Mi"
     }
   }
 }
