@@ -74,6 +74,11 @@ module "cabotage" {
   rustfs_disks_per_replica = 1    # FS mode — no erasure coding
   loki_standalone          = true # single all-in-one process
   mimir_standalone         = true
+  # Minikube's kubelet uses a serving cert signed by minikube-cabotage-ca,
+  # which is NOT the same CA as the projected serviceaccount/ca.crt
+  # (minikubeCA). Production EKS uses cluster-CA-signed kubelet certs so
+  # verification works there.
+  alloy_cadvisor_insecure_skip_verify = true
   consul_replicas          = 1
   consul_storage_size      = "1Gi"
   vault_replicas           = 1

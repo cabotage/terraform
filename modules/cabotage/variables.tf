@@ -165,7 +165,7 @@ variable "cabotage_sidecar_resources" {
       memory = "16Mi"
     }
     limits = {
-      cpu    = "10m"
+      cpu    = "25m"
       memory = "16Mi"
     }
   }
@@ -261,7 +261,7 @@ variable "cabotage_app_worker_beat_resources" {
       memory = "256Mi"
     }
     limits = {
-      cpu    = "25m"
+      cpu    = "100m"
       memory = "256Mi"
     }
   }
@@ -452,8 +452,8 @@ variable "vault_consul_agent_resources" {
       memory = "48Mi"
     }
     limits = {
-      cpu    = "25m"
-      memory = "48Mi"
+      cpu    = "50m"
+      memory = "96Mi"
     }
   }
 }
@@ -476,7 +476,7 @@ variable "cert_watcher_resources" {
       memory = "8Mi"
     }
     limits = {
-      cpu    = "5m"
+      cpu    = "25m"
       memory = "8Mi"
     }
   }
@@ -500,7 +500,7 @@ variable "vault_auto_unseal_resources" {
       memory = "32Mi"
     }
     limits = {
-      cpu    = "10m"
+      cpu    = "50m"
       memory = "32Mi"
     }
   }
@@ -524,8 +524,8 @@ variable "vault_resources" {
       memory = "128Mi"
     }
     limits = {
-      cpu    = "50m"
-      memory = "128Mi"
+      cpu    = "100m"
+      memory = "256Mi"
     }
   }
 }
@@ -796,7 +796,7 @@ variable "enrollment_operator_resources" {
       memory = "128Mi"
     }
     limits = {
-      cpu    = "25m"
+      cpu    = "100m"
       memory = "128Mi"
     }
   }
@@ -831,6 +831,12 @@ variable "s3_storage" {
 }
 
 # --- Resident Monitoring ---
+
+variable "alloy_cadvisor_insecure_skip_verify" {
+  description = "Skip TLS verification when scraping cadvisor from the kubelet. Required for minikube where the kubelet serving cert is signed by a CA not present in the projected service account bundle. Should remain false in production where the kubelet uses cluster-CA-signed certs."
+  type        = bool
+  default     = false
+}
 
 variable "alloy_resources" {
   description = "CPU/memory requests and limits for the Alloy DaemonSet"

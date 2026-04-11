@@ -41,6 +41,14 @@ spec:
           volumeMounts:
             - name: vault-token
               mountPath: /var/run/secrets/vault
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test -f /var/run/secrets/vault/vault-token && test -f /var/run/secrets/vault/consul-token
+            periodSeconds: 1
+            failureThreshold: 30
       containers:
         - name: enrollment-operator
           image: cabotage/enrollment-operator:4.4.4

@@ -31,7 +31,9 @@ resource "kubectl_manifest" "alloy_clusterrolebinding" {
 }
 
 resource "kubectl_manifest" "alloy_configmap" {
-  yaml_body = file("${path.module}/manifests/resident-monitoring/alloy/02-configmap.yml")
+  yaml_body = templatefile("${path.module}/manifests/resident-monitoring/alloy/02-configmap.yml.tftpl", {
+    cadvisor_insecure_skip_verify = var.alloy_cadvisor_insecure_skip_verify
+  })
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
