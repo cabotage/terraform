@@ -62,16 +62,25 @@ module "cabotage" {
   # setup on minikube (requires a multi-node cluster, e.g.
   # `minikube start --nodes 3`), use:
   #
-  #   rustfs_replicas          = 4
-  #   rustfs_disks_per_replica = 4   # erasure coding (16 PVCs total)
   #   loki_standalone          = false  # separate read/write/backend StatefulSets
   #   mimir_standalone         = false
   #   consul_replicas          = 3   # raft quorum (requires anti-affinity zones)
   #   consul_storage_size      = "10Gi"
   #   vault_replicas           = 3
   #
-  rustfs_replicas          = 1
-  rustfs_disks_per_replica = 1    # FS mode — no erasure coding
+  #   # Distributed SeaweedFS — separate master, volume, filer, s3 StatefulSets.
+  #   # Master replicas should be odd (1, 3, 5...) to form a raft quorum.
+  #   # Volume replicas determine total storage capacity and replication.
+  #   seaweedfs_standalone          = false
+  #   seaweedfs_master_replicas     = 3
+  #   seaweedfs_volume_replicas     = 3
+  #   seaweedfs_filer_replicas      = 2
+  #   seaweedfs_s3_replicas         = 2
+  #   seaweedfs_volume_storage_size = "10Gi"
+  #   seaweedfs_master_storage_size = "1Gi"
+  #   seaweedfs_filer_storage_size  = "1Gi"
+  #
+  seaweedfs_standalone     = true  # all-in-one weed mini
   loki_standalone          = true # single all-in-one process
   mimir_standalone         = true
   # Minikube's kubelet uses a serving cert signed by minikube-cabotage-ca,

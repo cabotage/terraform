@@ -12,7 +12,7 @@
 #     and config from cabotage infrastructure at runtime
 #   - Egress to internet: allowed (most apps need outbound HTTP)
 #   - All other cluster-internal egress blocked: tenants cannot reach postgres,
-#     redis, rustfs, or other infrastructure services
+#     redis, seaweedfs, or other infrastructure services
 #
 # Alloy (monitoring) does NOT need network access to tenant pods — it reads
 # logs from the node filesystem (/var/log/pods/) and scrapes metrics via

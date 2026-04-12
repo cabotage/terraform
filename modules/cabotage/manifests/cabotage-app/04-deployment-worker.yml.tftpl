@@ -109,12 +109,12 @@ spec:
             - name: CABOTAGE_MINIO_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: rustfs-cabotage-registry
+                  name: seaweedfs-cabotage-registry
                   key: access-key-id
             - name: CABOTAGE_MINIO_SECRET_KEY
               valueFrom:
                 secretKeyRef:
-                  name: rustfs-cabotage-registry
+                  name: seaweedfs-cabotage-registry
                   key: secret-key
 %{ endif ~}
             - name: CABOTAGE_SECRET_KEY

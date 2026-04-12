@@ -1,4 +1,4 @@
-# --- S3 Storage (alternative to RustFS) ---
+# --- S3 Storage (alternative to SeaweedFS) ---
 #
 # When enabled, creates S3 buckets and IRSA roles for registry, loki,
 # and mimir. The cabotage module annotates service accounts with the

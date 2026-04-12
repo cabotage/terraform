@@ -1,8 +1,8 @@
 # --- Resident Monitoring (Alloy, Mimir, Loki) ---
 #
 # Manifests live in manifests/resident-monitoring/.
-# When var.s3_storage is null, services use RustFS with per-service
-# credentials created by the rustfs-create-buckets script.
+# When var.s3_storage is null, services use SeaweedFS with per-service
+# credentials created by the seaweedfs-create-buckets script.
 # When var.s3_storage is set, services use AWS S3 via IRSA.
 
 locals {
@@ -124,7 +124,7 @@ resource "kubectl_manifest" "loki_statefulset_backend" {
     kubectl_manifest.loki_configmap,
     kubectl_manifest.loki_certificate,
     null_resource.ca_admission_webhook_ready,
-    null_resource.rustfs_create_buckets,
+    null_resource.seaweedfs_create_buckets,
   ]
 }
 
@@ -144,7 +144,7 @@ resource "kubectl_manifest" "loki_statefulset_read" {
     kubectl_manifest.loki_configmap,
     kubectl_manifest.loki_certificate,
     null_resource.ca_admission_webhook_ready,
-    null_resource.rustfs_create_buckets,
+    null_resource.seaweedfs_create_buckets,
   ]
 }
 
@@ -164,7 +164,7 @@ resource "kubectl_manifest" "loki_statefulset_write" {
     kubectl_manifest.loki_configmap,
     kubectl_manifest.loki_certificate,
     null_resource.ca_admission_webhook_ready,
-    null_resource.rustfs_create_buckets,
+    null_resource.seaweedfs_create_buckets,
   ]
 }
 
@@ -183,7 +183,7 @@ resource "kubectl_manifest" "loki_statefulset_standalone" {
     kubectl_manifest.loki_configmap,
     kubectl_manifest.loki_certificate,
     null_resource.ca_admission_webhook_ready,
-    null_resource.rustfs_create_buckets,
+    null_resource.seaweedfs_create_buckets,
   ]
 }
 
@@ -344,7 +344,7 @@ resource "kubectl_manifest" "mimir_statefulset_backend" {
     kubectl_manifest.mimir_configmap_alertmanager,
     kubectl_manifest.mimir_certificate,
     null_resource.ca_admission_webhook_ready,
-    null_resource.rustfs_create_buckets,
+    null_resource.seaweedfs_create_buckets,
   ]
 }
 
@@ -365,7 +365,7 @@ resource "kubectl_manifest" "mimir_statefulset_read" {
     kubectl_manifest.mimir_configmap_rules,
     kubectl_manifest.mimir_certificate,
     null_resource.ca_admission_webhook_ready,
-    null_resource.rustfs_create_buckets,
+    null_resource.seaweedfs_create_buckets,
   ]
 }
 
@@ -386,7 +386,7 @@ resource "kubectl_manifest" "mimir_statefulset_write" {
     kubectl_manifest.mimir_configmap_rules,
     kubectl_manifest.mimir_certificate,
     null_resource.ca_admission_webhook_ready,
-    null_resource.rustfs_create_buckets,
+    null_resource.seaweedfs_create_buckets,
   ]
 }
 
@@ -407,7 +407,7 @@ resource "kubectl_manifest" "mimir_statefulset_standalone" {
     kubectl_manifest.mimir_configmap_alertmanager,
     kubectl_manifest.mimir_certificate,
     null_resource.ca_admission_webhook_ready,
-    null_resource.rustfs_create_buckets,
+    null_resource.seaweedfs_create_buckets,
   ]
 }
 

@@ -61,8 +61,8 @@ resource "kubectl_manifest" "netpol_allow_registry" {
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
-resource "kubectl_manifest" "netpol_allow_rustfs" {
-  yaml_body = file("${path.module}/manifests/network-policies/01-allow-rustfs.yml")
+resource "kubectl_manifest" "netpol_allow_seaweedfs" {
+  yaml_body = file("${path.module}/manifests/network-policies/01-allow-seaweedfs.yml")
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
