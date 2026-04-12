@@ -21,7 +21,6 @@ resource "helm_release" "redis_operator" {
         "cabotage.io/infra" = "true"
       }
     }
-    watch_namespace = "redis"
   })]
 }
 

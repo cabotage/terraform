@@ -19,6 +19,7 @@ rules:
       - get
       - list
       - create
+      - update
       - patch
       - delete
     apiGroups:
@@ -88,11 +89,35 @@ rules:
   - verbs:
       - get
       - list
+      - create
+      - patch
+      - delete
     apiGroups:
       - cert-manager.io
     resources:
       - certificates
       - certificates/status
+  - verbs:
+      - get
+      - list
+      - create
+      - patch
+      - delete
+    apiGroups:
+      - postgresql.cnpg.io
+    resources:
+      - clusters
+  - verbs:
+      - get
+      - list
+      - create
+      - patch
+      - delete
+    apiGroups:
+      - redis.redis.opstreelabs.in
+    resources:
+      - redis
+      - redisclusters
   - verbs:
       - get
       - create
