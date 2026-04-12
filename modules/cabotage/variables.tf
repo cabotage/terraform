@@ -566,10 +566,88 @@ variable "vault_dev_auto_unseal" {
   default     = false
 }
 
-# --- RustFS ---
+# --- SeaweedFS ---
 
-variable "rustfs_resources" {
-  description = "CPU/memory requests and limits for the RustFS container"
+variable "seaweedfs_image" {
+  description = "Container image for SeaweedFS"
+  type        = string
+  default     = "chrislusf/seaweedfs:4.18"
+}
+
+variable "seaweedfs_standalone" {
+  description = "Run SeaweedFS as a single all-in-one process (weed mini) instead of separate components"
+  type        = bool
+  default     = false
+}
+
+variable "seaweedfs_master_replicas" {
+  description = "Number of SeaweedFS master replicas (clustered mode)"
+  type        = number
+  default     = 3
+}
+
+variable "seaweedfs_volume_replicas" {
+  description = "Number of SeaweedFS volume server replicas (clustered mode)"
+  type        = number
+  default     = 3
+}
+
+variable "seaweedfs_filer_replicas" {
+  description = "Number of SeaweedFS filer replicas (clustered mode)"
+  type        = number
+  default     = 2
+}
+
+variable "seaweedfs_s3_replicas" {
+  description = "Number of SeaweedFS S3 gateway replicas (clustered mode)"
+  type        = number
+  default     = 2
+}
+
+variable "seaweedfs_volume_storage_size" {
+  description = "Storage size for each SeaweedFS volume server data volume"
+  type        = string
+  default     = "10Gi"
+}
+
+variable "seaweedfs_master_storage_size" {
+  description = "Storage size for SeaweedFS master metadata volume"
+  type        = string
+  default     = "1Gi"
+}
+
+variable "seaweedfs_filer_storage_size" {
+  description = "Storage size for SeaweedFS filer metadata volume"
+  type        = string
+  default     = "1Gi"
+}
+
+variable "seaweedfs_master_resources" {
+  description = "CPU/memory requests and limits for the SeaweedFS master StatefulSet"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "50m"
+      memory = "128Mi"
+    }
+    limits = {
+      cpu    = "100m"
+      memory = "256Mi"
+    }
+  }
+}
+
+variable "seaweedfs_volume_resources" {
+  description = "CPU/memory requests and limits for the SeaweedFS volume StatefulSet"
   type = object({
     requests = object({
       cpu    = string
@@ -583,43 +661,85 @@ variable "rustfs_resources" {
   default = {
     requests = {
       cpu    = "100m"
-      memory = "128Mi"
+      memory = "256Mi"
     }
     limits = {
       cpu    = "500m"
+      memory = "1Gi"
+    }
+  }
+}
+
+variable "seaweedfs_filer_resources" {
+  description = "CPU/memory requests and limits for the SeaweedFS filer StatefulSet"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "50m"
+      memory = "128Mi"
+    }
+    limits = {
+      cpu    = "200m"
       memory = "512Mi"
     }
   }
 }
 
-variable "rustfs_image" {
-  description = "Container image for RustFS"
-  type        = string
-  default     = "rustfs/rustfs:1.0.0-alpha.86"
+variable "seaweedfs_s3_resources" {
+  description = "CPU/memory requests and limits for the SeaweedFS S3 gateway StatefulSet"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "50m"
+      memory = "128Mi"
+    }
+    limits = {
+      cpu    = "200m"
+      memory = "256Mi"
+    }
+  }
 }
 
-variable "rustfs_replicas" {
-  description = "Number of RustFS replicas"
-  type        = number
-  default     = 4
-}
-
-variable "rustfs_disks_per_replica" {
-  description = "Number of data disks per RustFS replica (1 for FS mode, 4+ for erasure coding)"
-  type        = number
-  default     = 4
-}
-
-variable "rustfs_storage_size" {
-  description = "Storage size for each RustFS data volume"
-  type        = string
-  default     = "1Gi"
-}
-
-variable "rustfs_log_size" {
-  description = "Storage size for RustFS log volume"
-  type        = string
-  default     = "256Mi"
+variable "seaweedfs_standalone_resources" {
+  description = "CPU/memory requests and limits for the SeaweedFS standalone StatefulSet"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "100m"
+      memory = "256Mi"
+    }
+    limits = {
+      cpu    = "500m"
+      memory = "1Gi"
+    }
+  }
 }
 
 # --- CNPG ---
@@ -817,7 +937,7 @@ variable "registry_replicas" {
 # --- Object Storage ---
 
 variable "s3_storage" {
-  description = "S3 storage configuration (from cabotage-eks). When set, S3 is used instead of RustFS."
+  description = "S3 storage configuration (from cabotage-eks). When set, S3 is used instead of SeaweedFS."
   type = object({
     region            = string
     registry_bucket   = string

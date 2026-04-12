@@ -436,6 +436,6 @@ resource "null_resource" "cabotage_app_configure" {
     kubectl_manifest.cabotage_app_deployment_web,
     kubectl_manifest.postgres_cluster,
     kubectl_manifest.redis_cluster,
-    null_resource.rustfs_create_buckets,
+    null_resource.seaweedfs_create_buckets,
   ]
 }

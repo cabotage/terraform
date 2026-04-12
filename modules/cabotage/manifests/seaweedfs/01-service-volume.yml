@@ -2,15 +2,19 @@ apiVersion: v1
 kind: Service
 metadata:
   namespace: cabotage
-  name: rustfs-console
+  name: seaweedfs-volume
   labels:
-    app: rustfs
+    app: seaweedfs
+    component: volume
     cabotage.io/infra: "true"
 spec:
   clusterIP: None
   ports:
-    - port: 9001
-      name: rustfs-console
+    - port: 8080
+      name: http
+    - port: 18080
+      name: grpc
   selector:
-    app: rustfs
+    app: seaweedfs
+    component: volume
   publishNotReadyAddresses: true

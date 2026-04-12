@@ -28,7 +28,7 @@ data:
         separator     = "/"
         regex         = "(.+)/(.+)/(.+)/(.+)"
         target_label  = "__path__"
-        replacement   = "/var/log/pods/${1}_${2}_${3}/${4}/*.log"
+        replacement   = "/var/log/pods/$${1}_$${2}_$${3}/$${4}/*.log"
       }
 
       rule {
@@ -96,6 +96,7 @@ data:
 
       tls_config {
         ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        insecure_skip_verify = ${cadvisor_insecure_skip_verify}
       }
 
       forward_to = [prometheus.relabel.cadvisor.receiver]
@@ -245,7 +246,7 @@ data:
         separator     = "/"
         regex         = "(.+)/(.+)/(.+)/(.+)"
         target_label  = "__path__"
-        replacement   = "/var/log/pods/${1}_${2}_${3}/${4}/*.log"
+        replacement   = "/var/log/pods/$${1}_$${2}_$${3}/$${4}/*.log"
       }
 
       rule {

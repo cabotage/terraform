@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: cabotage
+  name: seaweedfs-master
+  labels:
+    app: seaweedfs
+    component: master
+    cabotage.io/infra: "true"
+spec:
+  serviceName: seaweedfs-master
+  replicas: ${replicas}
+  selector:
+    matchLabels:
+      app: seaweedfs
+      component: master
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+        component: master
+        ca-admission.cabotage.io: "true"
+        cabotage.io/infra: "true"
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - seaweedfs
+                  - key: component
+                    operator: In
+                    values:
+                      - master
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 20003
+        runAsGroup: 20003
+        fsGroup: 20003
+        fsGroupChangePolicy: "OnRootMismatch"
+      serviceAccountName: seaweedfs
+      initContainers:
+      - name: init-permissions
+        image: busybox:1.37
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - >-
+              chown -R 20003:20003 /data &&
+              chmod 0750 /data
+        securityContext:
+          runAsNonRoot: false
+          runAsUser: 0
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      containers:
+      - name: master
+        image: ${seaweedfs_image}
+        imagePullPolicy: IfNotPresent
+        args:
+          - "master"
+          - "-ip.bind=0.0.0.0"
+          - "-port=9333"
+          - "-mdir=/data"
+          - "-peers=${master_peers}"
+          - "-volumeSizeLimitMB=100"
+          - "-defaultReplication=001"
+        ports:
+        - containerPort: 9333
+          name: http
+        - containerPort: 19333
+          name: grpc
+        livenessProbe:
+          httpGet:
+            path: /cluster/status
+            port: 9333
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /cluster/status
+            port: 9333
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "${resources.requests.cpu}"
+            memory: "${resources.requests.memory}"
+          limits:
+            cpu: "${resources.limits.cpu}"
+            memory: "${resources.limits.memory}"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: ${master_storage_size}

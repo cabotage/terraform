@@ -26,13 +26,13 @@ Designed to be used alongside [`cabotage-eks`](../cabotage-eks), which provision
 
 - **PostgreSQL** — CloudNativePG (CNPG) operator + cluster with TLS certificates signed by the operators CA.
 - **Redis** — OT-Container-Kit Redis operator + cluster with TLS and password authentication.
-- **RustFS** — S3-compatible object storage (replaces MinIO). StatefulSet with auto-provisioned buckets for the app, registry, Loki, and Mimir.
+- **SeaweedFS** — S3-compatible object storage. Supports standalone (all-in-one) or clustered (master, volume, filer, s3) mode with auto-provisioned buckets for the app, registry, Loki, and Mimir.
 
 ### Application
 
 - **Cabotage app** — Web, worker, and worker-beat deployments. Bootstrap scripts configure Vault policies, Consul policies, and a transit backend. Post-deploy configuration patches in database/Redis/S3 connection details and runs migrations.
 - **Enrollment operator** — Kopf-based operator that manages `CabotageEnrollment` custom resources for service identity provisioning (Vault/Consul credentials).
-- **Container registry** — Distribution-based registry with RustFS backend storage, garbage collection CronJob, and signing certificate integration with the Cabotage app.
+- **Container registry** — Distribution-based registry with SeaweedFS backend storage, garbage collection CronJob, and signing certificate integration with the Cabotage app.
 - **GitHub App integration** (optional) — Configures a GitHub App secret for webhook-driven builds when `github_app_id` is set. Supports OAuth login via `github_oauth_only` and `github_oauth_allowed_orgs`, with client credentials read from the secrets directory.
 
 ### Tailscale (optional)
@@ -42,8 +42,8 @@ Designed to be used alongside [`cabotage-eks`](../cabotage-eks), which provision
 ### Monitoring
 
 - **Alloy** — DaemonSet log/metrics collector.
-- **Loki** — Log aggregation (read/write/backend StatefulSets) with RustFS-backed S3 storage.
-- **Mimir** — Metrics storage (read/write/backend StatefulSets) with RustFS-backed S3 storage and alerting rules.
+- **Loki** — Log aggregation (read/write/backend StatefulSets) with SeaweedFS-backed S3 storage.
+- **Mimir** — Metrics storage (read/write/backend StatefulSets) with SeaweedFS-backed S3 storage and alerting rules.
 
 ## Usage
 
@@ -134,11 +134,21 @@ The module also uses the `kubernetes`, `helm`, `random`, and `null` providers (v
 | `vault_auto_unseal_role_arn` | IRSA role ARN for KMS auto-unseal | `string` | `""` |
 | `vault_auto_unseal_region` | AWS region for KMS key | `string` | `"us-east-1"` |
 | `vault_dev_auto_unseal` | Dev-only: store unseal key in K8s secret + sidecar | `bool` | `false` |
-| **RustFS** | | | |
-| `rustfs_image` | Container image | `string` | `"rustfs/rustfs:1.0.0-alpha.86"` |
-| `rustfs_replicas` | Number of replicas | `number` | `4` |
-| `rustfs_storage_size` | PVC size per data volume | `string` | `"1Gi"` |
-| `rustfs_log_size` | PVC size for log volume | `string` | `"256Mi"` |
+| **SeaweedFS** | | | |
+| `seaweedfs_image` | Container image | `string` | `"chrislusf/seaweedfs:4.18"` |
+| `seaweedfs_standalone` | Run as all-in-one process | `bool` | `false` |
+| `seaweedfs_master_replicas` | Master replicas (clustered) | `number` | `3` |
+| `seaweedfs_volume_replicas` | Volume server replicas (clustered) | `number` | `3` |
+| `seaweedfs_filer_replicas` | Filer replicas (clustered) | `number` | `2` |
+| `seaweedfs_s3_replicas` | S3 gateway replicas (clustered) | `number` | `2` |
+| `seaweedfs_volume_storage_size` | PVC size per volume server | `string` | `"10Gi"` |
+| `seaweedfs_master_storage_size` | PVC size for master metadata | `string` | `"1Gi"` |
+| `seaweedfs_filer_storage_size` | PVC size for filer metadata | `string` | `"1Gi"` |
+| `seaweedfs_master_resources` | Resources for master StatefulSet | `object` | `{50m/128Mi, 100m/256Mi}` |
+| `seaweedfs_volume_resources` | Resources for volume StatefulSet | `object` | `{100m/256Mi, 500m/1Gi}` |
+| `seaweedfs_filer_resources` | Resources for filer StatefulSet | `object` | `{50m/128Mi, 200m/512Mi}` |
+| `seaweedfs_s3_resources` | Resources for s3 gateway StatefulSet | `object` | `{50m/128Mi, 200m/256Mi}` |
+| `seaweedfs_standalone_resources` | Resources for standalone StatefulSet | `object` | `{100m/256Mi, 500m/1Gi}` |
 | **Postgres** | | | |
 | `cnpg_chart_version` | CloudNativePG operator chart version | `string` | `"0.27.1"` |
 | **Redis** | | | |
@@ -147,7 +157,7 @@ The module also uses the `kubernetes`, `helm`, `random`, and `null` providers (v
 | `registry_verify` | TLS verification: `"True"` for system trust, or path to CA cert | `string` | `"True"` |
 | `registry_replicas` | Number of replicas | `number` | `1` |
 | **Object storage** | | | |
-| `s3_storage` | S3 config (from cabotage-eks); when set, S3 replaces RustFS | `object` | `null` |
+| `s3_storage` | S3 config (from cabotage-eks); when set, S3 replaces SeaweedFS | `object` | `null` |
 | **Monitoring** | | | |
 | `loki_backend_replicas` | Loki backend replicas | `number` | `1` |
 | `loki_read_replicas` | Loki read replicas | `number` | `1` |
@@ -184,7 +194,7 @@ The module encodes a dependency chain that mirrors the manual cluster setup:
 6. Vault StatefulSet + init/unseal/configure
 7. CNPG operator + Redis operator
 8. Enrollment operator + CRD
-9. RustFS + bucket creation
+9. SeaweedFS + bucket creation
 10. Postgres cluster + Redis cluster
 11. Cabotage app (web/worker/worker-beat) + enrollment
 12. Container registry

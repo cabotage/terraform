@@ -1,12 +1,12 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-ingress-rustfs
+  name: allow-ingress-seaweedfs
   namespace: cabotage
 spec:
   podSelector:
     matchLabels:
-      app: rustfs
+      app: seaweedfs
   ingress:
     # S3 API from registry, cabotage-app, loki, mimir
     - from:
@@ -24,15 +24,25 @@ spec:
               app: resident-mimir
         - podSelector:
             matchLabels:
-              app: rustfs-admin
+              app: cabotage-app
       ports:
         - port: 9000
           protocol: TCP
-    # Console — rustfs-to-rustfs only
+    # Internal SeaweedFS communication (master, volume, filer)
     - from:
         - podSelector:
             matchLabels:
-              app: rustfs
+              app: seaweedfs
       ports:
-        - port: 9001
+        - port: 9333
+          protocol: TCP
+        - port: 19333
+          protocol: TCP
+        - port: 8080
+          protocol: TCP
+        - port: 18080
+          protocol: TCP
+        - port: 8888
+          protocol: TCP
+        - port: 18888
           protocol: TCP

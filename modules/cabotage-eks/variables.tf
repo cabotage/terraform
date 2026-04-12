@@ -149,7 +149,7 @@ variable "vault_namespace" {
 # --- S3 Storage ---
 
 variable "enable_s3_storage" {
-  description = "Create S3 buckets and IAM users for registry, loki, and mimir (alternative to RustFS)"
+  description = "Create S3 buckets and IAM users for registry, loki, and mimir (alternative to SeaweedFS)"
   type        = bool
   default     = false
 }

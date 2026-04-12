@@ -36,12 +36,12 @@ spec:
                 - name: REGISTRY_STORAGE_S3_ACCESSKEY
                   valueFrom:
                     secretKeyRef:
-                      name: rustfs-cabotage-registry
+                      name: seaweedfs-cabotage-registry
                       key: access-key-id
                 - name: REGISTRY_STORAGE_S3_SECRETKEY
                   valueFrom:
                     secretKeyRef:
-                      name: rustfs-cabotage-registry
+                      name: seaweedfs-cabotage-registry
                       key: secret-key
                 - name: SSL_CERT_FILE
                   value: /certs/ca-certificates.crt

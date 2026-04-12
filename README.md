@@ -15,7 +15,7 @@ Deploys the full Cabotage platform onto an existing Kubernetes cluster:
 - **Ingress & TLS** — Traefik, cert-manager, internal PKI with offline root CA
 - **Tailscale integration** — optional Tailscale operator for Tailnet-based ingress (Funnel)
 - **Service discovery & secrets** — Consul, Vault (with KMS or dev auto-unseal)
-- **Data stores** — PostgreSQL (CNPG), Redis, RustFS (S3-compatible object storage)
+- **Data stores** — PostgreSQL (CNPG), Redis, SeaweedFS (S3-compatible object storage)
 - **Application** — Cabotage web/worker/worker-beat, enrollment operator, container registry
 - **Monitoring** — Alloy, Loki, Mimir
 

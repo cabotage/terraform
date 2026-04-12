@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: cabotage
+  name: seaweedfs-ui
+  labels:
+    app: seaweedfs
+    cabotage.io/infra: "true"
+spec:
+  clusterIP: None
+  ports:
+    - port: 23646
+      name: admin
+    - port: 9333
+      name: master
+    - port: 8888
+      name: filer
+    - port: 9340
+      name: volume
+  selector:
+    app: seaweedfs
+    component: standalone
+  publishNotReadyAddresses: true
