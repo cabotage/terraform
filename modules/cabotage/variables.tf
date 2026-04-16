@@ -291,6 +291,12 @@ variable "karpenter_preview_pool_name" {
   default     = "preview"
 }
 
+variable "karpenter_backing_services_pool_name" {
+  description = "Name of the Karpenter node pool for backing services"
+  type        = string
+  default     = "backing-services"
+}
+
 variable "cabotage_app_hostname" {
   description = "Public hostname for the cabotage web app ingress"
   type        = string
@@ -329,7 +335,7 @@ variable "cabotage_postgres_resources" {
 variable "cabotage_postgres_parameters" {
   description = "PostgreSQL configuration parameters for the cabotage CNPG cluster (e.g. shared_buffers, work_mem)"
   type        = map(string)
-  default     = {
+  default = {
     shared_buffers = "128MB"
   }
 }
@@ -344,6 +350,30 @@ variable "cabotage_postgres_storage_size" {
   description = "Storage size for the cabotage CNPG postgres cluster"
   type        = string
   default     = "1Gi"
+}
+
+variable "cabotage_postgres_backup_enabled" {
+  description = "Enable WAL archiving and scheduled backups for the cabotage CNPG cluster"
+  type        = bool
+  default     = true
+}
+
+variable "cabotage_postgres_backup_schedule" {
+  description = "Schedule for CNPG base backups using six-field cron syntax with seconds"
+  type        = string
+  default     = "0 0 0 * * *"
+}
+
+variable "cabotage_postgres_backup_immediate" {
+  description = "Run an immediate CNPG backup when the ScheduledBackup resource is created"
+  type        = bool
+  default     = true
+}
+
+variable "cabotage_postgres_backup_retention_policy" {
+  description = "Recovery window retention policy for CNPG backups and WAL archives"
+  type        = string
+  default     = "30d"
 }
 
 variable "cabotage_app_web_replicas" {
@@ -625,9 +655,15 @@ variable "rustfs_log_size" {
 # --- CNPG ---
 
 variable "cnpg_chart_version" {
-  description = "Helm chart version for CloudNativePG operator"
+  description = "Helm chart version for CloudNativePG operator (chart 0.28.0 deploys CNPG 1.29.0)"
   type        = string
   default     = "0.28.0"
+}
+
+variable "barman_cloud_plugin_chart_version" {
+  description = "Helm chart version for the Barman Cloud CNPG-I backup plugin"
+  type        = string
+  default     = "0.6.0"
 }
 
 # --- Redis ---
@@ -819,13 +855,15 @@ variable "registry_replicas" {
 variable "s3_storage" {
   description = "S3 storage configuration (from cabotage-eks). When set, S3 is used instead of RustFS."
   type = object({
-    region            = string
-    registry_bucket   = string
-    registry_role_arn = string
-    loki_bucket       = string
-    loki_role_arn     = string
-    mimir_bucket      = string
-    mimir_role_arn    = string
+    region                   = string
+    registry_bucket          = string
+    registry_role_arn        = string
+    loki_bucket              = string
+    loki_role_arn            = string
+    mimir_bucket             = string
+    mimir_role_arn           = string
+    postgres_backup_bucket   = string
+    postgres_backup_role_arn = string
   })
   default = null
 }

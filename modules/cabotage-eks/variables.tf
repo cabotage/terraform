@@ -348,6 +348,30 @@ variable "karpenter_preview_cpu_limit" {
   default     = 50
 }
 
+variable "karpenter_backing_services_pool_name" {
+  description = "Name of the Karpenter node pool for stateful backing services"
+  type        = string
+  default     = "backing-services"
+}
+
+variable "karpenter_backing_services_instance_families" {
+  description = "Instance families for the backing-services Karpenter node pool"
+  type        = list(string)
+  default     = ["m8g", "r8g"]
+}
+
+variable "karpenter_backing_services_instance_sizes" {
+  description = "Allowed instance sizes for the backing-services Karpenter node pool"
+  type        = list(string)
+  default     = ["xlarge", "2xlarge"]
+}
+
+variable "karpenter_backing_services_cpu_limit" {
+  description = "Maximum total vCPUs the backing-services node pool can provision"
+  type        = number
+  default     = 50
+}
+
 # --- Pre-warm (overprovisioning) ---
 
 variable "karpenter_standard_prewarm_enabled" {

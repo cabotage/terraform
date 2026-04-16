@@ -13,6 +13,20 @@ spec:
   certificates:
     serverTLSSecret: cabotage-tls
     serverCASecret: operators-ca-crt
+%{ if use_s3 && backup_enabled && backup_s3_role_arn != "" ~}
+  serviceAccountTemplate:
+    metadata:
+      annotations:
+        eks.amazonaws.com/role-arn: ${backup_s3_role_arn}
+%{ endif ~}
+%{ if backup_enabled ~}
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: cabotage-backups
+        serverName: cabotage
+%{ endif ~}
   resources:
     requests:
       cpu: "${resources.requests.cpu}"

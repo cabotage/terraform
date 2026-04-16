@@ -41,6 +41,7 @@ rules:
     apiGroups:
       - apps
     resources:
+      - statefulsets
       - deployments
       - deployments/scale
   - verbs:

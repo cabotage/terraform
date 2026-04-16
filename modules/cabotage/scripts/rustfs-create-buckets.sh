@@ -50,74 +50,95 @@ run_rc_retry() {
 }
 
 # --- Create buckets ---
-for bucket in cabotage-registry resident-loki resident-mimir; do
+for bucket in cabotage-registry resident-loki resident-mimir cabotage-postgres-backups; do
   echo "Creating bucket: $bucket"
   run_rc_retry "rc mb --ignore-existing rustfs/$bucket"
 done
 
 # --- Create per-service users and policies ---
 cleanup_configmaps() {
-  for svc in resident-loki resident-mimir cabotage-registry; do
+  for svc in resident-loki resident-mimir cabotage-registry cabotage-postgres-backups; do
     $KUBECTL delete configmap "rustfs-policy-${svc}" -n "$NAMESPACE" --ignore-not-found > /dev/null 2>&1 || true
   done
 }
 trap cleanup_configmaps EXIT
 
-for service in resident-loki resident-mimir cabotage-registry; do
-  ACCESS_KEY=$(openssl rand -hex 16)
-  SECRET_KEY=$(openssl rand -hex 32)
+for service in resident-loki resident-mimir cabotage-registry cabotage-postgres-backups; do
+  secret_namespace="$NAMESPACE"
+  if [ "$service" = "cabotage-postgres-backups" ]; then
+    secret_namespace="postgres"
+  fi
 
-  echo "Creating user and policy for: $service"
+  secret_name="rustfs-${service}"
+  existing_access_key_b64=$($KUBECTL get secret "$secret_name" -n "$secret_namespace" -o jsonpath='{.data.access-key-id}' 2>/dev/null || true)
+  existing_secret_key_b64=$($KUBECTL get secret "$secret_name" -n "$secret_namespace" -o jsonpath='{.data.secret-key}' 2>/dev/null || true)
 
-  # Write policy file into a ConfigMap, then mount it — too complex.
-  # Instead, create user + use the built-in readwrite policy scoped via attachment.
-  # For bucket-scoped policies, write the policy JSON to a file via kubectl exec.
+  if [ -n "$existing_access_key_b64" ] && [ -n "$existing_secret_key_b64" ]; then
+    ACCESS_KEY=$(printf '%s' "$existing_access_key_b64" | openssl base64 -d -A)
+    SECRET_KEY=$(printf '%s' "$existing_secret_key_b64" | openssl base64 -d -A)
+    echo "Reusing existing credentials for: $service"
+  else
+    ACCESS_KEY=$(openssl rand -hex 16)
+    SECRET_KEY=$(openssl rand -hex 32)
 
-  # Step 1: Create the user
-  run_rc "rc admin user add rustfs $ACCESS_KEY $SECRET_KEY"
+    echo "Creating user and policy for: $service"
 
-  # Step 2: Create a bucket-scoped policy via a temp ConfigMap
-  POLICY_JSON="{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"s3:GetBucketLocation\",\"s3:ListBucket\",\"s3:ListBucketMultipartUploads\"],\"Resource\":[\"arn:aws:s3:::${service}\"]},{\"Effect\":\"Allow\",\"Action\":[\"s3:GetObject\",\"s3:PutObject\",\"s3:DeleteObject\",\"s3:ListMultipartUploadParts\",\"s3:AbortMultipartUpload\"],\"Resource\":[\"arn:aws:s3:::${service}/*\"]}]}"
+    # Write policy file into a ConfigMap, then mount it — too complex.
+    # Instead, create user + use the built-in readwrite policy scoped via attachment.
+    # For bucket-scoped policies, write the policy JSON to a file via kubectl exec.
 
-  $KUBECTL create configmap "rustfs-policy-${service}" \
-    --namespace "$NAMESPACE" \
-    --from-literal=policy.json="$POLICY_JSON" \
-    --dry-run=client -o yaml | $KUBECTL apply -f -
+    # Step 1: Create the user
+    run_rc "rc admin user add rustfs $ACCESS_KEY $SECRET_KEY"
 
-  # Step 3: Run rc with the policy file mounted from the ConfigMap
-  pod_name="rustfs-rc-$(openssl rand -hex 4)"
-  $KUBECTL run "$pod_name" -n "$NAMESPACE" --rm -i --restart=Never \
-    --image=rustfs/rc:latest \
-    --overrides='{
-      "metadata": {
-        "labels": {"app": "rustfs-admin"}
-      },
-      "spec": {
-        "containers": [{
-          "name": "rc",
-          "image": "rustfs/rc:latest",
-          "command": ["sh", "-c", "rc alias set rustfs '"$RUSTFS_URL"' $RUSTFS_ACCESS_KEY $RUSTFS_SECRET_KEY --insecure && rc admin policy create rustfs '"${service}"'-policy /etc/rustfs-policy/policy.json && rc admin policy attach rustfs '"${service}"'-policy --user '"$ACCESS_KEY"'"],
-          "env": [
-            {"name": "RUSTFS_ACCESS_KEY", "valueFrom": {"secretKeyRef": {"name": "rustfs-admin", "key": "RUSTFS_ACCESS_KEY"}}},
-            {"name": "RUSTFS_SECRET_KEY", "valueFrom": {"secretKeyRef": {"name": "rustfs-admin", "key": "RUSTFS_SECRET_KEY"}}}
-          ],
-          "volumeMounts": [{"name": "policy", "mountPath": "/etc/rustfs-policy", "readOnly": true}]
-        }],
-        "volumes": [{"name": "policy", "configMap": {"name": "rustfs-policy-'"${service}"'"}}]
-      }
-    }'
+    # Step 2: Create a bucket-scoped policy via a temp ConfigMap
+    POLICY_JSON="{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"s3:GetBucketLocation\",\"s3:ListBucket\",\"s3:ListBucketMultipartUploads\"],\"Resource\":[\"arn:aws:s3:::${service}\"]},{\"Effect\":\"Allow\",\"Action\":[\"s3:GetObject\",\"s3:PutObject\",\"s3:DeleteObject\",\"s3:ListMultipartUploadParts\",\"s3:AbortMultipartUpload\"],\"Resource\":[\"arn:aws:s3:::${service}/*\"]}]}"
 
-  # Clean up temp configmap (run even on failure above)
-  $KUBECTL delete configmap "rustfs-policy-${service}" -n "$NAMESPACE" > /dev/null || true
+    $KUBECTL create configmap "rustfs-policy-${service}" \
+      --namespace "$NAMESPACE" \
+      --from-literal=policy.json="$POLICY_JSON" \
+      --dry-run=client -o yaml | $KUBECTL apply -f -
 
-  # Store credentials as K8s secret
-  $KUBECTL create secret generic "rustfs-${service}" \
-    --namespace "$NAMESPACE" \
+    # Step 3: Run rc with the policy file mounted from the ConfigMap
+    pod_name="rustfs-rc-$(openssl rand -hex 4)"
+    $KUBECTL run "$pod_name" -n "$NAMESPACE" --rm -i --restart=Never \
+      --image=rustfs/rc:latest \
+      --overrides='{
+        "metadata": {
+          "labels": {"app": "rustfs-admin"}
+        },
+        "spec": {
+          "containers": [{
+            "name": "rc",
+            "image": "rustfs/rc:latest",
+            "command": ["sh", "-c", "rc alias set rustfs '"$RUSTFS_URL"' $RUSTFS_ACCESS_KEY $RUSTFS_SECRET_KEY --insecure && rc admin policy create rustfs '"${service}"'-policy /etc/rustfs-policy/policy.json && rc admin policy attach rustfs '"${service}"'-policy --user '"$ACCESS_KEY"'"],
+            "env": [
+              {"name": "RUSTFS_ACCESS_KEY", "valueFrom": {"secretKeyRef": {"name": "rustfs-admin", "key": "RUSTFS_ACCESS_KEY"}}},
+              {"name": "RUSTFS_SECRET_KEY", "valueFrom": {"secretKeyRef": {"name": "rustfs-admin", "key": "RUSTFS_SECRET_KEY"}}}
+            ],
+            "volumeMounts": [{"name": "policy", "mountPath": "/etc/rustfs-policy", "readOnly": true}]
+          }],
+          "volumes": [{"name": "policy", "configMap": {"name": "rustfs-policy-'"${service}"'"}}]
+        }
+      }'
+
+    # Clean up temp configmap (run even on failure above)
+    $KUBECTL delete configmap "rustfs-policy-${service}" -n "$NAMESPACE" > /dev/null || true
+  fi
+
+  # Store credentials as K8s secret. Re-applying preserves existing credentials
+  # and backfills new keys like "region" without rotating other clients.
+  $KUBECTL create secret generic "$secret_name" \
+    --namespace "$secret_namespace" \
     --from-literal=access-key-id="$ACCESS_KEY" \
     --from-literal=secret-key="$SECRET_KEY" \
+    --from-literal=region="us-east-2" \
     --dry-run=client -o yaml | $KUBECTL apply -f -
 
-  echo "Credentials for $service stored in secret rustfs-${service}"
+  if [ "$service" = "cabotage-postgres-backups" ]; then
+    $KUBECTL label secret "$secret_name" -n "$secret_namespace" cnpg.io/reload=true --overwrite >/dev/null
+  fi
+
+  echo "Credentials for $service stored in secret ${secret_name} in namespace ${secret_namespace}"
 done
 
 echo "Buckets and service credentials created."

@@ -1,7 +1,7 @@
 # --- S3 Storage (alternative to RustFS) ---
 #
 # When enabled, creates S3 buckets and IRSA roles for registry, loki,
-# and mimir. The cabotage module annotates service accounts with the
+# mimir, and CNPG backups. The cabotage module annotates service accounts with the
 # role ARNs so pods authenticate via the AWS SDK credential chain.
 
 locals {
@@ -20,6 +20,11 @@ locals {
       bucket_name     = "${var.s3_bucket_prefix}-mimir"
       service_account = "resident-mimir"
       namespace       = "cabotage"
+    }
+    postgres_backup = {
+      bucket_name     = "${var.s3_bucket_prefix}-postgres-backups"
+      service_account = "cabotage"
+      namespace       = "postgres"
     }
   } : {}
 }

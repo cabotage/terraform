@@ -25,6 +25,12 @@ spec:
         - podSelector:
             matchLabels:
               app: rustfs-admin
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: postgres
+          podSelector:
+            matchLabels:
+              cnpg.io/cluster: cabotage
       ports:
         - port: 9000
           protocol: TCP
