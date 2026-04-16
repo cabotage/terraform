@@ -13,6 +13,10 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: cloudnative-pg
+        - podSelector:
+            matchExpressions:
+              - key: cnpg.io/cluster
+                operator: Exists
       ports:
         - port: 9090
           protocol: TCP
