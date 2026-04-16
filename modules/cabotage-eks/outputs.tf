@@ -41,15 +41,16 @@ output "vault_unseal_irsa_role_arn" {
 output "s3_storage" {
   description = "S3 storage configuration for the cabotage module (null when disabled)"
   value = var.enable_s3_storage ? {
-    region                   = data.aws_region.current.id
-    registry_bucket          = aws_s3_bucket.storage["registry"].bucket
-    registry_role_arn        = module.s3_irsa["registry"].arn
-    loki_bucket              = aws_s3_bucket.storage["loki"].bucket
-    loki_role_arn            = module.s3_irsa["loki"].arn
-    mimir_bucket             = aws_s3_bucket.storage["mimir"].bucket
-    mimir_role_arn           = module.s3_irsa["mimir"].arn
-    postgres_backup_bucket   = aws_s3_bucket.storage["postgres_backup"].bucket
-    postgres_backup_role_arn = module.s3_irsa["postgres_backup"].arn
+    region                          = data.aws_region.current.id
+    registry_bucket                 = aws_s3_bucket.storage["registry"].bucket
+    registry_role_arn               = module.s3_irsa["registry"].arn
+    loki_bucket                     = aws_s3_bucket.storage["loki"].bucket
+    loki_role_arn                   = module.s3_irsa["loki"].arn
+    mimir_bucket                    = aws_s3_bucket.storage["mimir"].bucket
+    mimir_role_arn                  = module.s3_irsa["mimir"].arn
+    postgres_backup_bucket          = aws_s3_bucket.storage["postgres_backup"].bucket
+    postgres_backup_role_arn        = module.s3_irsa["postgres_backup"].arn
+    tenant_postgres_backup_role_arn = aws_iam_role.tenant_postgres_backup_irsa[0].arn
   } : null
 }
 

@@ -192,6 +192,8 @@ Each cluster's VPC CIDR must be unique if multiple clusters share the same tailn
 | `karpenter_backing_services_cpu_limit` | Maximum total vCPUs for the backing-services node pool | `number` | `50` |
 | `enable_s3_storage` | Create S3 buckets and IAM for registry, loki, mimir, and CNPG backups | `bool` | `false` |
 | `s3_bucket_prefix` | Prefix for S3 bucket names | `string` | `""` |
+| `tenant_postgres_backup_service_account_name` | ServiceAccount name trusted for tenant CNPG backups across tenant namespaces when S3 storage is enabled | `string` | `"cnpg-backups"` |
+| `tenant_postgres_backup_allowed_namespaces` | Namespaces allowed to assume the tenant CNPG backup IRSA role | `list(string)` | `["*"]` |
 | `kms_key_administrators` | IAM ARNs for KMS key administrators | `list(string)` | `[]` |
 | `enabled_log_types` | EKS control plane log types to enable | `list(string)` | `[]` |
 | `cloudwatch_log_group_retention_in_days` | Retention for EKS control plane logs | `number` | `90` |
@@ -219,7 +221,7 @@ Each cluster's VPC CIDR must be unique if multiple clusters share the same tailn
 | `cluster_oidc_provider_arn` | OIDC provider ARN for IRSA/Pod Identity |
 | `vault_unseal_kms_key_id` | KMS key ID for Vault unseal (empty if disabled) |
 | `vault_unseal_irsa_role_arn` | IRSA role ARN for Vault unseal (empty if disabled) |
-| `s3_storage` | S3 storage configuration (null if disabled) |
+| `s3_storage` | S3 storage configuration, including infra and tenant CNPG backup IAM details (null if disabled) |
 | `node_group_autoscaling_group_names` | Map of node group names to ASG names |
 | `tailscale_subnet_router_autoscaling_group_name` | Subnet router ASG name (empty if disabled) |
 | `tailscale_subnet_router_role_arn` | IAM role ARN for the subnet router (use as Subject in Tailscale trust credential) |

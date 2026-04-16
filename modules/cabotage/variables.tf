@@ -376,6 +376,72 @@ variable "cabotage_postgres_backup_retention_policy" {
   default     = "30d"
 }
 
+variable "tenant_postgres_backup_enabled" {
+  description = "Expose tenant Postgres backup configuration to Cabotage for app-managed CNPG clusters"
+  type        = bool
+  default     = true
+}
+
+variable "tenant_postgres_backup_schedule" {
+  description = "Default schedule for tenant CNPG base backups using six-field cron syntax with seconds"
+  type        = string
+  default     = "0 0 0 * * *"
+}
+
+variable "tenant_postgres_backup_retention_policy" {
+  description = "Default recovery window retention policy for tenant CNPG backups and WAL archives"
+  type        = string
+  default     = "30d"
+}
+
+variable "tenant_postgres_backup_service_account_name" {
+  description = "ServiceAccount name Cabotage should use for tenant CNPG backup/auth in each namespace"
+  type        = string
+  default     = "cnpg-backups"
+}
+
+variable "tenant_postgres_backup_plugin_name" {
+  description = "CNPG plugin name Cabotage should reference for tenant WAL archiving and backups"
+  type        = string
+  default     = "barman-cloud.cloudnative-pg.io"
+}
+
+variable "tenant_postgres_backup_path_prefix" {
+  description = "Bucket path prefix Cabotage should use for tenant CNPG backups"
+  type        = string
+  default     = "tenants"
+}
+
+variable "tenant_postgres_backup_rustfs_endpoint" {
+  description = "RustFS S3 endpoint Cabotage should use for tenant CNPG backups when S3 is disabled"
+  type        = string
+  default     = "https://rustfs.cabotage.svc.cluster.local:9000"
+}
+
+variable "tenant_postgres_backup_rustfs_ca_secret_name" {
+  description = "CA secret name Cabotage should reference for RustFS-backed tenant CNPG backups"
+  type        = string
+  default     = "operators-ca-crt"
+}
+
+variable "tenant_postgres_backup_rustfs_secret_name" {
+  description = "Secret name Cabotage should create in tenant namespaces for RustFS-backed CNPG backups"
+  type        = string
+  default     = "cnpg-backups-objectstore"
+}
+
+variable "tenant_postgres_backup_rustfs_source_secret_namespace" {
+  description = "Namespace containing the source RustFS credential secret for tenant CNPG backups"
+  type        = string
+  default     = "postgres"
+}
+
+variable "tenant_postgres_backup_rustfs_source_secret_name" {
+  description = "Source RustFS credential secret Cabotage should copy for tenant CNPG backups"
+  type        = string
+  default     = "rustfs-cabotage-postgres-backups"
+}
+
 variable "cabotage_app_web_replicas" {
   description = "Number of replicas for the cabotage web deployment"
   type        = number
@@ -855,15 +921,16 @@ variable "registry_replicas" {
 variable "s3_storage" {
   description = "S3 storage configuration (from cabotage-eks). When set, S3 is used instead of RustFS."
   type = object({
-    region                   = string
-    registry_bucket          = string
-    registry_role_arn        = string
-    loki_bucket              = string
-    loki_role_arn            = string
-    mimir_bucket             = string
-    mimir_role_arn           = string
-    postgres_backup_bucket   = string
-    postgres_backup_role_arn = string
+    region                          = string
+    registry_bucket                 = string
+    registry_role_arn               = string
+    loki_bucket                     = string
+    loki_role_arn                   = string
+    mimir_bucket                    = string
+    mimir_role_arn                  = string
+    postgres_backup_bucket          = string
+    postgres_backup_role_arn        = string
+    tenant_postgres_backup_role_arn = optional(string, "")
   })
   default = null
 }

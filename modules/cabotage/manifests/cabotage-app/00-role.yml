@@ -22,6 +22,7 @@ rules:
       - update
       - patch
       - delete
+      - watch
     apiGroups:
       - ''
     resources:
@@ -67,6 +68,19 @@ rules:
   - verbs:
       - get
       - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - roles
+      - rolebindings
+  - verbs:
+      - get
+      - list
       - create
       - update
       - patch
@@ -101,6 +115,7 @@ rules:
   - verbs:
       - get
       - list
+      - watch
       - create
       - patch
       - delete
@@ -108,6 +123,28 @@ rules:
       - postgresql.cnpg.io
     resources:
       - clusters
+      - scheduledbackups
+      - backups
+  - verbs:
+      - get
+      - list
+      - watch
+      - create
+      - patch
+      - delete
+      - update
+    apiGroups:
+      - barmancloud.cnpg.io
+    resources:
+      - objectstores
+  - verbs:
+      - get
+      - patch
+      - update
+    apiGroups:
+      - barmancloud.cnpg.io
+    resources:
+      - objectstores/status
   - verbs:
       - get
       - list
