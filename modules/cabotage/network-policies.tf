@@ -167,6 +167,12 @@ resource "kubectl_manifest" "netpol_allow_cnpg_webhook" {
   depends_on = [kubernetes_namespace_v1.postgres]
 }
 
+resource "kubectl_manifest" "netpol_allow_barman_cloud_plugin" {
+  yaml_body = file("${path.module}/manifests/network-policies/01-allow-barman-cloud-plugin.yml")
+
+  depends_on = [kubernetes_namespace_v1.postgres]
+}
+
 # --- redis namespace ---
 
 resource "kubectl_manifest" "netpol_allow_redis" {

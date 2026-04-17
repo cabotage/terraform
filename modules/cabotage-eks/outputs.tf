@@ -41,13 +41,16 @@ output "vault_unseal_irsa_role_arn" {
 output "s3_storage" {
   description = "S3 storage configuration for the cabotage module (null when disabled)"
   value = var.enable_s3_storage ? {
-    region            = data.aws_region.current.id
-    registry_bucket   = aws_s3_bucket.storage["registry"].bucket
-    registry_role_arn = module.s3_irsa["registry"].arn
-    loki_bucket       = aws_s3_bucket.storage["loki"].bucket
-    loki_role_arn     = module.s3_irsa["loki"].arn
-    mimir_bucket      = aws_s3_bucket.storage["mimir"].bucket
-    mimir_role_arn    = module.s3_irsa["mimir"].arn
+    region                          = data.aws_region.current.id
+    registry_bucket                 = aws_s3_bucket.storage["registry"].bucket
+    registry_role_arn               = module.s3_irsa["registry"].arn
+    loki_bucket                     = aws_s3_bucket.storage["loki"].bucket
+    loki_role_arn                   = module.s3_irsa["loki"].arn
+    mimir_bucket                    = aws_s3_bucket.storage["mimir"].bucket
+    mimir_role_arn                  = module.s3_irsa["mimir"].arn
+    postgres_backup_bucket          = aws_s3_bucket.storage["postgres_backup"].bucket
+    postgres_backup_role_arn        = module.s3_irsa["postgres_backup"].arn
+    tenant_postgres_backup_role_arn = aws_iam_role.tenant_postgres_backup_irsa[0].arn
   } : null
 }
 
@@ -106,6 +109,11 @@ output "karpenter_node_iam_role_arn" {
 output "karpenter_queue_name" {
   description = "SQS queue name for Karpenter interruption handling (empty if disabled)"
   value       = var.enable_karpenter ? module.karpenter[0].queue_name : ""
+}
+
+output "karpenter_backing_services_pool_name" {
+  description = "Name of the Karpenter node pool for backing services (empty if disabled)"
+  value       = var.enable_karpenter ? var.karpenter_backing_services_pool_name : ""
 }
 
 output "vpc_cidr" {

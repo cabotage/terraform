@@ -10,6 +10,7 @@ Terraform module that provisions an opinionated EKS cluster for [Cabotage](https
 - **AWS Load Balancer Controller** — Helm chart + IRSA role for provisioning ALBs/NLBs via Kubernetes ingress/service resources.
 - **Metrics Server** — Helm chart for pod/node resource metrics (HPA, `kubectl top`).
 - **NodeLocal DNSCache** — DaemonSet DNS cache on each node. Optionally configured for ingress hairpin routing.
+- **Karpenter** (optional) — Dynamic node provisioning with dedicated `standard`, `preview`, and `backing-services` NodePools.
 - **Ingress hairpin routing** (optional) — For specified domains, NodeLocal DNS resolves `*.domain` to an in-cluster ingress controller ClusterIP, allowing pod-to-pod traffic to stay inside the cluster instead of looping through an external load balancer. Requires configuring `ingress_hairpin_domains`.
 - **Vault auto-unseal** (optional) — KMS key + IRSA role that lets Vault auto-unseal using AWS KMS. Enable with `enable_vault_auto_unseal`.
 - **Tailscale subnet router** (optional) — EC2-based subnet router that advertises VPC routes to a Tailscale tailnet, enabling private access to the EKS API server without exposing it publicly. Authenticates via Tailscale Workload Identity Federation (no static keys). Enable with `enable_tailscale_subnet_router`.
@@ -177,8 +178,22 @@ Each cluster's VPC CIDR must be unique if multiple clusters share the same tailn
 | `ingress_controller_selector` | Label selector for ingress controller pods | `map(string)` | `{"app.kubernetes.io/name": "traefik"}` |
 | `enable_vault_auto_unseal` | Create KMS key + IRSA role for Vault auto-unseal | `bool` | `false` |
 | `vault_namespace` | Kubernetes namespace where Vault runs | `string` | `"cabotage"` |
-| `enable_s3_storage` | Create S3 buckets and IAM for registry, loki, mimir | `bool` | `false` |
+| `enable_karpenter` | Deploy Karpenter for dynamic node provisioning | `bool` | `false` |
+| `karpenter_ami_alias_version` | AL2023 AMI alias version for Karpenter nodes | `string` | `"latest"` |
+| `karpenter_standard_instance_families` | Instance families for the standard Karpenter node pool | `list(string)` | `["m8g", "c8g", "r8g"]` |
+| `karpenter_standard_instance_sizes` | Allowed instance sizes for the standard Karpenter node pool | `list(string)` | `["large", "xlarge", "2xlarge", "4xlarge"]` |
+| `karpenter_standard_cpu_limit` | Maximum total vCPUs for the standard node pool | `number` | `100` |
+| `karpenter_preview_instance_families` | Instance families for the preview Karpenter node pool | `list(string)` | `["m8g", "c8g", "r8g"]` |
+| `karpenter_preview_instance_sizes` | Allowed instance sizes for the preview Karpenter node pool | `list(string)` | `["medium", "large", "xlarge", "2xlarge"]` |
+| `karpenter_preview_cpu_limit` | Maximum total vCPUs for the preview node pool | `number` | `50` |
+| `karpenter_backing_services_pool_name` | Name of the dedicated Karpenter node pool for Postgres/Redis workloads | `string` | `"backing-services"` |
+| `karpenter_backing_services_instance_families` | Instance families for the backing-services Karpenter node pool | `list(string)` | `["m8g", "r8g"]` |
+| `karpenter_backing_services_instance_sizes` | Allowed instance sizes for the backing-services Karpenter node pool | `list(string)` | `["xlarge", "2xlarge"]` |
+| `karpenter_backing_services_cpu_limit` | Maximum total vCPUs for the backing-services node pool | `number` | `50` |
+| `enable_s3_storage` | Create S3 buckets and IAM for registry, loki, mimir, and CNPG backups | `bool` | `false` |
 | `s3_bucket_prefix` | Prefix for S3 bucket names | `string` | `""` |
+| `tenant_postgres_backup_service_account_name` | ServiceAccount name trusted for tenant CNPG backups across tenant namespaces when S3 storage is enabled | `string` | `"cnpg-backups"` |
+| `tenant_postgres_backup_allowed_namespaces` | Namespaces allowed to assume the tenant CNPG backup IRSA role | `list(string)` | `["*"]` |
 | `kms_key_administrators` | IAM ARNs for KMS key administrators | `list(string)` | `[]` |
 | `enabled_log_types` | EKS control plane log types to enable | `list(string)` | `[]` |
 | `cloudwatch_log_group_retention_in_days` | Retention for EKS control plane logs | `number` | `90` |
@@ -206,11 +221,12 @@ Each cluster's VPC CIDR must be unique if multiple clusters share the same tailn
 | `cluster_oidc_provider_arn` | OIDC provider ARN for IRSA/Pod Identity |
 | `vault_unseal_kms_key_id` | KMS key ID for Vault unseal (empty if disabled) |
 | `vault_unseal_irsa_role_arn` | IRSA role ARN for Vault unseal (empty if disabled) |
-| `s3_storage` | S3 storage configuration (null if disabled) |
+| `s3_storage` | S3 storage configuration, including infra and tenant CNPG backup IAM details (null if disabled) |
 | `node_group_autoscaling_group_names` | Map of node group names to ASG names |
 | `tailscale_subnet_router_autoscaling_group_name` | Subnet router ASG name (empty if disabled) |
 | `tailscale_subnet_router_role_arn` | IAM role ARN for the subnet router (use as Subject in Tailscale trust credential) |
 | `tailscale_setup` | Tailscale configuration guide: trust credential settings, ACL snippet, and split DNS config (null if disabled) |
+| `karpenter_backing_services_pool_name` | Name of the dedicated Karpenter node pool for backing services |
 | `vpc_cidr` | CIDR block of the VPC |
 | `vpc_id` | VPC ID |
 | `private_subnet_ids` | Private subnet IDs |

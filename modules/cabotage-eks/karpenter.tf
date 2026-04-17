@@ -215,6 +215,68 @@ resource "kubectl_manifest" "karpenter_node_pool_preview" {
   depends_on = [helm_release.karpenter]
 }
 
+# --- NodePool: backing services ---
+
+resource "kubectl_manifest" "karpenter_node_pool_backing_services" {
+  count = var.enable_karpenter ? 1 : 0
+
+  yaml_body = yamlencode({
+    apiVersion = "karpenter.sh/v1"
+    kind       = "NodePool"
+    metadata = {
+      name = var.karpenter_backing_services_pool_name
+    }
+    spec = {
+      template = {
+        metadata = {
+          labels = {
+            "cabotage.dev/node-pool" = var.karpenter_backing_services_pool_name
+          }
+        }
+        spec = {
+          expireAfter = "Never"
+          taints = [{
+            key    = "cabotage.dev/node-pool"
+            value  = var.karpenter_backing_services_pool_name
+            effect = "NoSchedule"
+          }]
+          requirements = [
+            {
+              key      = "karpenter.k8s.aws/instance-family"
+              operator = "In"
+              values   = var.karpenter_backing_services_instance_families
+            },
+            {
+              key      = "karpenter.k8s.aws/instance-size"
+              operator = "In"
+              values   = var.karpenter_backing_services_instance_sizes
+            },
+            {
+              key      = "karpenter.sh/capacity-type"
+              operator = "In"
+              values   = ["on-demand"]
+            },
+          ]
+          nodeClassRef = {
+            group = "karpenter.k8s.aws"
+            kind  = "EC2NodeClass"
+            name  = "default"
+          }
+        }
+      }
+      limits = {
+        cpu = var.karpenter_backing_services_cpu_limit
+      }
+      disruption = {
+        consolidationPolicy = "WhenEmpty"
+        consolidateAfter    = "5m"
+      }
+    }
+  })
+
+  depends_on = [helm_release.karpenter]
+}
+
 # --- Pre-warm (overprovisioning) ---
 
 locals {

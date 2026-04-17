@@ -160,6 +160,18 @@ variable "s3_bucket_prefix" {
   default     = ""
 }
 
+variable "tenant_postgres_backup_service_account_name" {
+  description = "ServiceAccount name trusted for tenant CNPG backups across tenant namespaces when S3 storage is enabled"
+  type        = string
+  default     = "cnpg-backups"
+}
+
+variable "tenant_postgres_backup_allowed_namespaces" {
+  description = "Namespaces allowed to assume the tenant CNPG backup IRSA role; use [\"*\"] to trust the shared service account name cluster-wide"
+  type        = list(string)
+  default     = ["*"]
+}
+
 variable "kms_key_administrators" {
   description = "A list of IAM ARNs for KMS key administrators. If not set, the current caller identity is used."
   type        = list(string)
@@ -344,6 +356,30 @@ variable "karpenter_preview_instance_sizes" {
 
 variable "karpenter_preview_cpu_limit" {
   description = "Maximum total vCPUs the preview node pool can provision"
+  type        = number
+  default     = 50
+}
+
+variable "karpenter_backing_services_pool_name" {
+  description = "Name of the Karpenter node pool for stateful backing services"
+  type        = string
+  default     = "backing-services"
+}
+
+variable "karpenter_backing_services_instance_families" {
+  description = "Instance families for the backing-services Karpenter node pool"
+  type        = list(string)
+  default     = ["m8g", "r8g"]
+}
+
+variable "karpenter_backing_services_instance_sizes" {
+  description = "Allowed instance sizes for the backing-services Karpenter node pool"
+  type        = list(string)
+  default     = ["xlarge", "2xlarge"]
+}
+
+variable "karpenter_backing_services_cpu_limit" {
+  description = "Maximum total vCPUs the backing-services node pool can provision"
   type        = number
   default     = 50
 }

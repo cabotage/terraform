@@ -89,6 +89,8 @@ resource "null_resource" "rustfs_create_buckets" {
 
   triggers = {
     statefulset_id = kubectl_manifest.rustfs_statefulset[0].id
+    script_sha     = filesha256("${path.module}/scripts/rustfs-create-buckets.sh")
+    lib_sha        = filesha256("${path.module}/scripts/_lib.sh")
   }
 
   provisioner "local-exec" {
@@ -99,5 +101,8 @@ resource "null_resource" "rustfs_create_buckets" {
     }
   }
 
-  depends_on = [kubectl_manifest.rustfs_statefulset]
+  depends_on = [
+    kubectl_manifest.rustfs_statefulset,
+    kubernetes_namespace_v1.postgres,
+  ]
 }

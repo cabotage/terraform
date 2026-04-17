@@ -25,6 +25,11 @@ spec:
         - podSelector:
             matchLabels:
               app: rustfs-admin
+        - namespaceSelector: {}
+          podSelector:
+            matchExpressions:
+              - key: cnpg.io/cluster
+                operator: Exists
       ports:
         - port: 9000
           protocol: TCP

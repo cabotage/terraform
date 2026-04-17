@@ -37,11 +37,11 @@ resource "kubectl_manifest" "registry_configmap" {
 
 resource "kubectl_manifest" "registry_deployment" {
   yaml_body = templatefile("${path.module}/manifests/registry/02-deployment.yml.tftpl", {
-    config_hash             = local.registry_config_hash
-    replicas                = var.registry_replicas
-    use_s3                  = local.use_s3
-    ghostunnel_resources    = var.registry_ghostunnel_resources
-    registry_resources      = var.registry_resources
+    config_hash          = local.registry_config_hash
+    replicas             = var.registry_replicas
+    use_s3               = local.use_s3
+    ghostunnel_resources = var.registry_ghostunnel_resources
+    registry_resources   = var.registry_resources
   })
 
   wait_for_rollout = false

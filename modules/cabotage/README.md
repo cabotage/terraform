@@ -24,7 +24,7 @@ Designed to be used alongside [`cabotage-eks`](../cabotage-eks), which provision
 
 ### Data stores
 
-- **PostgreSQL** — CloudNativePG (CNPG) operator + cluster with TLS certificates signed by the operators CA.
+- **PostgreSQL** — CloudNativePG (CNPG) operator + cluster with TLS certificates signed by the operators CA, plus plugin-based WAL archiving and scheduled base backups to S3 or RustFS.
 - **Redis** — OT-Container-Kit Redis operator + cluster with TLS and password authentication.
 - **RustFS** — S3-compatible object storage (replaces MinIO). StatefulSet with auto-provisioned buckets for the app, registry, Loki, and Mimir.
 
@@ -140,14 +140,30 @@ The module also uses the `kubernetes`, `helm`, `random`, and `null` providers (v
 | `rustfs_storage_size` | PVC size per data volume | `string` | `"1Gi"` |
 | `rustfs_log_size` | PVC size for log volume | `string` | `"256Mi"` |
 | **Postgres** | | | |
-| `cnpg_chart_version` | CloudNativePG operator chart version | `string` | `"0.27.1"` |
+| `cnpg_chart_version` | CloudNativePG Helm chart version (chart `0.28.0` deploys CNPG `1.29.0`) | `string` | `"0.28.0"` |
+| `barman_cloud_plugin_chart_version` | Barman Cloud CNPG-I plugin Helm chart version | `string` | `"0.6.0"` |
+| `cabotage_postgres_backup_enabled` | Enable WAL archiving and scheduled backups for the cabotage CNPG cluster | `bool` | `true` |
+| `cabotage_postgres_backup_schedule` | Schedule for CNPG base backups using six-field cron syntax with seconds | `string` | `"0 0 0 * * *"` |
+| `cabotage_postgres_backup_immediate` | Run an immediate CNPG backup when the ScheduledBackup resource is created | `bool` | `true` |
+| `cabotage_postgres_backup_retention_policy` | Recovery window retention policy for CNPG backups and WAL archives | `string` | `"30d"` |
+| `tenant_postgres_backup_enabled` | Expose tenant Postgres backup configuration to the Cabotage app | `bool` | `true` |
+| `tenant_postgres_backup_schedule` | Default schedule for tenant CNPG base backups | `string` | `"0 0 0 * * *"` |
+| `tenant_postgres_backup_retention_policy` | Default recovery window retention policy for tenant CNPG backups | `string` | `"30d"` |
+| `tenant_postgres_backup_service_account_name` | Shared ServiceAccount name Cabotage should use for tenant CNPG backups in each namespace | `string` | `"cnpg-backups"` |
+| `tenant_postgres_backup_plugin_name` | CNPG plugin name for tenant WAL archiving and backups | `string` | `"barman-cloud.cloudnative-pg.io"` |
+| `tenant_postgres_backup_path_prefix` | Bucket path prefix for tenant CNPG backups | `string` | `"tenants"` |
+| `tenant_postgres_backup_rustfs_endpoint` | RustFS S3 endpoint for tenant CNPG backups when S3 is disabled | `string` | `"https://rustfs.cabotage.svc.cluster.local:9000"` |
+| `tenant_postgres_backup_rustfs_ca_secret_name` | CA secret name for RustFS-backed tenant CNPG backups | `string` | `"operators-ca-crt"` |
+| `tenant_postgres_backup_rustfs_secret_name` | Secret name Cabotage should create in tenant namespaces for RustFS-backed backups | `string` | `"cnpg-backups-objectstore"` |
+| `tenant_postgres_backup_rustfs_source_secret_namespace` | Namespace containing the source RustFS credentials for tenant backups | `string` | `"postgres"` |
+| `tenant_postgres_backup_rustfs_source_secret_name` | Source RustFS credential secret Cabotage should copy for tenant backups | `string` | `"rustfs-cabotage-postgres-backups"` |
 | **Redis** | | | |
 | `redis_operator_chart_version` | Redis operator chart version | `string` | `"0.19.0"` |
 | **Registry** | | | |
 | `registry_verify` | TLS verification: `"True"` for system trust, or path to CA cert | `string` | `"True"` |
 | `registry_replicas` | Number of replicas | `number` | `1` |
 | **Object storage** | | | |
-| `s3_storage` | S3 config (from cabotage-eks); when set, S3 replaces RustFS | `object` | `null` |
+| `s3_storage` | S3 config (from cabotage-eks), including infra and tenant CNPG backup bucket/IRSA roles; when set, S3 replaces RustFS | `object` | `null` |
 | **Monitoring** | | | |
 | `loki_backend_replicas` | Loki backend replicas | `number` | `1` |
 | `loki_read_replicas` | Loki read replicas | `number` | `1` |
@@ -155,6 +171,11 @@ The module also uses the `kubernetes`, `helm`, `random`, and `null` providers (v
 | `mimir_backend_replicas` | Mimir backend replicas | `number` | `1` |
 | `mimir_read_replicas` | Mimir read replicas | `number` | `1` |
 | `mimir_write_replicas` | Mimir write replicas | `number` | `1` |
+| **Karpenter** | | | |
+| `enable_karpenter` | Configure Cabotage with Karpenter node pool names for tenant workload placement | `bool` | `false` |
+| `karpenter_standard_pool_name` | Name of the Karpenter node pool for non-ephemeral workloads | `string` | `"standard"` |
+| `karpenter_preview_pool_name` | Name of the Karpenter node pool for ephemeral workloads | `string` | `"preview"` |
+| `karpenter_backing_services_pool_name` | Name of the Karpenter node pool for backing services | `string` | `"backing-services"` |
 | **Tailscale** | | | |
 | `enable_tailscale` | Deploy the Tailscale operator | `bool` | `false` |
 | `enable_tailscale_ingress` | Deploy the Tailscale Funnel ingress for the cabotage app (requires `enable_tailscale`) | `bool` | `false` |

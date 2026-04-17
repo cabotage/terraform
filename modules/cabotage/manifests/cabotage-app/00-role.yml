@@ -19,8 +19,10 @@ rules:
       - get
       - list
       - create
+      - update
       - patch
       - delete
+      - watch
     apiGroups:
       - ''
     resources:
@@ -40,6 +42,7 @@ rules:
     apiGroups:
       - apps
     resources:
+      - statefulsets
       - deployments
       - deployments/scale
   - verbs:
@@ -62,6 +65,19 @@ rules:
       - networking.k8s.io
     resources:
       - networkpolicies
+  - verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - roles
+      - rolebindings
   - verbs:
       - get
       - list
@@ -88,11 +104,58 @@ rules:
   - verbs:
       - get
       - list
+      - create
+      - patch
+      - delete
     apiGroups:
       - cert-manager.io
     resources:
       - certificates
       - certificates/status
+  - verbs:
+      - get
+      - list
+      - watch
+      - create
+      - patch
+      - delete
+    apiGroups:
+      - postgresql.cnpg.io
+    resources:
+      - clusters
+      - scheduledbackups
+      - backups
+  - verbs:
+      - get
+      - list
+      - watch
+      - create
+      - patch
+      - delete
+      - update
+    apiGroups:
+      - barmancloud.cnpg.io
+    resources:
+      - objectstores
+  - verbs:
+      - get
+      - patch
+      - update
+    apiGroups:
+      - barmancloud.cnpg.io
+    resources:
+      - objectstores/status
+  - verbs:
+      - get
+      - list
+      - create
+      - patch
+      - delete
+    apiGroups:
+      - redis.redis.opstreelabs.in
+    resources:
+      - redis
+      - redisclusters
   - verbs:
       - get
       - create
