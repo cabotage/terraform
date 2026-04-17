@@ -376,6 +376,18 @@ variable "cabotage_postgres_backup_retention_policy" {
   default     = "30d"
 }
 
+variable "backing_service_postgres_enabled" {
+  description = "Enable app-managed Postgres backing services in Cabotage"
+  type        = bool
+  default     = true
+}
+
+variable "backing_service_redis_enabled" {
+  description = "Enable app-managed Redis backing services in Cabotage"
+  type        = bool
+  default     = true
+}
+
 variable "tenant_postgres_backup_enabled" {
   description = "Expose tenant Postgres backup configuration to Cabotage for app-managed CNPG clusters"
   type        = bool

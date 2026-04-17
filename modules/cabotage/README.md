@@ -146,6 +146,7 @@ The module also uses the `kubernetes`, `helm`, `random`, and `null` providers (v
 | `cabotage_postgres_backup_schedule` | Schedule for CNPG base backups using six-field cron syntax with seconds | `string` | `"0 0 0 * * *"` |
 | `cabotage_postgres_backup_immediate` | Run an immediate CNPG backup when the ScheduledBackup resource is created | `bool` | `true` |
 | `cabotage_postgres_backup_retention_policy` | Recovery window retention policy for CNPG backups and WAL archives | `string` | `"30d"` |
+| `backing_service_postgres_enabled` | Enable app-managed Postgres backing services in Cabotage | `bool` | `true` |
 | `tenant_postgres_backup_enabled` | Expose tenant Postgres backup configuration to the Cabotage app | `bool` | `true` |
 | `tenant_postgres_backup_schedule` | Default schedule for tenant CNPG base backups | `string` | `"0 0 0 * * *"` |
 | `tenant_postgres_backup_retention_policy` | Default recovery window retention policy for tenant CNPG backups | `string` | `"30d"` |
@@ -158,6 +159,7 @@ The module also uses the `kubernetes`, `helm`, `random`, and `null` providers (v
 | `tenant_postgres_backup_rustfs_source_secret_namespace` | Namespace containing the source RustFS credentials for tenant backups | `string` | `"postgres"` |
 | `tenant_postgres_backup_rustfs_source_secret_name` | Source RustFS credential secret Cabotage should copy for tenant backups | `string` | `"rustfs-cabotage-postgres-backups"` |
 | **Redis** | | | |
+| `backing_service_redis_enabled` | Enable app-managed Redis backing services in Cabotage | `bool` | `true` |
 | `redis_operator_chart_version` | Redis operator chart version | `string` | `"0.19.0"` |
 | **Registry** | | | |
 | `registry_verify` | TLS verification: `"True"` for system trust, or path to CA cert | `string` | `"True"` |
