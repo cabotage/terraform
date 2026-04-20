@@ -23,7 +23,9 @@ resource "kubernetes_secret_v1" "vault_consul_token" {
 
 resource "null_resource" "consul_bootstrap" {
   triggers = {
-    statefulset_id = kubectl_manifest.consul_statefulset.id
+    statefulset_id         = kubectl_manifest.consul_statefulset.id
+    consul_replicas        = tostring(var.consul_replicas)
+    bootstrap_script_sha1  = sha1(file("${path.module}/scripts/consul-bootstrap.sh"))
   }
 
   provisioner "local-exec" {

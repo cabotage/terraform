@@ -41,7 +41,7 @@ resource "kubectl_manifest" "vault_statefulset" {
     vault_auto_unseal_resources  = var.vault_auto_unseal_resources
   })
 
-  wait_for_rollout = false
+  wait_for_rollout = true
 
   depends_on = [
     helm_release.cert_manager_csi_driver,

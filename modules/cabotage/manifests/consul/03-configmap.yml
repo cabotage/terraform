@@ -9,6 +9,7 @@ data:
       cat > /etc/consul/secrets/acl_agent_token.json <<EOF
     {"acl": {"tokens": {"agent": "$CONSUL_ACL_AGENT_TOKEN"}}}
     EOF
+      printf '%s' "$CONSUL_ACL_AGENT_TOKEN" > /etc/consul/secrets/acl_agent_token
       echo "Wrote /etc/consul/secrets/acl_agent_token.json"
     fi
     cat > /etc/consul/secrets/encrypt.json <<EOF

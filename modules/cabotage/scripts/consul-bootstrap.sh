@@ -13,6 +13,33 @@ cleanup() {
 }
 trap cleanup EXIT
 
+ensure_policy() {
+  POLICY_NAME="$1"
+  POLICY_RULES="$2"
+
+  policy_json=$(curl -sf \
+    -H "X-Consul-Token: $MGMT_TOKEN" \
+    "http://localhost:${CONSUL_LOCAL_PORT}/v1/acl/policy/name/${POLICY_NAME}" 2>/dev/null || true)
+
+  if [ -n "$policy_json" ]; then
+    policy_id=$(printf '%s' "$policy_json" | jq -r '.ID')
+    if [ -z "$policy_id" ] || [ "$policy_id" = "null" ]; then
+      echo "Could not read existing policy ID for ${POLICY_NAME}" >&2
+      exit 1
+    fi
+
+    curl_api -X PUT \
+      -H "X-Consul-Token: $MGMT_TOKEN" \
+      -d "{\"ID\":\"${policy_id}\",\"Name\":\"${POLICY_NAME}\",\"Rules\":$(printf '%s' "$POLICY_RULES" | jq -Rs .)}" \
+      "http://localhost:${CONSUL_LOCAL_PORT}/v1/acl/policy/${policy_id}" > /dev/null
+  else
+    curl_api -X PUT \
+      -H "X-Consul-Token: $MGMT_TOKEN" \
+      -d "{\"Name\":\"${POLICY_NAME}\",\"Rules\":$(printf '%s' "$POLICY_RULES" | jq -Rs .)}" \
+      http://localhost:${CONSUL_LOCAL_PORT}/v1/acl/policy > /dev/null
+  fi
+}
+
 # --- Wait for consul-0 and start port-forward ---
 echo "Waiting for consul-0..."
 while ! $KUBECTL get pod consul-0 -n "$NAMESPACE" -o jsonpath='{.status.phase}' 2>/dev/null | grep -q Running; do
@@ -71,15 +98,9 @@ fi
 
 # --- Anonymous policy ---
 echo "Creating anonymous policy..."
-# Try creating, if it already exists update it by name
-curl_api -X PUT \
-  -H "X-Consul-Token: $MGMT_TOKEN" \
-  -d '{"Name":"anonymous","Rules":"node_prefix \"\" { policy = \"read\" }\nservice_prefix \"\" { policy = \"read\" }\noperator = \"read\""}' \
-  http://localhost:${CONSUL_LOCAL_PORT}/v1/acl/policy > /dev/null || \
-curl_api -X PUT \
-  -H "X-Consul-Token: $MGMT_TOKEN" \
-  -d '{"Rules":"node_prefix \"\" { policy = \"read\" }\nservice_prefix \"\" { policy = \"read\" }\noperator = \"read\""}' \
-  "http://localhost:${CONSUL_LOCAL_PORT}/v1/acl/policy/name/anonymous" > /dev/null || echo "  (anonymous policy may already exist)"
+ensure_policy "anonymous" 'node_prefix "" { policy = "read" }
+service_prefix "" { policy = "read" }
+operator = "read"'
 
 # Update the anonymous token to use the policy
 curl_api -X PUT \
@@ -92,16 +113,17 @@ echo "Anonymous policy applied."
 AGENT_TOKEN=$($KUBECTL get secret consul-agent-token -n "$NAMESPACE" -o jsonpath='{.data.token}' 2>/dev/null | base64 -d 2>/dev/null || true)
 [ "$AGENT_TOKEN" = "null" ] && AGENT_TOKEN=""
 
+# Keep the agent policy up to date even when the token already exists.
+echo "Ensuring agent policy..."
+ensure_policy "agent" 'agent_prefix "" { policy = "write" }
+node_prefix "" { policy = "write" }
+service_prefix "" { policy = "write" }'
+
 # Verify the token is valid by checking it against Consul
 if [ -n "$AGENT_TOKEN" ] && curl -sf -H "X-Consul-Token: $AGENT_TOKEN" http://localhost:${CONSUL_LOCAL_PORT}/v1/acl/token/self > /dev/null 2>&1; then
   echo "Agent token already exists and is valid."
 else
-  echo "Creating agent policy and token..."
-  curl_api -X PUT \
-    -H "X-Consul-Token: $MGMT_TOKEN" \
-    -d '{"Name":"agent","Rules":"node_prefix \"\" { policy = \"write\" }\nservice_prefix \"\" { policy = \"write\" }"}' \
-    http://localhost:${CONSUL_LOCAL_PORT}/v1/acl/policy > /dev/null || echo "  (policy may already exist)"
-
+  echo "Creating agent token..."
   response=$(curl_api -X PUT \
     -H "X-Consul-Token: $MGMT_TOKEN" \
     -d '{"Description":"Agent Token","Policies":[{"Name":"agent"}],"Local":true}' \

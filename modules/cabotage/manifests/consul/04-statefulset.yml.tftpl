@@ -12,6 +12,7 @@ spec:
   podManagementPolicy: Parallel
   updateStrategy:
     type: RollingUpdate
+  minReadySeconds: 15
   selector:
     matchLabels:
       app: consul
@@ -32,7 +33,7 @@ spec:
                     operator: In
                     values:
                       - consul
-              topologyKey: failure-domain.beta.kubernetes.io/zone
+              topologyKey: topology.kubernetes.io/zone
 %{ else ~}
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 100
@@ -43,11 +44,12 @@ spec:
                     operator: In
                     values:
                       - consul
-              topologyKey: failure-domain.beta.kubernetes.io/zone
+              topologyKey: topology.kubernetes.io/zone
 %{ endif ~}
       shareProcessNamespace: true
       automountServiceAccountToken: false
       enableServiceLinks: false
+      terminationGracePeriodSeconds: 60
       securityContext:
         runAsNonRoot: true
         runAsUser: 20000
@@ -134,18 +136,27 @@ spec:
               cpu: "${consul_resources.limits.cpu}"
               memory: "${consul_resources.limits.memory}"
           readinessProbe:
-            httpGet:
-              path: /v1/status/leader
-              port: 8500
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - CONSUL_HTTP_ADDR=http://127.0.0.1:8500 consul operator raft list-peers >/dev/null
             initialDelaySeconds: 10
-            periodSeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 1
           lifecycle:
             preStop:
               exec:
                 command:
-                - /bin/sh
-                - -c
-                - consul leave
+                  - /bin/sh
+                  - -ec
+                  - |
+                    CONSUL_HTTP_TOKEN=$(cat /etc/consul/secrets/acl_agent_token 2>/dev/null || true)
+                    export CONSUL_HTTP_ADDR=http://127.0.0.1:8500
+                    [ -n "$CONSUL_HTTP_TOKEN" ] && export CONSUL_HTTP_TOKEN
+                    consul leave || true
+                    sleep 10
         - name: cert-watcher
           image: busybox:1.37
           imagePullPolicy: IfNotPresent

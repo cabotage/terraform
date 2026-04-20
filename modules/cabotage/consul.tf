@@ -68,7 +68,7 @@ resource "kubectl_manifest" "consul_statefulset" {
     cert_watcher_resources = var.cert_watcher_resources
   })
 
-  wait_for_rollout = false
+  wait_for_rollout = true
 
   depends_on = [
     helm_release.cert_manager_csi_driver,

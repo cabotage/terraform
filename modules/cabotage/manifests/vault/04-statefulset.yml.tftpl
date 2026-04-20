@@ -12,6 +12,7 @@ spec:
   podManagementPolicy: Parallel
   updateStrategy:
     type: RollingUpdate
+  minReadySeconds: 15
   selector:
     matchLabels:
       app: vault
@@ -35,6 +36,7 @@ spec:
                   - vault
               topologyKey: kubernetes.io/hostname
       shareProcessNamespace: true
+      terminationGracePeriodSeconds: 60
       securityContext:
         runAsNonRoot: true
         runAsUser: 20001
@@ -145,6 +147,28 @@ spec:
             limits:
               cpu: "${vault_consul_agent_resources.limits.cpu}"
               memory: "${vault_consul_agent_resources.limits.memory}"
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - CONSUL_HTTP_ADDR=http://127.0.0.1:8500 consul operator raft list-peers >/dev/null
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 1
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -ec
+                  - |
+                    CONSUL_HTTP_TOKEN=$(cat /etc/consul/secrets/acl_agent_token 2>/dev/null || true)
+                    export CONSUL_HTTP_ADDR=http://127.0.0.1:8500
+                    [ -n "$CONSUL_HTTP_TOKEN" ] && export CONSUL_HTTP_TOKEN
+                    consul leave || true
+                    sleep 5
         - name: vault
           image: ${vault_image}
           imagePullPolicy: IfNotPresent
@@ -186,6 +210,9 @@ spec:
               port: 8200
               scheme: HTTPS
             initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 1
           resources:
             requests:
               cpu: "${vault_resources.requests.cpu}"
