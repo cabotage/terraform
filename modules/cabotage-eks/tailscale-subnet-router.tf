@@ -210,10 +210,20 @@ resource "aws_launch_template" "tailscale_subnet_router" {
 
     # Install Tailscale
     curl -fsSL https://tailscale.com/install.sh | sh
+    dnf install -y jq
+
+    ID_TOKEN="$(aws sts get-web-identity-token \
+      --audience "${var.tailscale_workload_identity_audience}" \
+      --duration-seconds 300 \
+      --signing-algorithm RS256 \
+      --region "${data.aws_region.current.id}" \
+      --query WebIdentityToken \
+      --output text)"
 
     # Start Tailscale as a subnet router using workload identity federation
     tailscale up \
       --client-id="${var.tailscale_workload_identity_client_id}" \
+      --id-token="$ID_TOKEN" \
       --audience="${var.tailscale_workload_identity_audience}" \
       --advertise-routes="${var.vpc_cidr}" \
       --advertise-tags="${join(",", var.tailscale_subnet_router_tags)}" \

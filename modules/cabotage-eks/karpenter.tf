@@ -8,6 +8,7 @@ module "karpenter" {
   cluster_name = module.eks.cluster_name
 
   create_pod_identity_association = true
+  enable_inline_policy            = true
   namespace                       = "kube-system"
 
   create_node_iam_role = true

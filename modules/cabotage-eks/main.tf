@@ -260,6 +260,8 @@ resource "helm_release" "metrics_server" {
 # --- NodeLocal DNSCache ---
 
 resource "helm_release" "node_local_dns" {
+  count = var.enable_node_local_dns ? 1 : 0
+
   name       = "node-local-dns"
   repository = "oci://ghcr.io/deliveryhero/helm-charts"
   chart      = "node-local-dns"
@@ -338,4 +340,3 @@ resource "kubernetes_service_v1" "ingress_hairpin" {
 
   depends_on = [kubernetes_namespace_v1.ingress_controller]
 }
-

@@ -114,6 +114,12 @@ variable "node_local_dns_chart_version" {
   default     = "2.7.0"
 }
 
+variable "enable_node_local_dns" {
+  description = "Install NodeLocal DNSCache via Helm. Disable during bootstrap if NodeLocal DNS was installed manually to repair CoreDNS."
+  type        = bool
+  default     = true
+}
+
 variable "ingress_hairpin_domains" {
   description = "Domains to hairpin via the in-cluster ingress controller. All *.domain queries from nodes will resolve to the ingress controller's internal ClusterIP."
   type        = list(string)
