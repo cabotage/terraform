@@ -73,7 +73,7 @@ locals {
     CABOTAGE_BACKING_SERVICES_POOL = var.karpenter_backing_services_pool_name
     CABOTAGE_PREVIEW_POOL          = var.karpenter_preview_pool_name
     CABOTAGE_STANDARD_POOL         = var.karpenter_standard_pool_name
-  } : {})
+  } : {}, var.cabotage_app_extra_config)
   cabotage_app_config_hash = sha256(jsonencode(local.cabotage_app_config_data))
 }
 

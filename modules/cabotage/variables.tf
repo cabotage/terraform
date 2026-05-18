@@ -273,6 +273,12 @@ variable "cabotage_app_image" {
   default     = "ghcr.io/cabotage/cabotage-app:latest"
 }
 
+variable "cabotage_app_extra_config" {
+  description = "Additional environment variables to add to the cabotage app config map."
+  type        = map(string)
+  default     = {}
+}
+
 variable "enable_karpenter" {
   description = "Whether Karpenter is enabled — configures node pool tolerations for tenant workloads"
   type        = bool
