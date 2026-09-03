@@ -394,6 +394,12 @@ variable "backing_service_redis_enabled" {
   default     = true
 }
 
+variable "backing_service_clickhouse_enabled" {
+  description = "Enable app-managed ClickHouse backing services in Cabotage"
+  type        = bool
+  default     = false
+}
+
 variable "tenant_postgres_backup_enabled" {
   description = "Expose tenant Postgres backup configuration to Cabotage for app-managed CNPG clusters"
   type        = bool
@@ -804,6 +810,18 @@ variable "redis_operator_chart_version" {
   description = "Helm chart version for Redis operator"
   type        = string
   default     = "0.23.0"
+}
+
+variable "clickhouse_operator_chart_version" {
+  description = "Helm chart version for the ClickHouse operator"
+  type        = string
+  default     = "0.0.7"
+}
+
+variable "enable_clickhouse_operator" {
+  description = "Install the ClickHouse operator (opt-in; cnpg/redis are unconditional)"
+  type        = bool
+  default     = false
 }
 
 variable "security_confirmable" {
