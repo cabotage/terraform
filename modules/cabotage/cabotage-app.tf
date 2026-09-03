@@ -28,6 +28,7 @@ locals {
     CABOTAGE_ALERTMANAGER_VERIFY                                   = "/var/run/secrets/cabotage.io/ca.crt"
     CABOTAGE_BACKING_SERVICE_POSTGRES_ENABLED                      = var.backing_service_postgres_enabled ? "True" : "False"
     CABOTAGE_BACKING_SERVICE_REDIS_ENABLED                         = var.backing_service_redis_enabled ? "True" : "False"
+    CABOTAGE_BACKING_SERVICE_CLICKHOUSE_ENABLED                    = var.backing_service_clickhouse_enabled ? "True" : "False"
     CABOTAGE_NETWORK_POLICIES_ENABLED                              = "True"
     CABOTAGE_OMNIBUS_BUILDS                                        = "True"
     CABOTAGE_PROXY_FIX_NUM_PROXIES                                 = tostring(var.proxy_fix_num_proxies)
