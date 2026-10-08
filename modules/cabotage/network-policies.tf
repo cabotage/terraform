@@ -105,6 +105,13 @@ resource "kubectl_manifest" "netpol_allow_loki" {
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
 
+resource "kubectl_manifest" "netpol_allow_tenant_log_export" {
+  count     = var.enable_log_export ? 1 : 0
+  yaml_body = file("${path.module}/manifests/network-policies/01-allow-tenant-log-export.yml")
+
+  depends_on = [kubernetes_namespace_v1.cabotage]
+}
+
 # --- cabotage-tenant-builds namespace ---
 
 resource "kubectl_manifest" "netpol_default_deny_builds" {

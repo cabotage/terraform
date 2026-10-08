@@ -1,0 +1,29 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: tenant-log-export-tls
+  namespace: cabotage
+spec:
+  secretName: tenant-log-export-tls
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  subject:
+    organizations:
+    - cabotage
+  commonName: tenant-log-export
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  usages:
+    - digital signature
+    - key encipherment
+  dnsNames:
+  - tenant-log-export
+  - tenant-log-export.cabotage
+  - tenant-log-export.cabotage.svc
+  - tenant-log-export.cabotage.svc.cluster.local
+  issuerRef:
+    name: certificate-approver-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
