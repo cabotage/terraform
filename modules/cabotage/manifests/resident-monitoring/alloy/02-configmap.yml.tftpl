@@ -65,6 +65,14 @@ data:
         source_labels = ["__meta_kubernetes_pod_label_cabotage_io_infra"]
         target_label  = "cabotage_io_infra"
       }
+%{ if log_export_enabled ~}
+
+      // Tenant log export opt-in, set by cabotage; never written to Loki.
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_log_export_cabotage_io"]
+        target_label  = "log_export"
+      }
+%{ endif ~}
     }
 
     // --- Metrics: scrape cAdvisor directly from kubelet (not via API server proxy) ---
@@ -314,7 +322,7 @@ data:
 
     loki.source.file "resident_pods" {
       targets    = local.file_match.resident_pods.targets
-      forward_to = [loki.process.resident_pods.receiver]
+      forward_to = [loki.process.resident_pods.receiver%{ if log_export_enabled }, loki.process.tenant_export.receiver%{ endif }]
 
       file_watch {
         min_poll_frequency = "250ms"
@@ -323,6 +331,12 @@ data:
     }
 
     loki.process "resident_pods" {
+%{ if log_export_enabled ~}
+      stage.label_drop {
+        values = ["log_export"]
+      }
+
+%{ endif ~}
       stage.labels {
         values = {
           namespace      = "namespace",
@@ -346,6 +360,55 @@ data:
 
       forward_to = [loki.write.default.receiver]
     }
+%{ if log_export_enabled ~}
+
+    // --- Logs: tenant log export ---
+    // Opted-in pods' process container logs go to the tenant-log-export
+    // Fluent Bit, which routes on tenant.<namespace>.<app> and reads the
+    // original line from _entry (cabotage-app renders the matching outputs).
+    // Its OTLP queue drops when full, so a stalled exporter never blocks Loki.
+
+    loki.process "tenant_export" {
+      stage.match {
+        selector = "{namespace=~\".+\", log_export!=\"true\"}"
+        action   = "drop"
+      }
+
+      // Only the application's own container, not cabotage/Datadog sidecars.
+      stage.template {
+        source   = "is_process"
+        template = "{{ if eq .pod_container_name .process }}true{{ end }}"
+      }
+
+      stage.drop {
+        source     = "is_process"
+        expression = "^$"
+      }
+
+      stage.cri {}
+
+      stage.pack {
+        labels = ["namespace", "app", "organization", "project", "application", "environment", "process", "release", "pod_name", "stream"]
+      }
+
+      forward_to = [otelcol.receiver.loki.tenant_export.receiver]
+    }
+
+    otelcol.receiver.loki "tenant_export" {
+      output {
+        logs = [otelcol.exporter.otlphttp.tenant_export.input]
+      }
+    }
+
+    otelcol.exporter.otlphttp "tenant_export" {
+      client {
+        endpoint = "https://tenant-log-export.cabotage.svc.cluster.local:4318"
+        tls {
+          ca_file = "/var/run/secrets/cabotage.io/ca.crt"
+        }
+      }
+    }
+%{ endif ~}
 
     loki.write "default" {
       endpoint {
