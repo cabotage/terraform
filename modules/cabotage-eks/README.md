@@ -151,6 +151,8 @@ Each cluster's VPC CIDR must be unique if multiple clusters share the same tailn
 | Kubernetes provider | >= 2.20 |
 | Helm provider | >= 2.10 |
 
+When upgrading an existing Karpenter installation, [upgrade its CRDs alongside the controller](https://karpenter.sh/docs/upgrading/upgrade-guide/#crd-upgrades). The controller Helm chart installs CRDs initially but does not upgrade existing CRDs.
+
 ## Inputs
 
 | Name | Description | Type | Default |
@@ -179,6 +181,7 @@ Each cluster's VPC CIDR must be unique if multiple clusters share the same tailn
 | `enable_vault_auto_unseal` | Create KMS key + IRSA role for Vault auto-unseal | `bool` | `false` |
 | `vault_namespace` | Kubernetes namespace where Vault runs | `string` | `"cabotage"` |
 | `enable_karpenter` | Deploy Karpenter for dynamic node provisioning | `bool` | `false` |
+| `karpenter_chart_version` | Helm chart version for Karpenter (default supports Kubernetes 1.36) | `string` | `"1.13.1"` |
 | `karpenter_ami_alias_version` | AL2023 AMI alias version for Karpenter nodes | `string` | `"latest"` |
 | `karpenter_standard_instance_families` | Instance families for the standard Karpenter node pool | `list(string)` | `["m8g", "c8g", "r8g"]` |
 | `karpenter_standard_instance_sizes` | Allowed instance sizes for the standard Karpenter node pool | `list(string)` | `["large", "xlarge", "2xlarge", "4xlarge"]` |
