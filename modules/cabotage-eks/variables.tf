@@ -309,7 +309,7 @@ variable "enable_karpenter" {
 variable "karpenter_chart_version" {
   description = "Helm chart version for Karpenter"
   type        = string
-  default     = "1.10.0"
+  default     = "1.13.1"
 }
 
 variable "karpenter_ami_alias_version" {
