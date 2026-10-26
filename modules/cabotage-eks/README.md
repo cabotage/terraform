@@ -147,11 +147,10 @@ Each cluster's VPC CIDR must be unique if multiple clusters share the same tailn
 | Name | Version |
 |------|---------|
 | Terraform | >= 1.5.7 |
-| AWS provider | >= 6.0 |
+| AWS provider | >= 6.42 |
 | Kubernetes provider | >= 2.20 |
 | Helm provider | >= 2.10 |
-
-When upgrading an existing Karpenter installation, [upgrade its CRDs alongside the controller](https://karpenter.sh/docs/upgrading/upgrade-guide/#crd-upgrades). The controller Helm chart installs CRDs initially but does not upgrade existing CRDs.
+| terraform-aws-modules/eks | 21.23.0 |
 
 ## Inputs
 
