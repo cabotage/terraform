@@ -47,6 +47,12 @@ rules:
       - deployments/scale
   - verbs:
       - get
+    apiGroups:
+      - apps
+    resources:
+      - replicasets
+  - verbs:
+      - get
       - list
       - create
       - patch
