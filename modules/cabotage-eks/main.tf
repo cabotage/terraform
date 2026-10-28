@@ -183,7 +183,10 @@ resource "aws_iam_role_policy" "cabotage_app_cost" {
   name = "cabotage-app-cost-read"
   role = module.cabotage_app_irsa[0].name
 
-  # Neither API supports resource-level permissions.
+  # Who can use these is pinned by the IRSA trust policy (sub + aud for
+  # cabotage:cabotage-app only). pricing:GetProducts has no resource types or
+  # condition keys; ce:GetCostAndUsage only scopes by billing view, and the app
+  # reads the account's default view.
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
