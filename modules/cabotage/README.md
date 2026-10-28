@@ -116,6 +116,7 @@ The module also uses the `kubernetes`, `helm`, `random`, and `null` providers (v
 | `ca_admission_replicas` | Number of replicas | `number` | `2` |
 | **Cabotage app** | | | |
 | `cabotage_app_image` | Container image | `string` | `"ghcr.io/cabotage/cabotage-app:latest"` |
+| `cabotage_app_irsa_role_arn` | IRSA role ARN for the cabotage-app service account (AWS pricing + Cost Explorer) | `string` | `""` |
 | `cabotage_ingress_domain` | Domain for cabotage-managed app ingress | `string` | `"cabotage.app"` |
 | `github_app_id` | GitHub App ID (empty to skip) | `string` | `""` |
 | `github_oauth_only` | Restrict login to GitHub OAuth only | `bool` | `false` |

@@ -152,6 +152,12 @@ variable "vault_namespace" {
   default     = "cabotage"
 }
 
+variable "enable_cabotage_app_cost_access" {
+  description = "Create an IRSA role for the cabotage-app service account that can read AWS prices and Cost Explorer usage (cost dashboard)"
+  type        = bool
+  default     = false
+}
+
 # --- S3 Storage ---
 
 variable "enable_s3_storage" {

@@ -158,6 +158,47 @@ resource "aws_iam_role_policy" "vault_unseal_kms" {
   })
 }
 
+# --- Cabotage app cost data ---
+
+module "cabotage_app_irsa" {
+  count   = var.enable_cabotage_app_cost_access ? 1 : 0
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts"
+  version = "~> 6.0"
+
+  name = "${var.cluster_name}-cabotage-app"
+
+  oidc_providers = {
+    main = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["cabotage:cabotage-app"]
+    }
+  }
+
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy" "cabotage_app_cost" {
+  count = var.enable_cabotage_app_cost_access ? 1 : 0
+
+  name = "cabotage-app-cost-read"
+  role = module.cabotage_app_irsa[0].name
+
+  # Who can use these is pinned by the IRSA trust policy (sub + aud for
+  # cabotage:cabotage-app only). pricing:GetProducts has no resource types or
+  # condition keys; ce:GetCostAndUsage only scopes by billing view, and the app
+  # reads the account's default view.
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["ce:GetCostAndUsage", "pricing:GetProducts"]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # --- EBS CSI Driver ---
 
 module "ebs_csi_irsa" {

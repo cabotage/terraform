@@ -13,6 +13,7 @@ Terraform module that provisions an opinionated EKS cluster for [Cabotage](https
 - **Karpenter** (optional) — Dynamic node provisioning with dedicated `standard`, `preview`, and `backing-services` NodePools.
 - **Ingress hairpin routing** (optional) — For specified domains, NodeLocal DNS resolves `*.domain` to an in-cluster ingress controller ClusterIP, allowing pod-to-pod traffic to stay inside the cluster instead of looping through an external load balancer. Requires configuring `ingress_hairpin_domains`.
 - **Vault auto-unseal** (optional) — KMS key + IRSA role that lets Vault auto-unseal using AWS KMS. Enable with `enable_vault_auto_unseal`.
+- **Cabotage app cost data** (optional) — IRSA role for the `cabotage/cabotage-app` service account allowing `ce:GetCostAndUsage` and `pricing:GetProducts`, used by the platform cost dashboard. Enable with `enable_cabotage_app_cost_access` and pass `cabotage_app_irsa_role_arn` to the `cabotage` module.
 - **Tailscale subnet router** (optional) — EC2-based subnet router that advertises VPC routes to a Tailscale tailnet, enabling private access to the EKS API server without exposing it publicly. Authenticates via Tailscale Workload Identity Federation (no static keys). Enable with `enable_tailscale_subnet_router`.
 
 ## Usage
@@ -180,6 +181,7 @@ When upgrading an existing Karpenter installation, [upgrade its CRDs alongside t
 | `ingress_controller_selector` | Label selector for ingress controller pods | `map(string)` | `{"app.kubernetes.io/name": "traefik"}` |
 | `enable_vault_auto_unseal` | Create KMS key + IRSA role for Vault auto-unseal | `bool` | `false` |
 | `vault_namespace` | Kubernetes namespace where Vault runs | `string` | `"cabotage"` |
+| `enable_cabotage_app_cost_access` | Create IRSA role for cabotage-app AWS pricing + Cost Explorer reads | `bool` | `false` |
 | `enable_karpenter` | Deploy Karpenter for dynamic node provisioning | `bool` | `false` |
 | `karpenter_chart_version` | Helm chart version for Karpenter (default supports Kubernetes 1.36) | `string` | `"1.13.1"` |
 | `karpenter_ami_alias_version` | AL2023 AMI alias version for Karpenter nodes | `string` | `"latest"` |
@@ -224,6 +226,7 @@ When upgrading an existing Karpenter installation, [upgrade its CRDs alongside t
 | `cluster_oidc_provider_arn` | OIDC provider ARN for IRSA/Pod Identity |
 | `vault_unseal_kms_key_id` | KMS key ID for Vault unseal (empty if disabled) |
 | `vault_unseal_irsa_role_arn` | IRSA role ARN for Vault unseal (empty if disabled) |
+| `cabotage_app_irsa_role_arn` | IRSA role ARN for the cabotage-app service account (empty if disabled) |
 | `s3_storage` | S3 storage configuration, including infra and tenant CNPG backup IAM details (null if disabled) |
 | `node_group_autoscaling_group_names` | Map of node group names to ASG names |
 | `tailscale_subnet_router_autoscaling_group_name` | Subnet router ASG name (empty if disabled) |
