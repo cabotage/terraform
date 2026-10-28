@@ -84,7 +84,9 @@ resource "kubectl_manifest" "cabotage_app_role" {
 }
 
 resource "kubectl_manifest" "cabotage_app_serviceaccount" {
-  yaml_body = file("${path.module}/manifests/cabotage-app/01-serviceaccount.yml")
+  yaml_body = templatefile("${path.module}/manifests/cabotage-app/01-serviceaccount.yml.tftpl", {
+    irsa_role_arn = var.cabotage_app_irsa_role_arn
+  })
 
   depends_on = [kubernetes_namespace_v1.cabotage]
 }
