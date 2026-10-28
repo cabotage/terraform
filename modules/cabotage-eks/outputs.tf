@@ -38,6 +38,11 @@ output "vault_unseal_irsa_role_arn" {
   value       = var.enable_vault_auto_unseal ? module.vault_unseal_irsa[0].arn : ""
 }
 
+output "cabotage_app_irsa_role_arn" {
+  description = "IRSA role ARN for the cabotage-app service account (empty if disabled)"
+  value       = var.enable_cabotage_app_cost_access ? module.cabotage_app_irsa[0].arn : ""
+}
+
 output "s3_storage" {
   description = "S3 storage configuration for the cabotage module (null when disabled)"
   value = var.enable_s3_storage ? {
