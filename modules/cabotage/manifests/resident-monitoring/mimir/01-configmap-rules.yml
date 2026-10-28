@@ -9,12 +9,16 @@ data:
       - name: traefik_latency
         interval: 10s
         rules:
+          # Built from the service-level histogram: the router-level one carries
+          # the same requests per router and is ~2x the series, and these rules
+          # re-read every bucket each evaluation. Record names keep the
+          # `router` prefix because cabotage-app queries them by name.
           - record: traefik:router_request_duration_seconds_bucket:rate30s
-            expr: sum by (le, service) (rate(traefik_router_request_duration_seconds_bucket[30s]))
+            expr: sum by (le, service) (rate(traefik_service_request_duration_seconds_bucket[30s]))
           - record: traefik:router_request_duration_seconds_bucket:rate1m
-            expr: sum by (le, service) (rate(traefik_router_request_duration_seconds_bucket[1m]))
+            expr: sum by (le, service) (rate(traefik_service_request_duration_seconds_bucket[1m]))
           - record: traefik:router_request_duration_seconds_bucket:rate5m
-            expr: sum by (le, service) (rate(traefik_router_request_duration_seconds_bucket[5m]))
+            expr: sum by (le, service) (rate(traefik_service_request_duration_seconds_bucket[5m]))
 
           - record: traefik:router_request_duration_seconds:p99_1m
             expr: histogram_quantile(0.99, traefik:router_request_duration_seconds_bucket:rate1m)
