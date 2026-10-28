@@ -279,6 +279,12 @@ variable "cabotage_app_extra_config" {
   default     = {}
 }
 
+variable "cabotage_app_irsa_role_arn" {
+  description = "IRSA role ARN for the cabotage-app service account, for AWS pricing and Cost Explorer reads (empty to disable)"
+  type        = string
+  default     = ""
+}
+
 variable "enable_karpenter" {
   description = "Whether Karpenter is enabled — configures node pool tolerations for tenant workloads"
   type        = bool
