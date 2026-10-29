@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  namespace: cabotage
+  name: tenant-log-export
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: tenant-log-export

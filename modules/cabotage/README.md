@@ -44,6 +44,7 @@ Designed to be used alongside [`cabotage-eks`](../cabotage-eks), which provision
 - **Alloy** — DaemonSet log/metrics collector.
 - **Loki** — Log aggregation (read/write/backend StatefulSets) with RustFS-backed S3 storage.
 - **Mimir** — Metrics storage (read/write/backend StatefulSets) with RustFS-backed S3 storage and alerting rules.
+- **Tenant log export (optional)** — When `enable_log_export = true`, a `tenant-log-export` Fluent Bit StatefulSet receives opted-in tenant pods' logs from Alloy over OTLP/TLS and sends them to each tenant's own Datadog account. Cabotage writes one output per application environment into the `tenant-log-export` Secret, and Fluent Bit hot-reloads on changes. Tenant pods get no sidecar or host mount. When `false` (the default), none of these resources are created, the Alloy config is unchanged, and Cabotage's Logging tab shows export as not available.
 
 ## Usage
 
@@ -174,6 +175,7 @@ The module also uses the `kubernetes`, `helm`, `random`, and `null` providers (v
 | `mimir_backend_replicas` | Mimir backend replicas | `number` | `1` |
 | `mimir_read_replicas` | Mimir read replicas | `number` | `1` |
 | `mimir_write_replicas` | Mimir write replicas | `number` | `1` |
+| `enable_log_export` | Deploy the tenant-log-export Fluent Bit and Alloy export branch, and enable tenant log export in Cabotage | `bool` | `false` |
 | **Karpenter** | | | |
 | `enable_karpenter` | Configure Cabotage with Karpenter node pool names for tenant workload placement | `bool` | `false` |
 | `karpenter_standard_pool_name` | Name of the Karpenter node pool for non-ephemeral workloads | `string` | `"standard"` |

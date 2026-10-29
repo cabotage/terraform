@@ -1015,6 +1015,36 @@ variable "kube_state_metrics_resources" {
   }
 }
 
+variable "enable_log_export" {
+  description = "Deploy the tenant-log-export Fluent Bit and the Alloy branch that feeds it, and let tenants export application logs to their own Datadog account (CABOTAGE_LOG_EXPORT_ENABLED)"
+  type        = bool
+  default     = false
+}
+
+variable "tenant_log_export_resources" {
+  description = "CPU/memory requests and limits for each tenant-log-export Fluent Bit replica"
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "50m"
+      memory = "64Mi"
+    }
+    limits = {
+      cpu    = "500m"
+      memory = "256Mi"
+    }
+  }
+}
+
 variable "loki_write_resources" {
   description = "CPU/memory requests and limits for the Loki write StatefulSet"
   type = object({

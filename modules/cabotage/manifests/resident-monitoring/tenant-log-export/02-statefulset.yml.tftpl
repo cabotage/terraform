@@ -1,0 +1,132 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: tenant-log-export
+  namespace: cabotage
+  labels:
+    app: tenant-log-export
+    cabotage.io/infra: "true"
+spec:
+  serviceName: tenant-log-export
+  replicas: 2
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: tenant-log-export
+  template:
+    metadata:
+      labels:
+        app: tenant-log-export
+        cabotage.io/infra: "true"
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: tenant-log-export
+              topologyKey: kubernetes.io/hostname
+      containers:
+      - name: fluent-bit
+        image: cr.fluentbit.io/fluent/fluent-bit:4.2.2
+        args:
+        - -c
+        - /fluent-bit/etc/cabotage/fluent-bit.yaml
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+        ports:
+        - containerPort: 4318
+          name: otlp
+        readinessProbe:
+          tcpSocket:
+            port: otlp
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: otlp
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "${resources.requests.cpu}"
+            memory: "${resources.requests.memory}"
+          limits:
+            cpu: "${resources.limits.cpu}"
+            memory: "${resources.limits.memory}"
+        volumeMounts:
+        - name: config
+          mountPath: /fluent-bit/etc/cabotage
+          readOnly: true
+        - name: tenants
+          mountPath: /fluent-bit/tenants
+          readOnly: true
+        - name: tls
+          mountPath: /fluent-bit/tls
+          readOnly: true
+        - name: storage
+          mountPath: /var/lib/fluent-bit
+      # Hot-reloads Fluent Bit when the kubelet swaps a mounted volume.
+      - name: reload
+        image: ghcr.io/jimmidyson/configmap-reload:v0.15.0
+        args:
+        - --volume-dir=/fluent-bit/etc/cabotage
+        - --volume-dir=/fluent-bit/tenants
+        - --volume-dir=/fluent-bit/tls
+        - --webhook-url=http://127.0.0.1:2020/api/v2/reload
+        - --webhook-method=POST
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+        resources:
+          requests:
+            cpu: 5m
+            memory: 16Mi
+          limits:
+            cpu: 50m
+            memory: 32Mi
+        volumeMounts:
+        - name: config
+          mountPath: /fluent-bit/etc/cabotage
+          readOnly: true
+        - name: tenants
+          mountPath: /fluent-bit/tenants
+          readOnly: true
+        - name: tls
+          mountPath: /fluent-bit/tls
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: tenant-log-export-config
+      - name: tenants
+        secret:
+          secretName: tenant-log-export
+      - name: tls
+        secret:
+          secretName: tenant-log-export-tls
+  # Filesystem buffers (up to 64M per tenant output) survive restarts.
+  volumeClaimTemplates:
+  - metadata:
+      name: storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 2Gi

@@ -22,6 +22,7 @@ locals {
     CABOTAGE_KUBERNETES_ENABLED                                    = "True"
     CABOTAGE_LOKI_URL                                              = "https://resident-loki-read.cabotage.svc.cluster.local:3100"
     CABOTAGE_LOKI_VERIFY                                           = "/var/run/secrets/cabotage.io/ca.crt"
+    CABOTAGE_LOG_EXPORT_ENABLED                                    = var.enable_log_export ? "True" : "False"
     CABOTAGE_MIMIR_URL                                             = "https://resident-mimir-read.cabotage.svc.cluster.local:8080"
     CABOTAGE_MIMIR_VERIFY                                          = "/var/run/secrets/cabotage.io/ca.crt"
     CABOTAGE_ALERTMANAGER_URL                                      = "https://resident-mimir-backend.cabotage.svc.cluster.local:8080/alertmanager"
