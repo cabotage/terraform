@@ -48,7 +48,7 @@ resource "helm_release" "traefik" {
     }
 
     providers = {
-      kubernetesIngressNginx = {
+      kubernetesIngressNGINX = {
         enabled = true
       }
     }
