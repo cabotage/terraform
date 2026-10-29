@@ -287,7 +287,7 @@ variable "tailscale_subnet_router_tags" {
 }
 
 variable "tailscale_subnet_router_ami_id" {
-  description = "AMI ID for the Tailscale subnet router instances (empty string uses latest AL2023 ARM)"
+  description = "AMI ID for the Tailscale subnet router instances (empty string uses the latest minimal AL2023 ARM AMI)"
   type        = string
   default     = ""
 }
