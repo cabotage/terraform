@@ -1275,8 +1275,10 @@ variable "tailscale_operator_manager_resources" {
       cpu    = "25m"
       memory = "128Mi"
     }
+    # Kopf needs ~37s to start under a 25m limit, longer than the liveness
+    # probe allows; 250m starts in ~1.4s.
     limits = {
-      cpu    = "25m"
+      cpu    = "250m"
       memory = "128Mi"
     }
   }
