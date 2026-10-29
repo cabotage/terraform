@@ -23,12 +23,10 @@ resource "helm_release" "traefik" {
       replicas = var.traefik_replicas
     }
 
-    logs = {
-      access = {
+    accessLogs = {
         enabled = true
         format  = "json"
       }
-    }
 
     ports = {
       web = merge({

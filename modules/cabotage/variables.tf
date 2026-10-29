@@ -18,7 +18,7 @@ variable "proxy_protocol_cidrs" {
 variable "traefik_chart_version" {
   description = "Helm chart version for Traefik"
   type        = string
-  default     = "39.0.7"
+  default     = "42.1.3"
 }
 
 variable "traefik_replicas" {
