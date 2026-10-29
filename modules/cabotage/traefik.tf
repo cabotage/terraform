@@ -23,7 +23,7 @@ resource "helm_release" "traefik" {
       replicas = var.traefik_replicas
     }
 
-    accessLogs = {
+    accessLog = {
         enabled = true
         format  = "json"
       }
