@@ -23,12 +23,10 @@ resource "helm_release" "traefik" {
       replicas = var.traefik_replicas
     }
 
-    logs = {
-      access = {
+    accessLog = {
         enabled = true
         format  = "json"
       }
-    }
 
     ports = {
       web = merge({
@@ -50,7 +48,7 @@ resource "helm_release" "traefik" {
     }
 
     providers = {
-      kubernetesIngressNginx = {
+      kubernetesIngressNGINX = {
         enabled = true
       }
     }
