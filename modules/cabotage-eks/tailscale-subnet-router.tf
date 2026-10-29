@@ -49,20 +49,11 @@ resource "aws_iam_role_policy" "tailscale_operator_sts" {
 
 # --- Tailscale Subnet Router (EC2) ---
 
-data "aws_ami" "amazon_linux_2023_arm" {
-  count       = var.enable_tailscale_subnet_router && var.tailscale_subnet_router_ami_id == "" ? 1 : 0
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["al2023-ami-*-arm64"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
+# AWS-published pointer to the latest minimal AL2023 ARM AMI. A name filter
+# like "al2023-ami-*-arm64" also matches ECS-optimized images.
+data "aws_ssm_parameter" "amazon_linux_2023_arm" {
+  count = var.enable_tailscale_subnet_router && var.tailscale_subnet_router_ami_id == "" ? 1 : 0
+  name  = "/aws/service/ami-amazon-linux-latest/al2023-ami-minimal-kernel-default-arm64"
 }
 
 resource "aws_security_group" "tailscale_subnet_router" {
@@ -182,7 +173,7 @@ resource "aws_launch_template" "tailscale_subnet_router" {
   count = var.enable_tailscale_subnet_router ? 1 : 0
 
   name_prefix   = "${var.cluster_name}-ts-sr-"
-  image_id      = var.tailscale_subnet_router_ami_id != "" ? var.tailscale_subnet_router_ami_id : data.aws_ami.amazon_linux_2023_arm[0].id
+  image_id      = var.tailscale_subnet_router_ami_id != "" ? var.tailscale_subnet_router_ami_id : data.aws_ssm_parameter.amazon_linux_2023_arm[0].insecure_value
   instance_type = var.tailscale_subnet_router_instance_type
 
   iam_instance_profile {
