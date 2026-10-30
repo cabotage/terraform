@@ -31,8 +31,23 @@ rules:
       - secrets
       - configmaps
       - persistentvolumeclaims
-      - persistentvolume
       - services
+  # Cost collector prices nodes, PersistentVolumes, and the EBS StorageClass.
+  - verbs:
+      - get
+      - list
+    apiGroups:
+      - ''
+    resources:
+      - nodes
+      - persistentvolumes
+  - verbs:
+      - get
+      - list
+    apiGroups:
+      - storage.k8s.io
+    resources:
+      - storageclasses
   - verbs:
       - get
       - list
