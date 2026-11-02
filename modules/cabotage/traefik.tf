@@ -111,7 +111,7 @@ resource "helm_release" "traefik" {
       }
       } : var.traefik_load_balancer ? {
       type        = "LoadBalancer"
-      annotations = {}
+      annotations = var.traefik_service_annotations
       } : {
       type        = "NodePort"
       annotations = {}
