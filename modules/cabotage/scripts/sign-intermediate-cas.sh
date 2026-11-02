@@ -14,7 +14,7 @@ cat > "$TMPDIR/ext.cnf" <<EOF
 basicConstraints = critical, CA:TRUE, pathlen:0
 keyUsage = critical, digitalSignature, keyCertSign, cRLSign
 subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid:always,issuer
+authorityKeyIdentifier = issuer
 EOF
 
 CA_CERT_FILE="${CA_CERT_FILE:-$CA_CERT_FILE}"
