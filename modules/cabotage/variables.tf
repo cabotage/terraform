@@ -45,6 +45,12 @@ variable "traefik_host_network" {
   default     = false
 }
 
+variable "traefik_service_annotations" {
+  description = "Extra annotations to merge onto the Traefik Service (e.g. to pin a LoadBalancer IP with an IPAM annotation like lbipam.cilium.io/ips)."
+  type        = map(string)
+  default     = {}
+}
+
 variable "traefik_nlb_idle_timeout" {
   description = "AWS NLB connection idle timeout in seconds"
   type        = number
@@ -99,6 +105,24 @@ variable "enable_pebble_letsencrypt" {
   description = "Deploy Pebble local ACME server and Let's Encrypt ClusterIssuer"
   type        = bool
   default     = false
+}
+
+variable "enable_cert_manager" {
+  description = "Install cert-manager via this module. Set false to reuse an existing cluster-wide cert-manager installation (the CSI driver, which provides this module's internal mTLS material, is still installed either way)."
+  type        = bool
+  default     = true
+}
+
+variable "enable_coredns_hardening" {
+  description = "Patch CoreDNS to disable pod reverse-DNS/PTR lookups. Set false when the cluster's CoreDNS is managed outside this module (e.g. Talos-managed) and you don't want this module touching it."
+  type        = bool
+  default     = true
+}
+
+variable "enable_letsencrypt_issuer" {
+  description = "Create this module's own 'letsencrypt' ClusterIssuer (CA-based in dev mode, HTTP-01 ACME in prod mode). Set false to bring your own ClusterIssuer named 'letsencrypt' (or override tenant ingress cluster_issuer) when using a different ingress controller/ACME solver setup than this module's Traefik+nginx-ingress-class assumption."
+  type        = bool
+  default     = true
 }
 
 variable "acme_email" {

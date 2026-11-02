@@ -24,6 +24,7 @@ CN = ${CLUSTER_SHORT} Cabotage Root CA
 [v3_ca]
 basicConstraints = critical,CA:TRUE
 keyUsage = critical,keyCertSign,cRLSign
+subjectKeyIdentifier = hash
 EOF
   openssl req -new -x509 -key "$TMPDIR/ca.key" -out "$CA_CERT_FILE" \
     -days 3650 -config "$TMPDIR/openssl.cnf"

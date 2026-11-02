@@ -2,6 +2,7 @@
 # Step 3 in start-cluster
 
 resource "helm_release" "cert_manager" {
+  count            = var.enable_cert_manager ? 1 : 0
   name             = "cert-manager"
   repository       = "https://charts.jetstack.io"
   chart            = "cert-manager"
@@ -40,7 +41,7 @@ resource "helm_release" "cert_manager_csi_driver" {
 # --- Let's Encrypt ClusterIssuer (CA-based for dev, ACME for prod) ---
 
 resource "kubectl_manifest" "ca_letsencrypt_issuer" {
-  count = var.enable_pebble_letsencrypt ? 1 : 0
+  count = var.enable_letsencrypt_issuer && var.enable_pebble_letsencrypt ? 1 : 0
 
   yaml_body = yamlencode({
     apiVersion = "cert-manager.io/v1"
@@ -59,7 +60,7 @@ resource "kubectl_manifest" "ca_letsencrypt_issuer" {
 }
 
 resource "kubectl_manifest" "letsencrypt_issuer" {
-  count = var.enable_pebble_letsencrypt ? 0 : 1
+  count = var.enable_letsencrypt_issuer && !var.enable_pebble_letsencrypt ? 1 : 0
 
   yaml_body = yamlencode({
     apiVersion = "cert-manager.io/v1"
@@ -96,6 +97,8 @@ resource "kubectl_manifest" "letsencrypt_issuer" {
 # disabled mode.
 
 resource "null_resource" "coredns_hardening" {
+  count = var.enable_coredns_hardening ? 1 : 0
+
   triggers = {
     cluster_id = var.cluster_identifier
   }
