@@ -281,7 +281,7 @@ else
 basicConstraints = critical, CA:TRUE, pathlen:0
 keyUsage = critical, digitalSignature, keyCertSign, cRLSign
 subjectKeyIdentifier = hash
-authorityKeyIdentifier = issuer
+authorityKeyIdentifier = keyid:always,issuer
 EXTEOF
 
   secret_read_to_file "ca.key" "$TMPDIR/ca.key" || {
